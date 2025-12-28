@@ -1,0 +1,41 @@
+body {
+  font-family: "Avenir Next", "Avenir", "Trebuchet MS", sans-serif;
+  margin: 0;
+  background: #f8fafc;
+  color: #1f2933;
+}
+
+.container {
+  padding: 20px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.subtitle {
+  margin: 0 0 16px;
+  color: #5f6c7b;
+}
+
+button {
+  background: #0f766e;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #334155;
+}

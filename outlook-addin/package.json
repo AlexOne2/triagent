@@ -1,0 +1,26 @@
+{
+  "name": "mailtriage-outlook-addin",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "webpack --mode production",
+    "dev": "webpack serve --mode development --https --port 3001",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "office-js": "1.1.81"
+  },
+  "devDependencies": {
+    "@types/office-js": "1.0.363",
+    "css-loader": "6.10.0",
+    "html-loader": "5.1.0",
+    "html-webpack-plugin": "5.6.0",
+    "office-addin-dev-certs": "1.13.0",
+    "style-loader": "3.3.4",
+    "ts-loader": "9.5.1",
+    "typescript": "5.3.3",
+    "webpack": "5.90.1",
+    "webpack-cli": "5.1.4",
+    "webpack-dev-server": "4.15.2"
+  }
+}

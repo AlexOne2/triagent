@@ -1,0 +1,6 @@
+{
+  "backendUrl": "http://localhost:8000",
+  "reporterSalt": "change-me",
+  "apiUsername": "admin",
+  "apiPassword": "change-me"
+}
