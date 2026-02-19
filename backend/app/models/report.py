@@ -18,6 +18,32 @@ class IngestSource(str, enum.Enum):
     AUTO = "AUTO"
 
 
+CLASSIFICATION_CODES = (
+    "CRED_HARV",
+    "DRIVE_BY",
+    "RECON",
+    "REPLY_SOLICIT",
+    "SPOOF",
+    "MAL_ATTACH",
+    "MAL_URL",
+    "MAL_WEBAPP",
+    "MALWARE",
+    "COMPRO_SEND",
+    "THREAD_HIJACK",
+    "FIN_FRAUD",
+    "WEBMAIL",
+    "WHALE",
+    "VOLUME",
+    "SPEAR",
+    "POLY",
+    "IMPER",
+    "GOV_IMPER",
+    "3P_IMPER",
+    "T3P_IMPER",
+    "VIP_IMPER",
+)
+
+
 class Report(Base):
     __tablename__ = "reports"
 
@@ -41,6 +67,7 @@ class Report(Base):
     status: Mapped[ReportStatus] = mapped_column(
         Enum(ReportStatus, name="report_status"), default=ReportStatus.OPEN, nullable=False
     )
+    classification_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
     ingest_source: Mapped[IngestSource] = mapped_column(
         Enum(IngestSource, name="ingest_source"), default=IngestSource.UPLOAD, nullable=False
     )

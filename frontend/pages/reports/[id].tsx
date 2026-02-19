@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Report, updateReportStatus, fetchReport } from "../../lib/api";
+import {
+  CLASSIFICATION_CODES,
+  ClassificationCode,
+  Report,
+  fetchReport,
+  updateReport,
+} from "../../lib/api";
+
+function isClassificationCode(value: string): value is ClassificationCode {
+  return (CLASSIFICATION_CODES as readonly string[]).includes(value);
+}
 
 export default function ReportDetailPage() {
   const router = useRouter();
@@ -9,6 +19,7 @@ export default function ReportDetailPage() {
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -67,8 +78,27 @@ export default function ReportDetailPage() {
 
   const handleStatusChange = async (value: Report["status"]) => {
     if (!report) return;
-    const updated = await updateReportStatus(report.id, value);
-    setReport({ ...report, status: updated.status });
+    setUpdating(true);
+    try {
+      const updated = await updateReport(report.id, { status: value });
+      setReport(updated);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleClassificationChange = async (value: string) => {
+    if (!report) return;
+    setUpdating(true);
+    try {
+      const nextCode = value === "UNCLASSIFIED" ? null : isClassificationCode(value) ? value : null;
+      const updated = await updateReport(report.id, {
+        classification_code: nextCode,
+      });
+      setReport(updated);
+    } finally {
+      setUpdating(false);
+    }
   };
 
   if (loading) {
@@ -99,6 +129,7 @@ export default function ReportDetailPage() {
         <select
           className="select"
           value={report.status}
+          disabled={updating}
           onChange={(event) => handleStatusChange(event.target.value as Report["status"])}
         >
           <option value="OPEN">OPEN</option>
@@ -148,6 +179,22 @@ export default function ReportDetailPage() {
               <div>{latestReport?.reply_to?.join(", ") || "-"}</div>
               <label>Message ID</label>
               <div>{latestReport?.message_id || "-"}</div>
+              <label>Classification</label>
+              <div>
+                <select
+                  className="select"
+                  value={latestReport?.classification_code || "UNCLASSIFIED"}
+                  disabled={updating}
+                  onChange={(event) => handleClassificationChange(event.target.value)}
+                >
+                  <option value="UNCLASSIFIED">UNCLASSIFIED</option>
+                  {CLASSIFICATION_CODES.map((code) => (
+                    <option key={code} value={code}>
+                      {code}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <label>Return-Path</label>
               <div>{latestReport?.return_path || "-"}</div>
               <label>Originating IP + rDNS</label>

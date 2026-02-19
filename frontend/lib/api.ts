@@ -1,3 +1,30 @@
+export const CLASSIFICATION_CODES = [
+  "CRED_HARV",
+  "DRIVE_BY",
+  "RECON",
+  "REPLY_SOLICIT",
+  "SPOOF",
+  "MAL_ATTACH",
+  "MAL_URL",
+  "MAL_WEBAPP",
+  "MALWARE",
+  "COMPRO_SEND",
+  "THREAD_HIJACK",
+  "FIN_FRAUD",
+  "WEBMAIL",
+  "WHALE",
+  "VOLUME",
+  "SPEAR",
+  "POLY",
+  "IMPER",
+  "GOV_IMPER",
+  "3P_IMPER",
+  "T3P_IMPER",
+  "VIP_IMPER",
+] as const;
+
+export type ClassificationCode = (typeof CLASSIFICATION_CODES)[number];
+
 export type Report = {
   id: number;
   message_id?: string | null;
@@ -23,6 +50,7 @@ export type Report = {
   originating_rdns?: string | null;
   risk_score: number;
   status: "OPEN" | "BENIGN" | "PHISHING";
+  classification_code?: ClassificationCode | null;
   ingest_source?: "UPLOAD" | "AUTO";
   created_at: string;
 };
@@ -32,6 +60,39 @@ export type ReportStats = {
   open: number;
   benign: number;
   phishing: number;
+};
+
+export type DashboardOverview = {
+  kpis: {
+    total_ingested: number;
+    resolved_total: number;
+    resolved_malicious: number;
+    resolved_safe: number;
+  };
+  resolutions_timeseries: Array<{
+    date: string;
+    resolved_total: number;
+    resolved_malicious: number;
+    resolved_safe: number;
+  }>;
+  malicious_safe: {
+    malicious: number;
+    safe: number;
+  };
+  classifications: Array<{
+    code: string;
+    count: number;
+  }>;
+  top_to_addresses: Array<{
+    rank: number;
+    email: string;
+    count: number;
+  }>;
+  top_from_addresses: Array<{
+    rank: number;
+    email: string;
+    count: number;
+  }>;
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
@@ -79,10 +140,13 @@ export async function fetchReport(id: string | number): Promise<Report> {
   return request<Report>(`/api/reports/${id}`);
 }
 
-export async function updateReportStatus(id: number, status: Report["status"]): Promise<Report> {
+export async function updateReport(
+  id: number,
+  payload: { status?: Report["status"]; classification_code?: ClassificationCode | null }
+): Promise<Report> {
   return request<Report>(`/api/reports/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ status }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -104,4 +168,19 @@ export async function uploadEml(file: File): Promise<{ report_id: number; risk_s
 
 export async function fetchReportStats(): Promise<ReportStats> {
   return request<ReportStats>("/api/reports/stats");
+}
+
+export async function fetchDashboardOverview(params: {
+  start: string;
+  end: string;
+  tz?: string;
+}): Promise<DashboardOverview> {
+  const search = new URLSearchParams({
+    start: params.start,
+    end: params.end,
+  });
+  if (params.tz) {
+    search.set("tz", params.tz);
+  }
+  return request<DashboardOverview>(`/api/dashboard/overview?${search.toString()}`);
 }

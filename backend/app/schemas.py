@@ -1,9 +1,20 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models.report import IngestSource, ReportStatus
+from app.models.report import CLASSIFICATION_CODES, IngestSource, ReportStatus
+
+
+def _validate_classification(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    cleaned = value.strip().upper()
+    if not cleaned:
+        return None
+    if cleaned not in CLASSIFICATION_CODES:
+        raise ValueError("Invalid classification code")
+    return cleaned
 
 
 class ReportCreate(BaseModel):
@@ -29,6 +40,12 @@ class ReportCreate(BaseModel):
     return_path: Optional[str] = None
     originating_ip: Optional[str] = None
     originating_rdns: Optional[str] = None
+    classification_code: Optional[str] = None
+
+    @field_validator("classification_code", mode="before")
+    @classmethod
+    def validate_classification_code(cls, value):
+        return _validate_classification(value)
 
 
 class ReportOut(BaseModel):
@@ -58,14 +75,66 @@ class ReportOut(BaseModel):
     originating_rdns: Optional[str]
     risk_score: int
     status: ReportStatus
+    classification_code: Optional[str]
     ingest_source: IngestSource
     created_at: datetime
 
 
 class ReportUpdate(BaseModel):
-    status: ReportStatus
+    status: Optional[ReportStatus] = None
+    classification_code: Optional[str] = None
+
+    @field_validator("classification_code", mode="before")
+    @classmethod
+    def validate_classification_code(cls, value):
+        return _validate_classification(value)
+
+    @model_validator(mode="after")
+    def validate_update_payload(self):
+        if self.status is None and self.classification_code is None:
+            raise ValueError("At least one field is required")
+        return self
 
 
 class ReportResult(BaseModel):
     report_id: int
     risk_score: int
+
+
+class DashboardKpis(BaseModel):
+    total_ingested: int
+    resolved_total: int
+    resolved_malicious: int
+    resolved_safe: int
+
+
+class DashboardResolutionPoint(BaseModel):
+    date: str
+    resolved_total: int
+    resolved_malicious: int
+    resolved_safe: int
+
+
+class DashboardClassificationPoint(BaseModel):
+    code: str
+    count: int
+
+
+class DashboardMaliciousSafe(BaseModel):
+    malicious: int
+    safe: int
+
+
+class DashboardAddressPoint(BaseModel):
+    rank: int
+    email: str
+    count: int
+
+
+class DashboardOverviewOut(BaseModel):
+    kpis: DashboardKpis
+    resolutions_timeseries: List[DashboardResolutionPoint]
+    malicious_safe: DashboardMaliciousSafe
+    classifications: List[DashboardClassificationPoint]
+    top_to_addresses: List[DashboardAddressPoint]
+    top_from_addresses: List[DashboardAddressPoint]

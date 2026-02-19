@@ -86,7 +86,8 @@ curl -X POST http://localhost:8000/api/report-eml \
 - `POST /api/report-eml` (multipart .eml upload)
 - `GET /api/reports`
 - `GET /api/reports/{report_id}`
-- `PATCH /api/reports/{report_id}`
+- `PATCH /api/reports/{report_id}` (status and classification_code)
+- `GET /api/dashboard/overview?start=<ISO>&end=<ISO>&tz=<IANA>`
 - `GET /health`
 
 ## Notes

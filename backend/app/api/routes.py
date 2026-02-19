@@ -1,17 +1,59 @@
-from datetime import datetime, timezone
+from collections import Counter
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_basic_auth
+from app.core.config import get_settings
 from app.models.report import IngestSource, Report, ReportStatus
-from app.schemas import ReportCreate, ReportOut, ReportResult, ReportUpdate
+from app.schemas import (
+    DashboardAddressPoint,
+    DashboardClassificationPoint,
+    DashboardKpis,
+    DashboardMaliciousSafe,
+    DashboardOverviewOut,
+    DashboardResolutionPoint,
+    ReportCreate,
+    ReportOut,
+    ReportResult,
+    ReportUpdate,
+)
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
 from app.services.eml_parser import parse_eml
-from app.core.config import get_settings
 
 router = APIRouter(prefix="/api", tags=["api"], dependencies=[Depends(require_basic_auth)])
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+def _resolve_window(start: datetime | None, end: datetime | None) -> tuple[datetime, datetime]:
+    now = datetime.now(timezone.utc)
+    resolved_end = _as_utc(end) if end else now
+    resolved_start = _as_utc(start) if start else (resolved_end - timedelta(days=90))
+    if resolved_start > resolved_end:
+        raise HTTPException(status_code=400, detail="start must be before end")
+    return resolved_start, resolved_end
+
+
+def _normalize_email(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip().lower()
+    if not cleaned or "@" not in cleaned:
+        return None
+    return cleaned
+
+
+def _ranked_counts(counter: Counter[str], limit: int = 10) -> list[DashboardAddressPoint]:
+    ranked = sorted(counter.items(), key=lambda item: (-item[1], item[0]))[:limit]
+    return [DashboardAddressPoint(rank=index + 1, email=email, count=count) for index, (email, count) in enumerate(ranked)]
 
 
 def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> ReportResult:
@@ -19,7 +61,6 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
     now = datetime.now(timezone.utc)
 
     urls = payload.urls_json or extract_urls(payload.body_text, payload.body_html)
-
     event_time = payload.date or payload.received_at or now
 
     mailbox_domain = payload.mailbox_domain
@@ -55,6 +96,7 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
         raw_source=payload.raw_source,
         risk_score=risk_score,
         status=ReportStatus.OPEN,
+        classification_code=payload.classification_code,
         ingest_source=ingest_source,
         sender=payload.sender,
         reply_to=payload.reply_to or None,
@@ -108,6 +150,105 @@ def list_reports(
     return reports
 
 
+@router.get("/dashboard/overview", response_model=DashboardOverviewOut)
+def dashboard_overview(
+    db: Session = Depends(get_db),
+    start: datetime | None = Query(default=None),
+    end: datetime | None = Query(default=None),
+    tz: str = Query(default="UTC"),
+):
+    start_utc, end_utc = _resolve_window(start, end)
+    try:
+        tzinfo = ZoneInfo(tz)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid timezone") from exc
+
+    rows = db.execute(
+        select(
+            Report.created_at,
+            Report.status,
+            Report.classification_code,
+            Report.to_addrs,
+            Report.from_addr,
+        ).where(Report.created_at >= start_utc, Report.created_at <= end_utc)
+    ).all()
+
+    total_ingested = len(rows)
+    resolved_total = 0
+    resolved_malicious = 0
+    resolved_safe = 0
+
+    classification_counter: Counter[str] = Counter()
+    to_counter: Counter[str] = Counter()
+    from_counter: Counter[str] = Counter()
+
+    start_local = start_utc.astimezone(tzinfo).date()
+    end_local = end_utc.astimezone(tzinfo).date()
+    timeseries_map: dict[str, dict[str, int]] = {}
+
+    cursor = start_local
+    while cursor <= end_local:
+        key = cursor.isoformat()
+        timeseries_map[key] = {"resolved_total": 0, "resolved_malicious": 0, "resolved_safe": 0}
+        cursor += timedelta(days=1)
+
+    for created_at, status_value, classification_code, to_addrs, from_addr in rows:
+        if created_at is None:
+            continue
+        local_key = created_at.astimezone(tzinfo).date().isoformat()
+
+        if status_value in (ReportStatus.BENIGN, ReportStatus.PHISHING):
+            resolved_total += 1
+            timeseries_map[local_key]["resolved_total"] += 1
+        if status_value == ReportStatus.PHISHING:
+            resolved_malicious += 1
+            timeseries_map[local_key]["resolved_malicious"] += 1
+        if status_value == ReportStatus.BENIGN:
+            resolved_safe += 1
+            timeseries_map[local_key]["resolved_safe"] += 1
+
+        classification_counter[classification_code or "UNCLASSIFIED"] += 1
+
+        normalized_from = _normalize_email(from_addr)
+        if normalized_from:
+            from_counter[normalized_from] += 1
+
+        if to_addrs:
+            for addr in to_addrs:
+                normalized_to = _normalize_email(addr)
+                if normalized_to:
+                    to_counter[normalized_to] += 1
+
+    timeseries = [
+        DashboardResolutionPoint(
+            date=key,
+            resolved_total=value["resolved_total"],
+            resolved_malicious=value["resolved_malicious"],
+            resolved_safe=value["resolved_safe"],
+        )
+        for key, value in timeseries_map.items()
+    ]
+
+    classifications = [
+        DashboardClassificationPoint(code=code, count=count)
+        for code, count in sorted(classification_counter.items(), key=lambda item: (-item[1], item[0]))
+    ]
+
+    return DashboardOverviewOut(
+        kpis=DashboardKpis(
+            total_ingested=total_ingested,
+            resolved_total=resolved_total,
+            resolved_malicious=resolved_malicious,
+            resolved_safe=resolved_safe,
+        ),
+        resolutions_timeseries=timeseries,
+        malicious_safe=DashboardMaliciousSafe(malicious=resolved_malicious, safe=resolved_safe),
+        classifications=classifications,
+        top_to_addresses=_ranked_counts(to_counter),
+        top_from_addresses=_ranked_counts(from_counter),
+    )
+
+
 @router.get("/reports/stats")
 def report_stats(db: Session = Depends(get_db)):
     stmt = select(
@@ -138,7 +279,14 @@ def update_report(report_id: int, payload: ReportUpdate, db: Session = Depends(g
     report = db.get(Report, report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
-    report.status = payload.status
+
+    if "status" in payload.model_fields_set:
+        if payload.status is None:
+            raise HTTPException(status_code=400, detail="status cannot be null")
+        report.status = payload.status  # type: ignore[assignment]
+    if "classification_code" in payload.model_fields_set:
+        report.classification_code = payload.classification_code
+
     db.commit()
     db.refresh(report)
     return report

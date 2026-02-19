@@ -1,4 +1,4 @@
 from app.models.attachment import Attachment
-from app.models.report import IngestSource, Report, ReportStatus
+from app.models.report import CLASSIFICATION_CODES, IngestSource, Report, ReportStatus
 
-__all__ = ["Attachment", "Report", "ReportStatus", "IngestSource"]
+__all__ = ["Attachment", "Report", "ReportStatus", "IngestSource", "CLASSIFICATION_CODES"]
