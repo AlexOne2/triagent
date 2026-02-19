@@ -2,9 +2,8 @@ from datetime import datetime, timedelta, timezone
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.models.cluster import Cluster
-from app.models.report import Report
-from app.services.analysis import calculate_risk, compute_fingerprint, extract_urls, normalize_subject
+from app.models.report import IngestSource, Report, ReportStatus
+from app.services.analysis import calculate_risk, extract_urls
 
 SAMPLES = [
     {
@@ -31,23 +30,14 @@ SAMPLES = [
 def seed():
     db = SessionLocal()
     try:
-        if db.query(Cluster).count() > 0:
+        if db.query(Report).count() > 0:
             print("Seed data already exists; skipping.")
             return
 
         now = datetime.now(timezone.utc)
         for idx, sample in enumerate(SAMPLES):
             urls = extract_urls(sample.get("body_text"), sample.get("body_html"))
-            fingerprint = compute_fingerprint(
-                sample.get("subject"),
-                sample.get("from_addr"),
-                sample.get("body_text"),
-                sample.get("body_html"),
-                urls,
-            )
             event_time = now - timedelta(hours=idx * 6)
-            subject_norm = normalize_subject(sample.get("subject"))
-            from_domain = sample.get("from_addr").split("@")[-1]
             risk_score = calculate_risk(
                 subject=sample.get("subject"),
                 body_text=sample.get("body_text"),
@@ -56,20 +46,7 @@ def seed():
                 urls=urls,
             )
 
-            cluster = Cluster(
-                fingerprint=fingerprint,
-                subject_norm=subject_norm,
-                from_domain=from_domain,
-                first_seen=event_time,
-                last_seen=event_time,
-                report_count=1,
-                risk_score=risk_score,
-            )
-            db.add(cluster)
-            db.flush()
-
             report = Report(
-                cluster_id=cluster.id,
                 subject=sample.get("subject"),
                 from_addr=sample.get("from_addr"),
                 body_text=sample.get("body_text"),
@@ -77,6 +54,9 @@ def seed():
                 urls_json=urls,
                 received_at=event_time,
                 date=event_time,
+                risk_score=risk_score,
+                status=ReportStatus.OPEN,
+                ingest_source=IngestSource.UPLOAD,
             )
             db.add(report)
 

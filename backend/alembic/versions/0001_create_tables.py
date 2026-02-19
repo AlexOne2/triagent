@@ -54,6 +54,12 @@ def upgrade():
         sa.Column("reporter_hash", sa.String(length=128), nullable=True),
         sa.Column("mailbox_domain", sa.String(length=255), nullable=True),
         sa.Column("raw_source", sa.Text(), nullable=True),
+        sa.Column("sender", sa.String(length=320), nullable=True),
+        sa.Column("reply_to", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("in_reply_to", sa.String(length=255), nullable=True),
+        sa.Column("return_path", sa.String(length=320), nullable=True),
+        sa.Column("originating_ip", sa.String(length=64), nullable=True),
+        sa.Column("originating_rdns", sa.String(length=255), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
     )
     op.create_index("ix_reports_id", "reports", ["id"])

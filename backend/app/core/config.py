@@ -15,23 +15,17 @@ class Settings(BaseSettings):
     admin_username: Optional[str] = Field(default=None, alias="ADMIN_USERNAME")
     admin_password: Optional[str] = Field(default=None, alias="ADMIN_PASSWORD")
     reporter_hash_salt: str = Field(default="change-me", alias="REPORTER_HASH_SALT")
-    cors_origins: List[str] = Field(default=["http://localhost:3000"], alias="CORS_ORIGINS")
+    cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
 
     minio_endpoint: str = Field(default="http://minio:9000", alias="MINIO_ENDPOINT")
     minio_access_key: str = Field(default="minioadmin", alias="MINIO_ACCESS_KEY")
     minio_secret_key: str = Field(default="minioadmin", alias="MINIO_SECRET_KEY")
     minio_bucket: str = Field(default="mailtriage", alias="MINIO_BUCKET")
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, value):
-        if value is None:
+    def cors_origins_list(self) -> List[str]:
+        if not self.cors_origins:
             return []
-        if isinstance(value, list):
-            return value
-        if isinstance(value, str):
-            return [item.strip() for item in value.split(",") if item.strip()]
-        return value
+        return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
 
 
 @lru_cache

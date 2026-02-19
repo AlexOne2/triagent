@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.cluster import ClusterStatus
+from app.models.report import IngestSource, ReportStatus
 
 
 class ReportCreate(BaseModel):
@@ -23,17 +23,23 @@ class ReportCreate(BaseModel):
     mailbox_domain: Optional[str] = None
     raw_source: Optional[str] = None
     from_display_name: Optional[str] = None
+    sender: Optional[str] = None
+    reply_to: Optional[List[str]] = None
+    in_reply_to: Optional[str] = None
+    return_path: Optional[str] = None
+    originating_ip: Optional[str] = None
+    originating_rdns: Optional[str] = None
 
 
 class ReportOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    cluster_id: int
     message_id: Optional[str]
     received_at: Optional[datetime]
     subject: Optional[str]
     from_addr: Optional[str]
+    from_display_name: Optional[str]
     to_addrs: Optional[List[str]]
     cc_addrs: Optional[List[str]]
     date: Optional[datetime]
@@ -44,33 +50,22 @@ class ReportOut(BaseModel):
     reporter_hash: Optional[str]
     mailbox_domain: Optional[str]
     raw_source: Optional[str]
-    created_at: datetime
-
-
-class ClusterOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    fingerprint: str
-    subject_norm: str
-    from_domain: Optional[str]
-    first_seen: datetime
-    last_seen: datetime
-    report_count: int
+    sender: Optional[str]
+    reply_to: Optional[List[str]]
+    in_reply_to: Optional[str]
+    return_path: Optional[str]
+    originating_ip: Optional[str]
+    originating_rdns: Optional[str]
     risk_score: int
-    status: ClusterStatus
+    status: ReportStatus
+    ingest_source: IngestSource
     created_at: datetime
 
 
-class ClusterDetailOut(ClusterOut):
-    reports: List[ReportOut]
-
-
-class ClusterUpdate(BaseModel):
-    status: ClusterStatus
+class ReportUpdate(BaseModel):
+    status: ReportStatus
 
 
 class ReportResult(BaseModel):
-    cluster_id: int
     report_id: int
     risk_score: int

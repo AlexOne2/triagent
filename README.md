@@ -5,7 +5,7 @@ On-prem phishing triage MVP with an Outlook add-in, FastAPI backend, and Next.js
 ## Repo Structure
 
 - `backend/`: FastAPI API + SQLAlchemy + Alembic
-- `frontend/`: Next.js dashboard
+- `frontend/`: Next.js dashboard (report inbox + detail view)
 - `outlook-addin/`: Office.js taskpane add-in
 - `infra/`: Docker Compose + env templates
 
@@ -68,15 +68,25 @@ npx office-addin-dev-certs install
 ## Demo Flow
 
 1) Open the Outlook add-in and click **Report suspicious email**.
-2) The backend clusters the report and extracts URLs.
-3) Open the dashboard to review clusters and update status.
+2) The backend stores the report and extracts URLs.
+3) Open the dashboard to review reports and update status.
+
+### Manual .eml Upload
+
+Use the dashboard "Upload .eml" control or POST directly:
+
+```
+curl -X POST http://localhost:8000/api/report-eml \
+  -F "file=@/path/to/message.eml"
+```
 
 ## API (Backend)
 
 - `POST /api/report`
-- `GET /api/clusters`
-- `GET /api/clusters/{cluster_id}`
-- `PATCH /api/clusters/{cluster_id}`
+- `POST /api/report-eml` (multipart .eml upload)
+- `GET /api/reports`
+- `GET /api/reports/{report_id}`
+- `PATCH /api/reports/{report_id}`
 - `GET /health`
 
 ## Notes

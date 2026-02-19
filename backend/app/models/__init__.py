@@ -1,5 +1,4 @@
 from app.models.attachment import Attachment
-from app.models.cluster import Cluster, ClusterStatus
-from app.models.report import Report
+from app.models.report import IngestSource, Report, ReportStatus
 
-__all__ = ["Attachment", "Cluster", "ClusterStatus", "Report"]
+__all__ = ["Attachment", "Report", "ReportStatus", "IngestSource"]
