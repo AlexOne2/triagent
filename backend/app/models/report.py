@@ -13,6 +13,27 @@ class ReportStatus(str, enum.Enum):
     PHISHING = "PHISHING"
 
 
+class ResolutionAction(str, enum.Enum):
+    RESOLVE = "RESOLVE"
+    REOPEN = "REOPEN"
+
+
+class ResolutionDisposition(str, enum.Enum):
+    MALICIOUS = "MALICIOUS"
+    SAFE = "SAFE"
+
+
+class ArtifactKind(str, enum.Enum):
+    FROM_ADDR = "FROM_ADDR"
+    FROM_DOMAIN = "FROM_DOMAIN"
+    REPLY_TO = "REPLY_TO"
+    RETURN_PATH = "RETURN_PATH"
+    RETURN_PATH_DOMAIN = "RETURN_PATH_DOMAIN"
+    ORIGINATING_IP = "ORIGINATING_IP"
+    URL = "URL"
+    URL_DOMAIN = "URL_DOMAIN"
+
+
 class IngestSource(str, enum.Enum):
     UPLOAD = "UPLOAD"
     AUTO = "AUTO"
@@ -77,6 +98,11 @@ class Report(Base):
     return_path: Mapped[str | None] = mapped_column(String(320), nullable=True)
     originating_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
     originating_rdns: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    flagged_artifacts_json: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True)
+    resolved_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_resolved_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     attachments = relationship("Attachment", back_populates="report", cascade="all, delete-orphan")
+    resolutions = relationship("ReportResolution", back_populates="report", cascade="all, delete-orphan")

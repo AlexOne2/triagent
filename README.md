@@ -87,6 +87,9 @@ curl -X POST http://localhost:8000/api/report-eml \
 - `GET /api/reports`
 - `GET /api/reports/{report_id}`
 - `PATCH /api/reports/{report_id}` (status and classification_code)
+- `POST /api/reports/{report_id}/resolve`
+- `POST /api/reports/{report_id}/reopen`
+- `GET /api/reports/{report_id}/resolutions`
 - `GET /api/dashboard/overview?start=<ISO>&end=<ISO>&tz=<IANA>`
 - `GET /health`
 

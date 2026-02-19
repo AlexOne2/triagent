@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import {
-  CLASSIFICATION_CODES,
-  ClassificationCode,
-  Report,
-  fetchReport,
-  updateReport,
-} from "../../lib/api";
-
-function isClassificationCode(value: string): value is ClassificationCode {
-  return (CLASSIFICATION_CODES as readonly string[]).includes(value);
-}
+import { Report, fetchReport, reopenReport } from "../../lib/api";
+import ResolveDrawer from "../../components/ResolveDrawer";
 
 export default function ReportDetailPage() {
   const router = useRouter();
@@ -20,6 +11,7 @@ export default function ReportDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -76,26 +68,15 @@ export default function ReportDetailPage() {
   const [leftTab, setLeftTab] = useState("Details");
   const [rightTab, setRightTab] = useState("Rendered");
 
-  const handleStatusChange = async (value: Report["status"]) => {
+  const handleReopen = async () => {
     if (!report) return;
     setUpdating(true);
     try {
-      const updated = await updateReport(report.id, { status: value });
+      const updated = await reopenReport(report.id);
       setReport(updated);
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleClassificationChange = async (value: string) => {
-    if (!report) return;
-    setUpdating(true);
-    try {
-      const nextCode = value === "UNCLASSIFIED" ? null : isClassificationCode(value) ? value : null;
-      const updated = await updateReport(report.id, {
-        classification_code: nextCode,
-      });
-      setReport(updated);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reopen report.");
     } finally {
       setUpdating(false);
     }
@@ -119,28 +100,32 @@ export default function ReportDetailPage() {
   }
 
   return (
-    <main className="full">
-      <header>
+    <main className="full report-detail-page">
+      <header className="report-detail-header">
         <div>
           <Link href="/reports">&lt;- Back to uploads</Link>
           <h1>{report.subject || "(no subject)"}</h1>
           <p>Report #{report.id}</p>
         </div>
-        <select
-          className="select"
-          value={report.status}
-          disabled={updating}
-          onChange={(event) => handleStatusChange(event.target.value as Report["status"])}
-        >
-          <option value="OPEN">OPEN</option>
-          <option value="BENIGN">BENIGN</option>
-          <option value="PHISHING">PHISHING</option>
-        </select>
+        <div className="report-detail-actions">
+          {report.status === "OPEN" ? (
+            <button className="resolve-button" type="button" onClick={() => setDrawerOpen(true)} disabled={updating}>
+              Resolve
+            </button>
+          ) : (
+            <>
+              <span className={report.status === "PHISHING" ? "badge phishing" : "badge"}>{report.status}</span>
+              <button className="resolve-button secondary" type="button" onClick={handleReopen} disabled={updating}>
+                {updating ? "Reopening..." : "Reopen"}
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
-      <section className="split">
-        <div className="panel">
-          <div className="tabs">
+      <section className="split report-detail-split">
+        <div className="panel report-detail-panel">
+          <div className="tabs report-detail-tabs">
             {["Details", "Authentication", "URLs", "Attachments", "Transmission", "X-Headers"].map((tab) => (
               <button
                 key={tab}
@@ -154,7 +139,7 @@ export default function ReportDetailPage() {
           </div>
 
           {leftTab === "Details" ? (
-            <div className="kv">
+            <div className="kv detail-kv">
               <label>From</label>
               <div>{latestReport?.from_addr || "-"}</div>
               <label>Display Name</label>
@@ -179,22 +164,6 @@ export default function ReportDetailPage() {
               <div>{latestReport?.reply_to?.join(", ") || "-"}</div>
               <label>Message ID</label>
               <div>{latestReport?.message_id || "-"}</div>
-              <label>Classification</label>
-              <div>
-                <select
-                  className="select"
-                  value={latestReport?.classification_code || "UNCLASSIFIED"}
-                  disabled={updating}
-                  onChange={(event) => handleClassificationChange(event.target.value)}
-                >
-                  <option value="UNCLASSIFIED">UNCLASSIFIED</option>
-                  {CLASSIFICATION_CODES.map((code) => (
-                    <option key={code} value={code}>
-                      {code}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <label>Return-Path</label>
               <div>{latestReport?.return_path || "-"}</div>
               <label>Originating IP + rDNS</label>
@@ -206,8 +175,8 @@ export default function ReportDetailPage() {
           ) : null}
 
           {leftTab === "Authentication" ? (
-            <div>
-              <div className="kv" style={{ marginBottom: 10 }}>
+            <div className="detail-auth">
+              <div className="kv detail-kv">
                 <label>SPF</label>
                 <div>{authResults.spf}</div>
                 <label>DKIM</label>
@@ -215,14 +184,14 @@ export default function ReportDetailPage() {
                 <label>DMARC</label>
                 <div>{authResults.dmarc}</div>
               </div>
-              <div className="mono">
+              <div className="mono detail-mono">
                 {authResults.raw ? authResults.raw : "No Authentication-Results header found."}
               </div>
             </div>
           ) : null}
 
           {leftTab === "URLs" ? (
-            <div>
+            <div className="detail-section">
               {urls.length === 0 ? <p>No URLs detected.</p> : null}
               <div className="url-list">
                 {urls.map((url) => (
@@ -235,17 +204,19 @@ export default function ReportDetailPage() {
           ) : null}
 
           {leftTab === "Attachments" ? (
-            <p>No attachments captured in v0.</p>
+            <div className="detail-section">
+              <p>No attachments captured in v0.</p>
+            </div>
           ) : null}
 
           {leftTab === "Transmission" ? (
-            <div className="mono">
+            <div className="mono detail-mono detail-section">
               {receivedHeaders.length > 0 ? receivedHeaders.join("\n\n") : "No Received headers found."}
             </div>
           ) : null}
 
           {leftTab === "X-Headers" ? (
-            <div className="mono">
+            <div className="mono detail-mono detail-section">
               {xHeaders.length > 0
                 ? xHeaders.map(([key, value]) => `${key}: ${String(value)}`).join("\n")
                 : "No X- headers found."}
@@ -253,8 +224,8 @@ export default function ReportDetailPage() {
           ) : null}
         </div>
 
-        <div className="panel" style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
-          <div className="tabs">
+        <div className="panel report-detail-panel detail-mail-panel">
+          <div className="tabs report-detail-tabs">
             {["Rendered", "HTML", "Plaintext", "Source"].map((tab) => (
               <button
                 key={tab}
@@ -270,30 +241,44 @@ export default function ReportDetailPage() {
           {rightTab === "Rendered" ? (
             latestReport?.body_html ? (
               <iframe
-                className="mail-frame"
+                className="mail-frame detail-mail-frame"
                 title="rendered"
                 sandbox=""
                 srcDoc={latestReport.body_html}
-                style={{ flex: 1 }}
               />
             ) : (
-              <p>No HTML body captured.</p>
+              <div className="detail-section">
+                <p>No HTML body captured.</p>
+              </div>
             )
           ) : null}
 
           {rightTab === "HTML" ? (
-            <div className="mono">{latestReport?.body_html || "No HTML body captured."}</div>
+            <div className="mono detail-mono detail-section">
+              {latestReport?.body_html || "No HTML body captured."}
+            </div>
           ) : null}
 
           {rightTab === "Plaintext" ? (
-            <div className="mono">{latestReport?.body_text || "No text body captured."}</div>
+            <div className="mono detail-mono detail-section">
+              {latestReport?.body_text || "No text body captured."}
+            </div>
           ) : null}
 
           {rightTab === "Source" ? (
-            <div className="mono">{latestReport?.raw_source || "No raw source captured."}</div>
+            <div className="mono detail-mono detail-section">
+              {latestReport?.raw_source || "No raw source captured."}
+            </div>
           ) : null}
         </div>
       </section>
+
+      <ResolveDrawer
+        open={drawerOpen}
+        report={report}
+        onClose={() => setDrawerOpen(false)}
+        onResolved={(updatedReport) => setReport(updatedReport)}
+      />
     </main>
   );
 }

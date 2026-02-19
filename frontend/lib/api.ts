@@ -24,6 +24,34 @@ export const CLASSIFICATION_CODES = [
 ] as const;
 
 export type ClassificationCode = (typeof CLASSIFICATION_CODES)[number];
+export type ResolutionDisposition = "MALICIOUS" | "SAFE";
+export type ArtifactKind =
+  | "FROM_ADDR"
+  | "FROM_DOMAIN"
+  | "REPLY_TO"
+  | "RETURN_PATH"
+  | "RETURN_PATH_DOMAIN"
+  | "ORIGINATING_IP"
+  | "URL"
+  | "URL_DOMAIN";
+
+export type FlaggedArtifact = {
+  kind: ArtifactKind;
+  value: string;
+  label?: string | null;
+};
+
+export type ReportResolutionEvent = {
+  id: number;
+  action: "RESOLVE" | "REOPEN";
+  disposition?: ResolutionDisposition | null;
+  status_after: "OPEN" | "BENIGN" | "PHISHING";
+  classification_code?: ClassificationCode | null;
+  note?: string | null;
+  flagged_artifacts: FlaggedArtifact[];
+  actor: string;
+  created_at: string;
+};
 
 export type Report = {
   id: number;
@@ -51,6 +79,10 @@ export type Report = {
   risk_score: number;
   status: "OPEN" | "BENIGN" | "PHISHING";
   classification_code?: ClassificationCode | null;
+  resolution_note?: string | null;
+  flagged_artifacts_json?: FlaggedArtifact[] | null;
+  resolved_at?: string | null;
+  last_resolved_by?: string | null;
   ingest_source?: "UPLOAD" | "AUTO";
   created_at: string;
 };
@@ -148,6 +180,31 @@ export async function updateReport(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function resolveReport(
+  id: number,
+  payload: {
+    disposition: ResolutionDisposition;
+    classification_code?: ClassificationCode | null;
+    note?: string | null;
+    flagged_artifacts?: FlaggedArtifact[];
+  }
+): Promise<Report> {
+  return request<Report>(`/api/reports/${id}/resolve`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function reopenReport(id: number): Promise<Report> {
+  return request<Report>(`/api/reports/${id}/reopen`, {
+    method: "POST",
+  });
+}
+
+export async function fetchReportResolutions(id: number): Promise<ReportResolutionEvent[]> {
+  return request<ReportResolutionEvent[]>(`/api/reports/${id}/resolutions`);
 }
 
 export async function uploadEml(file: File): Promise<{ report_id: number; risk_score: number }> {

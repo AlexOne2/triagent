@@ -1,14 +1,24 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from email.utils import parseaddr
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db, require_basic_auth
+from app.api.deps import get_actor_username, get_db, require_basic_auth
 from app.core.config import get_settings
-from app.models.report import IngestSource, Report, ReportStatus
+from app.models.report import (
+    ArtifactKind,
+    IngestSource,
+    Report,
+    ReportStatus,
+    ResolutionAction,
+    ResolutionDisposition,
+)
+from app.models.report_resolution import ReportResolution
 from app.schemas import (
     DashboardAddressPoint,
     DashboardClassificationPoint,
@@ -16,9 +26,13 @@ from app.schemas import (
     DashboardMaliciousSafe,
     DashboardOverviewOut,
     DashboardResolutionPoint,
+    FlaggedArtifactIn,
+    FlaggedArtifactOut,
     ReportCreate,
     ReportOut,
+    ReportResolutionOut,
     ReportResult,
+    ResolveReportRequest,
     ReportUpdate,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
@@ -54,6 +68,142 @@ def _normalize_email(value: str | None) -> str | None:
 def _ranked_counts(counter: Counter[str], limit: int = 10) -> list[DashboardAddressPoint]:
     ranked = sorted(counter.items(), key=lambda item: (-item[1], item[0]))[:limit]
     return [DashboardAddressPoint(rank=index + 1, email=email, count=count) for index, (email, count) in enumerate(ranked)]
+
+
+def _normalize_artifact_value(kind: ArtifactKind, value: str) -> str:
+    cleaned = value.strip()
+    if kind in {
+        ArtifactKind.FROM_ADDR,
+        ArtifactKind.FROM_DOMAIN,
+        ArtifactKind.REPLY_TO,
+        ArtifactKind.RETURN_PATH,
+        ArtifactKind.RETURN_PATH_DOMAIN,
+        ArtifactKind.URL_DOMAIN,
+    }:
+        return cleaned.lower()
+    return cleaned
+
+
+def _extract_email_domain(value: str | None) -> str | None:
+    if not value:
+        return None
+    parsed_addr = parseaddr(value)[1] or value
+    cleaned = parsed_addr.strip().lower()
+    if "@" not in cleaned:
+        return None
+    domain = cleaned.rsplit("@", 1)[-1].strip()
+    return domain or None
+
+
+def _extract_url_domain(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    parsed = urlsplit(cleaned if "://" in cleaned else f"//{cleaned}", scheme="http")
+    hostname = parsed.hostname
+    if not hostname:
+        return None
+    return hostname.lower()
+
+
+def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
+    available: dict[ArtifactKind, set[str]] = {
+        ArtifactKind.FROM_ADDR: set(),
+        ArtifactKind.FROM_DOMAIN: set(),
+        ArtifactKind.REPLY_TO: set(),
+        ArtifactKind.RETURN_PATH: set(),
+        ArtifactKind.RETURN_PATH_DOMAIN: set(),
+        ArtifactKind.ORIGINATING_IP: set(),
+        ArtifactKind.URL: set(),
+        ArtifactKind.URL_DOMAIN: set(),
+    }
+
+    if report.from_addr:
+        available[ArtifactKind.FROM_ADDR].add(_normalize_artifact_value(ArtifactKind.FROM_ADDR, report.from_addr))
+        from_domain = _extract_email_domain(report.from_addr)
+        if from_domain:
+            available[ArtifactKind.FROM_DOMAIN].add(_normalize_artifact_value(ArtifactKind.FROM_DOMAIN, from_domain))
+    if report.reply_to:
+        for item in report.reply_to:
+            available[ArtifactKind.REPLY_TO].add(_normalize_artifact_value(ArtifactKind.REPLY_TO, item))
+    if report.return_path:
+        available[ArtifactKind.RETURN_PATH].add(
+            _normalize_artifact_value(ArtifactKind.RETURN_PATH, report.return_path)
+        )
+        return_path_domain = _extract_email_domain(report.return_path)
+        if return_path_domain:
+            available[ArtifactKind.RETURN_PATH_DOMAIN].add(
+                _normalize_artifact_value(ArtifactKind.RETURN_PATH_DOMAIN, return_path_domain)
+            )
+    if report.originating_ip:
+        available[ArtifactKind.ORIGINATING_IP].add(
+            _normalize_artifact_value(ArtifactKind.ORIGINATING_IP, report.originating_ip)
+        )
+    if report.urls_json:
+        for item in report.urls_json:
+            available[ArtifactKind.URL].add(_normalize_artifact_value(ArtifactKind.URL, item))
+            url_domain = _extract_url_domain(item)
+            if url_domain:
+                available[ArtifactKind.URL_DOMAIN].add(
+                    _normalize_artifact_value(ArtifactKind.URL_DOMAIN, url_domain)
+                )
+    return available
+
+
+def _validate_flagged_artifacts(report: Report, flagged_artifacts: list[FlaggedArtifactIn]) -> list[dict]:
+    available = _available_artifacts(report)
+    normalized_items: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+
+    for artifact in flagged_artifacts:
+        normalized_value = _normalize_artifact_value(artifact.kind, artifact.value)
+        if normalized_value not in available.get(artifact.kind, set()):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid artifact value for kind {artifact.kind.value}",
+            )
+        dedupe_key = (artifact.kind.value, normalized_value)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        normalized_items.append(
+            {
+                "kind": artifact.kind.value,
+                "value": normalized_value,
+                "label": artifact.label,
+            }
+        )
+    return normalized_items
+
+
+def _resolution_status(disposition: ResolutionDisposition) -> ReportStatus:
+    if disposition == ResolutionDisposition.MALICIOUS:
+        return ReportStatus.PHISHING
+    return ReportStatus.BENIGN
+
+
+def _serialize_resolution(event: ReportResolution) -> ReportResolutionOut:
+    artifacts = [
+        FlaggedArtifactOut(
+            kind=item["kind"],
+            value=item["value"],
+            label=item.get("label"),
+        )
+        for item in (event.flagged_artifacts_json or [])
+    ]
+    return ReportResolutionOut(
+        id=event.id,
+        action=event.action,
+        disposition=event.disposition,
+        status_after=event.status_after,
+        classification_code=event.classification_code,
+        note=event.note,
+        flagged_artifacts=artifacts,
+        actor=event.actor,
+        created_at=event.created_at,
+    )
 
 
 def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> ReportResult:
@@ -272,6 +422,103 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     return report
+
+
+@router.post("/reports/{report_id}/resolve", response_model=ReportOut)
+def resolve_report(
+    report_id: int,
+    payload: ResolveReportRequest,
+    db: Session = Depends(get_db),
+    actor_username: str = Depends(get_actor_username),
+):
+    report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if report.status != ReportStatus.OPEN:
+        raise HTTPException(status_code=409, detail="Report is already resolved; reopen before resolving again")
+
+    flagged_artifacts = _validate_flagged_artifacts(report, payload.flagged_artifacts)
+    next_status = _resolution_status(payload.disposition)
+    now = datetime.now(timezone.utc)
+
+    report.status = next_status
+    report.classification_code = payload.classification_code
+    report.resolution_note = payload.note
+    report.flagged_artifacts_json = flagged_artifacts or None
+    report.resolved_at = now
+    report.last_resolved_by = actor_username
+
+    db.add(
+        ReportResolution(
+            report_id=report.id,
+            action=ResolutionAction.RESOLVE,
+            disposition=payload.disposition,
+            status_after=next_status,
+            classification_code=payload.classification_code,
+            note=payload.note,
+            flagged_artifacts_json=flagged_artifacts or None,
+            actor=actor_username,
+        )
+    )
+
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+@router.post("/reports/{report_id}/reopen", response_model=ReportOut)
+def reopen_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    actor_username: str = Depends(get_actor_username),
+):
+    report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if report.status == ReportStatus.OPEN:
+        raise HTTPException(status_code=409, detail="Report is already open")
+
+    report.status = ReportStatus.OPEN
+    report.classification_code = None
+    report.resolution_note = None
+    report.flagged_artifacts_json = None
+    report.resolved_at = None
+    report.last_resolved_by = None
+
+    db.add(
+        ReportResolution(
+            report_id=report.id,
+            action=ResolutionAction.REOPEN,
+            disposition=None,
+            status_after=ReportStatus.OPEN,
+            classification_code=None,
+            note=None,
+            flagged_artifacts_json=None,
+            actor=actor_username,
+        )
+    )
+
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+@router.get("/reports/{report_id}/resolutions", response_model=list[ReportResolutionOut])
+def list_report_resolutions(report_id: int, db: Session = Depends(get_db)):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    events = (
+        db.execute(
+            select(ReportResolution)
+            .where(ReportResolution.report_id == report_id)
+            .order_by(ReportResolution.created_at.desc(), ReportResolution.id.desc())
+        )
+        .scalars()
+        .all()
+    )
+    return [_serialize_resolution(event) for event in events]
 
 
 @router.patch("/reports/{report_id}", response_model=ReportOut)

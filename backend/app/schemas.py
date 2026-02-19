@@ -3,7 +3,14 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.models.report import CLASSIFICATION_CODES, IngestSource, ReportStatus
+from app.models.report import (
+    CLASSIFICATION_CODES,
+    ArtifactKind,
+    IngestSource,
+    ReportStatus,
+    ResolutionAction,
+    ResolutionDisposition,
+)
 
 
 def _validate_classification(value: Optional[str]) -> Optional[str]:
@@ -76,6 +83,10 @@ class ReportOut(BaseModel):
     risk_score: int
     status: ReportStatus
     classification_code: Optional[str]
+    resolution_note: Optional[str]
+    flagged_artifacts_json: Optional[List[Dict[str, Any]]]
+    resolved_at: Optional[datetime]
+    last_resolved_by: Optional[str]
     ingest_source: IngestSource
     created_at: datetime
 
@@ -94,6 +105,74 @@ class ReportUpdate(BaseModel):
         if self.status is None and self.classification_code is None:
             raise ValueError("At least one field is required")
         return self
+
+
+class FlaggedArtifactIn(BaseModel):
+    kind: ArtifactKind
+    value: str
+    label: Optional[str] = None
+
+    @field_validator("value", mode="before")
+    @classmethod
+    def validate_value(cls, value):
+        if value is None:
+            raise ValueError("value is required")
+        cleaned = str(value).strip()
+        if not cleaned:
+            raise ValueError("value is required")
+        return cleaned
+
+    @field_validator("label", mode="before")
+    @classmethod
+    def validate_label(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
+
+
+class FlaggedArtifactOut(BaseModel):
+    kind: ArtifactKind
+    value: str
+    label: Optional[str] = None
+
+
+class ResolveReportRequest(BaseModel):
+    disposition: ResolutionDisposition
+    classification_code: Optional[str] = None
+    note: Optional[str] = None
+    flagged_artifacts: List[FlaggedArtifactIn] = Field(default_factory=list)
+
+    @field_validator("classification_code", mode="before")
+    @classmethod
+    def validate_classification_code(cls, value):
+        return _validate_classification(value)
+
+    @field_validator("note", mode="before")
+    @classmethod
+    def validate_note(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
+
+    @model_validator(mode="after")
+    def validate_disposition_requirements(self):
+        if self.disposition == ResolutionDisposition.MALICIOUS and not self.classification_code:
+            raise ValueError("classification_code is required for MALICIOUS disposition")
+        return self
+
+
+class ReportResolutionOut(BaseModel):
+    id: int
+    action: ResolutionAction
+    disposition: Optional[ResolutionDisposition]
+    status_after: ReportStatus
+    classification_code: Optional[str]
+    note: Optional[str]
+    flagged_artifacts: List[FlaggedArtifactOut] = Field(default_factory=list)
+    actor: str
+    created_at: datetime
 
 
 class ReportResult(BaseModel):
