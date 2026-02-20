@@ -113,6 +113,56 @@ export type AdminApiKeyOut = {
   api_key?: string | null;
 };
 
+export type AuditActorType = "USER" | "API_KEY" | "SYSTEM" | "LEGACY";
+
+export type AuditEvent = {
+  id: number;
+  event_uuid: string;
+  actor_type: AuditActorType;
+  actor_user_id?: number | null;
+  actor_api_key_id?: number | null;
+  action: string;
+  target_type?: string | null;
+  target_id?: string | null;
+  outcome: string;
+  request_id?: string | null;
+  correlation_id?: string | null;
+  schema_version: number;
+  metadata_json?: Record<string, unknown> | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  prev_hash: string;
+  event_hash: string;
+  created_at: string;
+};
+
+export type AuditEventList = {
+  items: AuditEvent[];
+  next_cursor?: number | null;
+};
+
+export type AuditVerifyResult = {
+  valid: boolean;
+  checked_count: number;
+  first_invalid_event_id?: number | null;
+  expected_hash?: string | null;
+  actual_hash?: string | null;
+  range_start?: string | null;
+  range_end?: string | null;
+};
+
+export type AuditExportRecord = {
+  id: number;
+  range_start: string;
+  range_end: string;
+  event_count: number;
+  root_hash: string;
+  manifest_json: Record<string, unknown>;
+  storage_uri: string;
+  created_by: string;
+  created_at: string;
+};
+
 export type ReportResolutionEvent = {
   id: number;
   action: "RESOLVE" | "REOPEN";
@@ -432,4 +482,73 @@ export async function revokeApiKey(id: number): Promise<AdminApiKeyOut> {
   return request<AdminApiKeyOut>(`/api/admin/api-keys/${id}/revoke`, {
     method: "POST",
   });
+}
+
+export async function fetchAuditEvents(params?: {
+  start?: string;
+  end?: string;
+  action?: string;
+  outcome?: string;
+  actor_type?: AuditActorType;
+  actor_user_id?: number;
+  target_type?: string;
+  target_id?: string;
+  request_id?: string;
+  limit?: number;
+  cursor?: number;
+}): Promise<AuditEventList> {
+  const search = new URLSearchParams();
+  if (params?.start) search.set("start", params.start);
+  if (params?.end) search.set("end", params.end);
+  if (params?.action) search.set("action", params.action);
+  if (params?.outcome) search.set("outcome", params.outcome);
+  if (params?.actor_type) search.set("actor_type", params.actor_type);
+  if (params?.actor_user_id) search.set("actor_user_id", String(params.actor_user_id));
+  if (params?.target_type) search.set("target_type", params.target_type);
+  if (params?.target_id) search.set("target_id", params.target_id);
+  if (params?.request_id) search.set("request_id", params.request_id);
+  if (params?.limit) search.set("limit", String(params.limit));
+  if (params?.cursor) search.set("cursor", String(params.cursor));
+  const suffix = search.toString();
+  return request<AuditEventList>(suffix ? `/api/admin/audit/events?${suffix}` : "/api/admin/audit/events");
+}
+
+export async function fetchAuditEvent(eventId: number): Promise<AuditEvent> {
+  return request<AuditEvent>(`/api/admin/audit/events/${eventId}`);
+}
+
+export async function verifyAuditChain(params?: { start?: string; end?: string }): Promise<AuditVerifyResult> {
+  const search = new URLSearchParams();
+  if (params?.start) search.set("start", params.start);
+  if (params?.end) search.set("end", params.end);
+  const suffix = search.toString();
+  return request<AuditVerifyResult>(suffix ? `/api/admin/audit/verify?${suffix}` : "/api/admin/audit/verify");
+}
+
+export async function fetchAuditExports(limit = 100): Promise<AuditExportRecord[]> {
+  return request<AuditExportRecord[]>(`/api/admin/audit/exports?limit=${limit}`);
+}
+
+export async function downloadAuditNdjson(params: { start: string; end: string }): Promise<Blob> {
+  const token = getAccessToken();
+  const search = new URLSearchParams({ start: params.start, end: params.end });
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/api/admin/audit/export.ndjson?${search.toString()}`, {
+    method: "GET",
+    headers,
+  });
+
+  if (res.status === 401 && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Export failed: ${res.status}`);
+  }
+  return res.blob();
 }

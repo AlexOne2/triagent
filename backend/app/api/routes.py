@@ -4,12 +4,12 @@ from email.utils import parseaddr
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.api.security_deps import Principal, require_permission
+from app.api.security_deps import Principal, require_permission, request_meta
 from app.core.config import get_settings
 from app.models.report import (
     ArtifactKind,
@@ -19,6 +19,7 @@ from app.models.report import (
     ResolutionAction,
     ResolutionDisposition,
 )
+from app.models.security_audit import AuditActorType
 from app.models.report_resolution import ReportResolution
 from app.schemas import (
     DashboardAddressPoint,
@@ -37,9 +38,20 @@ from app.schemas import (
     ResolveReportRequest,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
+from app.services.auth import create_security_audit_event
 from app.services.eml_parser import parse_eml
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+
+def _principal_actor_type(principal: Principal) -> AuditActorType:
+    if principal.kind == "user":
+        return AuditActorType.USER
+    if principal.kind == "api_key":
+        return AuditActorType.API_KEY
+    if principal.kind == "legacy":
+        return AuditActorType.LEGACY
+    return AuditActorType.SYSTEM
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -265,23 +277,53 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
 
 @router.post("/report", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
 def create_report(
+    request: Request,
     payload: ReportCreate,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("reports.ingest")),
+    principal: Principal = Depends(require_permission("reports.ingest")),
 ):
-    return _create_report(payload, db, IngestSource.AUTO)
+    result = _create_report(payload, db, IngestSource.AUTO)
+    create_security_audit_event(
+        db,
+        action="REPORT_INGESTED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(result.report_id),
+        metadata={"ingest_source": IngestSource.AUTO.value, "risk_score": result.risk_score},
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    return result
 
 
 @router.post("/report-eml", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
 async def create_report_from_eml(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("reports.ingest")),
+    principal: Principal = Depends(require_permission("reports.ingest")),
 ):
     raw_bytes = await file.read()
     parsed = parse_eml(raw_bytes)
     payload = ReportCreate(**parsed)
-    return _create_report(payload, db, IngestSource.UPLOAD)
+    result = _create_report(payload, db, IngestSource.UPLOAD)
+    create_security_audit_event(
+        db,
+        action="REPORT_INGESTED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(result.report_id),
+        metadata={"ingest_source": IngestSource.UPLOAD.value, "risk_score": result.risk_score},
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    return result
 
 
 @router.get("/reports", response_model=list[ReportOut])
@@ -443,6 +485,7 @@ def get_report(
 
 @router.post("/reports/{report_id}/resolve", response_model=ReportOut)
 def resolve_report(
+    request: Request,
     report_id: int,
     payload: ResolveReportRequest,
     db: Session = Depends(get_db),
@@ -479,6 +522,23 @@ def resolve_report(
             actor_api_key_id=principal.api_key_id,
         )
     )
+    create_security_audit_event(
+        db,
+        action="REPORT_RESOLVED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "status_after": next_status.value,
+            "disposition": payload.disposition.value,
+            "classification_code": payload.classification_code,
+            "flagged_artifacts_count": len(flagged_artifacts),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
 
     db.commit()
     db.refresh(report)
@@ -487,6 +547,7 @@ def resolve_report(
 
 @router.post("/reports/{report_id}/reopen", response_model=ReportOut)
 def reopen_report(
+    request: Request,
     report_id: int,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.reopen")),
@@ -518,6 +579,18 @@ def reopen_report(
             actor_api_key_id=principal.api_key_id,
         )
     )
+    create_security_audit_event(
+        db,
+        action="REPORT_REOPENED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={"status_after": ReportStatus.OPEN.value},
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
 
     db.commit()
     db.refresh(report)
@@ -548,10 +621,11 @@ def list_report_resolutions(
 
 @router.patch("/reports/{report_id}", response_model=ReportOut)
 def update_report(
+    request: Request,
     report_id: int,
     payload: ReportUpdate,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("reports.admin_override")),
+    principal: Principal = Depends(require_permission("reports.admin_override")),
 ):
     report = db.get(Report, report_id)
     if report is None:
@@ -563,6 +637,23 @@ def update_report(
         report.status = payload.status  # type: ignore[assignment]
     if "classification_code" in payload.model_fields_set:
         report.classification_code = payload.classification_code
+
+    create_security_audit_event(
+        db,
+        action="REPORT_ADMIN_OVERRIDDEN",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "status": report.status.value,
+            "classification_code": report.classification_code,
+            "updated_fields": sorted(payload.model_fields_set),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
 
     db.commit()
     db.refresh(report)

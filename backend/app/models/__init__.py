@@ -11,7 +11,7 @@ from app.models.report import (
     ResolutionDisposition,
 )
 from app.models.report_resolution import ReportResolution
-from app.models.security_audit import SecurityAuditEvent
+from app.models.security_audit import AuditActorType, AuditChainState, AuditExport, SecurityAuditEvent
 from app.models.user import Permission, Role, RolePermission, User, UserRole
 
 __all__ = [
@@ -31,5 +31,8 @@ __all__ = [
     "RolePermission",
     "AuthSession",
     "ApiKey",
+    "AuditActorType",
+    "AuditChainState",
+    "AuditExport",
     "SecurityAuditEvent",
 ]

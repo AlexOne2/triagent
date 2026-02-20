@@ -578,6 +578,41 @@ p {
   font-family: "SFMono-Regular", "Menlo", "Courier New", monospace;
 }
 
+.admin-subnav {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.audit-verify {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+
+.audit-verify.ok {
+  border-color: #059669;
+  background: #ecfdf5;
+}
+
+.audit-verify.bad {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.audit-mono {
+  font-family: "SFMono-Regular", "Menlo", "Courier New", monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .resolve-button {
   border: 1px solid #65a30d;
   background: #65a30d;

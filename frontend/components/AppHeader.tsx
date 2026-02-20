@@ -14,7 +14,8 @@ export default function AppHeader() {
 
   const canReadReports = hasPermission("reports.read");
   const canReadDashboard = hasPermission("dashboard.read");
-  const canAdminUsers = hasPermission("admin.users.read") || hasPermission("admin.api_keys.manage");
+  const canAdminUsers =
+    hasPermission("admin.users.read") || hasPermission("admin.api_keys.manage") || hasPermission("audit.read");
 
   return (
     <div className="app-header">

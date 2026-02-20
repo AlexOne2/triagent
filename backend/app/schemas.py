@@ -11,6 +11,7 @@ from app.models.report import (
     ResolutionAction,
     ResolutionDisposition,
 )
+from app.models.security_audit import AuditActorType
 
 
 def _validate_classification(value: Optional[str]) -> Optional[str]:
@@ -412,3 +413,51 @@ class AdminApiKeyOut(BaseModel):
     last_used_at: Optional[datetime]
     created_at: datetime
     api_key: Optional[str] = None
+
+
+class AuditEventOut(BaseModel):
+    id: int
+    event_uuid: str
+    actor_type: AuditActorType
+    actor_user_id: Optional[int]
+    actor_api_key_id: Optional[int]
+    action: str
+    target_type: Optional[str]
+    target_id: Optional[str]
+    outcome: str
+    request_id: Optional[str]
+    correlation_id: Optional[str]
+    schema_version: int
+    metadata_json: Optional[Dict[str, Any]]
+    ip: Optional[str]
+    user_agent: Optional[str]
+    prev_hash: str
+    event_hash: str
+    created_at: datetime
+
+
+class AuditEventListOut(BaseModel):
+    items: List[AuditEventOut]
+    next_cursor: Optional[int] = None
+
+
+class AuditVerifyOut(BaseModel):
+    valid: bool
+    checked_count: int
+    first_invalid_event_id: Optional[int]
+    expected_hash: Optional[str]
+    actual_hash: Optional[str]
+    range_start: Optional[str]
+    range_end: Optional[str]
+
+
+class AuditExportOut(BaseModel):
+    id: int
+    range_start: datetime
+    range_end: datetime
+    event_count: int
+    root_hash: str
+    manifest_json: Dict[str, Any]
+    storage_uri: str
+    created_by: str
+    created_at: datetime

@@ -50,6 +50,7 @@ Backend health: http://localhost:8000/health
 - `reports.read`, `reports.ingest`, `reports.resolve`, `reports.reopen`, `reports.admin_override`
 - `resolutions.read`, `dashboard.read`
 - `admin.users.read`, `admin.users.write`, `admin.roles.read`, `admin.api_keys.manage`
+- `audit.read`, `audit.export`, `audit.verify`, `audit.archive.manage`
 
 ### Built-in roles
 
@@ -110,6 +111,11 @@ npx office-addin-dev-certs install
 - `POST /api/admin/api-keys`
 - `GET /api/admin/api-keys`
 - `POST /api/admin/api-keys/{id}/revoke`
+- `GET /api/admin/audit/events`
+- `GET /api/admin/audit/events/{event_id}`
+- `GET /api/admin/audit/verify`
+- `GET /api/admin/audit/export.ndjson`
+- `GET /api/admin/audit/exports`
 
 ### Reports and dashboard
 
@@ -129,3 +135,32 @@ npx office-addin-dev-certs install
 
 - Reporter identity is hashed with `REPORTER_HASH_SALT`.
 - MinIO is scaffolded; attachments are not wired in v0.
+- Audit events are append-only and hash-chained (`prev_hash`, `event_hash`) for tamper evidence.
+- Audit metadata is redacted and size-bounded (`AUDIT_MAX_METADATA_BYTES`) to avoid logging secrets.
+
+## Audit Operations
+
+- Verify chain integrity:
+
+```bash
+make audit-verify
+```
+
+- Export a window to NDJSON and persist export manifest:
+
+```bash
+make audit-export START=2026-02-01T00:00:00Z END=2026-02-20T23:59:59Z
+```
+
+- Prune old exported rows beyond retention policy:
+
+```bash
+make audit-prune
+```
+
+- Relevant env vars:
+  - `AUDIT_RETENTION_DAYS`
+  - `AUDIT_EXPORT_ENABLED`
+  - `AUDIT_EXPORT_STORAGE` (`filesystem` or `minio`)
+  - `AUDIT_EXPORT_BUCKET`, `AUDIT_EXPORT_PATH`
+  - `AUDIT_MAX_METADATA_BYTES`
