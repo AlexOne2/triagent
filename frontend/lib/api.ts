@@ -211,6 +211,17 @@ export type Report = {
   created_at: string;
 };
 
+export type Attachment = {
+  id: number;
+  report_id: number;
+  filename?: string | null;
+  content_type?: string | null;
+  size_bytes?: number | null;
+  sha256?: string | null;
+  s3_key?: string | null;
+  created_at: string;
+};
+
 export type ReportStats = {
   total: number;
   open: number;
@@ -400,6 +411,37 @@ export async function uploadEml(file: File): Promise<{ report_id: number; risk_s
     throw new Error(text || `Upload failed: ${res.status}`);
   }
   return res.json();
+}
+
+export async function uploadMsg(file: File): Promise<{ report_id: number; risk_score: number }> {
+  const token = getAccessToken();
+  const form = new FormData();
+  form.append("file", file);
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/api/report-msg`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+
+  if (res.status === 401 && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchReportAttachments(reportId: number): Promise<Attachment[]> {
+  return request<Attachment[]>(`/api/reports/${reportId}/attachments`);
 }
 
 export async function fetchReportStats(): Promise<ReportStats> {

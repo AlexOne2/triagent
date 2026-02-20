@@ -9,3 +9,4 @@ pydantic-settings==2.1.0
 passlib==1.7.4
 bcrypt==4.0.1
 minio==7.2.15
+extract-msg==0.55.0

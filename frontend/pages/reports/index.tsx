@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Report, fetchReports, uploadEml } from "../../lib/api";
+import { Report, fetchReports, uploadEml, uploadMsg } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 
 const statusClass = (status: Report["status"]) => {
@@ -21,6 +21,17 @@ export default function ReportList() {
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+
+  const uploadFile = async (file: File) => {
+    const name = file.name.toLowerCase();
+    if (name.endsWith(".eml")) {
+      return uploadEml(file);
+    }
+    if (name.endsWith(".msg")) {
+      return uploadMsg(file);
+    }
+    throw new Error("Unsupported file type. Upload .eml or .msg files.");
+  };
 
   useEffect(() => {
     if (!canRead) {
@@ -80,8 +91,8 @@ export default function ReportList() {
             setUploading(true);
             setUploadStatus("Uploading...");
             try {
-              await uploadEml(file);
-              setUploadStatus("Uploaded .eml successfully.");
+              await uploadFile(file);
+              setUploadStatus(`Uploaded ${file.name} successfully.`);
               setReloadTick((tick) => tick + 1);
             } catch (err) {
               setUploadStatus(err instanceof Error ? err.message : "Upload failed.");
@@ -90,10 +101,10 @@ export default function ReportList() {
             }
           }}
         >
-          <p>Upload .eml files to ingest reported mail.</p>
+          <p>Upload .eml or .msg files to ingest reported mail.</p>
           <input
             type="file"
-            accept=".eml"
+            accept=".eml,.msg"
             disabled={uploading}
             onChange={async (event) => {
               const file = event.target.files?.[0];
@@ -101,8 +112,8 @@ export default function ReportList() {
               setUploading(true);
               setUploadStatus("Uploading...");
               try {
-                await uploadEml(file);
-                setUploadStatus("Uploaded .eml successfully.");
+                await uploadFile(file);
+                setUploadStatus(`Uploaded ${file.name} successfully.`);
                 setReloadTick((tick) => tick + 1);
               } catch (err) {
                 setUploadStatus(err instanceof Error ? err.message : "Upload failed.");

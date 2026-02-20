@@ -133,6 +133,19 @@ class ReportOut(BaseModel):
     created_at: datetime
 
 
+class AttachmentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    report_id: int
+    filename: Optional[str]
+    content_type: Optional[str]
+    size_bytes: Optional[int]
+    sha256: Optional[str]
+    s3_key: Optional[str]
+    created_at: datetime
+
+
 class ReportUpdate(BaseModel):
     status: Optional[ReportStatus] = None
     classification_code: Optional[str] = None

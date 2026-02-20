@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Report, fetchReport, reopenReport } from "../../lib/api";
+import { Attachment, Report, fetchReport, fetchReportAttachments, reopenReport } from "../../lib/api";
 import ResolveDrawer from "../../components/ResolveDrawer";
 import { useAuth } from "../../lib/auth-context";
 
@@ -14,6 +14,9 @@ export default function ReportDetailPage() {
   const { id } = router.query;
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -44,6 +47,35 @@ export default function ReportDetailPage() {
       active = false;
     };
   }, [id, canRead]);
+
+  useEffect(() => {
+    if (!canRead || !report?.id) {
+      setAttachments([]);
+      setAttachmentsLoading(false);
+      setAttachmentsError(null);
+      return;
+    }
+    let active = true;
+    setAttachmentsLoading(true);
+    setAttachmentsError(null);
+    fetchReportAttachments(report.id)
+      .then((data) => {
+        if (!active) return;
+        setAttachments(data);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setAttachmentsError(err.message || "Failed to load attachments");
+      })
+      .finally(() => {
+        if (!active) return;
+        setAttachmentsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [canRead, report?.id]);
 
   const urls = useMemo(() => {
     if (!report) return [];
@@ -224,7 +256,35 @@ export default function ReportDetailPage() {
 
           {leftTab === "Attachments" ? (
             <div className="detail-section">
-              <p>No attachments captured in v0.</p>
+              {attachmentsLoading ? <p>Loading attachments...</p> : null}
+              {attachmentsError ? <p>{attachmentsError}</p> : null}
+              {!attachmentsLoading && !attachmentsError && attachments.length === 0 ? (
+                <p>No attachments captured.</p>
+              ) : null}
+              {attachments.length > 0 ? (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Filename</th>
+                      <th>Type</th>
+                      <th>Size</th>
+                      <th>SHA-256</th>
+                      <th>Storage key</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attachments.map((attachment) => (
+                      <tr key={attachment.id}>
+                        <td>{attachment.filename || "-"}</td>
+                        <td>{attachment.content_type || "-"}</td>
+                        <td>{attachment.size_bytes ?? "-"}</td>
+                        <td>{attachment.sha256 || "-"}</td>
+                        <td>{attachment.s3_key || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : null}
             </div>
           ) : null}
 

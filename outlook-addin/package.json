@@ -7,9 +7,7 @@
     "dev": "webpack serve --mode development --https --port 3001",
     "lint": "tsc --noEmit"
   },
-  "dependencies": {
-    "office-js": "1.1.81"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/office-js": "1.0.363",
     "css-loader": "6.10.0",

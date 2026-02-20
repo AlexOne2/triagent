@@ -63,6 +63,7 @@ Backend health: http://localhost:8000/health
 - Edit `outlook-addin/config.json`
   - `backendUrl`
   - `apiKey` (create one from Admin -> API Keys, role `INGESTOR`)
+  - Add-in prefers raw file submission when supported (`/api/report-msg` for MSG, `/api/report-eml` for EML), and falls back to JSON `/api/report` if raw file APIs are unavailable in the client.
 
 2) Install add-in deps and start dev server:
 
@@ -87,7 +88,7 @@ npx office-addin-dev-certs install
 ## Demo Flow
 
 1) Login in the UI.
-2) Upload a `.eml` from Uploads, or use add-in ingestion.
+2) Upload a `.eml` or `.msg` from Uploads, or use add-in ingestion.
 3) Open report detail and resolve/reopen via Resolve drawer.
 4) Review history and dashboard aggregations.
 5) Manage users/roles and API keys from Admin pages.
@@ -121,8 +122,10 @@ npx office-addin-dev-certs install
 
 - `POST /api/report`
 - `POST /api/report-eml` (multipart `.eml` upload)
+- `POST /api/report-msg` (multipart `.msg` upload)
 - `GET /api/reports`
 - `GET /api/reports/{report_id}`
+- `GET /api/reports/{report_id}/attachments`
 - `PATCH /api/reports/{report_id}` (admin override)
 - `POST /api/reports/{report_id}/resolve`
 - `POST /api/reports/{report_id}/reopen`
@@ -134,7 +137,7 @@ npx office-addin-dev-certs install
 ## Notes
 
 - Reporter identity is hashed with `REPORTER_HASH_SALT`.
-- MinIO is scaffolded; attachments are not wired in v0.
+- `.msg` uploads extract attachments, compute SHA-256, and store blobs in MinIO with metadata in `attachments`.
 - Audit events are append-only and hash-chained (`prev_hash`, `event_hash`) for tamper evidence.
 - Audit metadata is redacted and size-bounded (`AUDIT_MAX_METADATA_BYTES`) to avoid logging secrets.
 

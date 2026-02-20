@@ -7,14 +7,14 @@ Legend:
 - [ ] missing
 
 ## MVP core (thin slice)
-- [~] Ingest EML/MSG (manual upload minimum)
+- [x] Ingest EML/MSG (manual upload minimum)
   - [x] Manual `.eml` upload implemented (`POST /api/report-eml`, Uploads drag/drop UI).
-  - [ ] `.msg` upload/parser not implemented.
+  - [x] Manual `.msg` upload/parser implemented (`POST /api/report-msg`, Uploads drag/drop UI).
 - [x] Parse and normalize
   - [x] Headers/hops parsing (including `Received` hop extraction for IP/rDNS in current parser).
   - [~] SPF/DKIM/DMARC signals shown from `Authentication-Results` header parsing only (no independent cryptographic verification engine yet).
   - [x] URL extraction + normalization implemented.
-  - [ ] Attachment extraction + hashing pipeline not implemented (attachments table exists, UI currently says "No attachments captured in v0").
+  - [x] Attachment extraction + hashing implemented for `.msg` ingest (metadata in `attachments`, bytes in MinIO).
 - [~] Case lifecycle
   - [x] Case ID available (`reports.id`).
   - [ ] Case fingerprint/dedup workflow not active (legacy clustering removed; fingerprint helper exists but is unused).
@@ -50,11 +50,9 @@ Legend:
 - [x] No external threat-intel/API dependency in core analysis path (on-prem offline-friendly).
 
 ## Prioritized next actions
-1. Add `.msg` ingestion support and normalize into the existing report schema.
-2. Implement attachment extraction pipeline: enumerate MIME parts, hash (`sha256`), store metadata, persist blob to MinIO/filesystem.
-3. Add case-level evidence export endpoint/UI (`.md` first, optional PDF render) including artifacts, rationale, and resolution history.
-4. Add explicit proposed-verdict workflow (`PROPOSED_*` state + analyst approval transition).
-5. Add report retention policy controls (configurable TTL + purge command + audit events for deletions).
-6. Add formal security docs: threat model, hardening guide, install/upgrade/rollback runbook.
-7. Add SBOM + dependency scan commands in CI/dev (`cyclonedx` + `pip-audit`/`npm audit` report artifacts).
-8. Improve observability: structured JSON logs, sensitive-field masking policy, and minimal metrics/alerts.
+1. Add case-level evidence export endpoint/UI (`.md` first, optional PDF render) including artifacts, rationale, and resolution history.
+2. Add explicit proposed-verdict workflow (`PROPOSED_*` state + analyst approval transition).
+3. Add report retention policy controls (configurable TTL + purge command + audit events for deletions).
+4. Add formal security docs: threat model, hardening guide, install/upgrade/rollback runbook.
+5. Add SBOM + dependency scan commands in CI/dev (`cyclonedx` + `pip-audit`/`npm audit` report artifacts).
+6. Improve observability: structured JSON logs, sensitive-field masking policy, and minimal metrics/alerts.

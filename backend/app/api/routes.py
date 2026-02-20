@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.api.security_deps import Principal, require_permission, request_meta
 from app.core.config import get_settings
+from app.models.attachment import Attachment
 from app.models.report import (
     ArtifactKind,
     IngestSource,
@@ -22,6 +23,7 @@ from app.models.report import (
 from app.models.security_audit import AuditActorType
 from app.models.report_resolution import ReportResolution
 from app.schemas import (
+    AttachmentOut,
     DashboardAddressPoint,
     DashboardClassificationPoint,
     DashboardKpis,
@@ -40,6 +42,8 @@ from app.schemas import (
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
 from app.services.auth import create_security_audit_event
 from app.services.eml_parser import parse_eml
+from app.services.msg_parser import MsgParseError, parse_msg
+from app.services.object_storage import ObjectStorageError, ObjectStorageService
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -221,7 +225,7 @@ def _serialize_resolution(event: ReportResolution) -> ReportResolutionOut:
     )
 
 
-def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> ReportResult:
+def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> tuple[Report, int]:
     settings = get_settings()
     now = datetime.now(timezone.utc)
 
@@ -271,8 +275,8 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
         originating_rdns=payload.originating_rdns,
     )
     db.add(report)
-    db.commit()
-    return ReportResult(report_id=report.id, risk_score=risk_score)
+    db.flush()
+    return report, risk_score
 
 
 @router.post("/report", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
@@ -282,21 +286,25 @@ def create_report(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.ingest")),
 ):
-    result = _create_report(payload, db, IngestSource.AUTO)
-    create_security_audit_event(
-        db,
-        action="REPORT_INGESTED",
-        outcome="SUCCESS",
-        target_type="report",
-        target_id=str(result.report_id),
-        metadata={"ingest_source": IngestSource.AUTO.value, "risk_score": result.risk_score},
-        actor_user_id=principal.user_id,
-        actor_api_key_id=principal.api_key_id,
-        actor_type=_principal_actor_type(principal),
-        request_meta=request_meta(request),
-    )
-    db.commit()
-    return result
+    try:
+        report, risk_score = _create_report(payload, db, IngestSource.AUTO)
+        create_security_audit_event(
+            db,
+            action="REPORT_INGESTED",
+            outcome="SUCCESS",
+            target_type="report",
+            target_id=str(report.id),
+            metadata={"ingest_source": IngestSource.AUTO.value, "risk_score": risk_score},
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+            actor_type=_principal_actor_type(principal),
+            request_meta=request_meta(request),
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return ReportResult(report_id=report.id, risk_score=risk_score)
 
 
 @router.post("/report-eml", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
@@ -307,23 +315,100 @@ async def create_report_from_eml(
     principal: Principal = Depends(require_permission("reports.ingest")),
 ):
     raw_bytes = await file.read()
-    parsed = parse_eml(raw_bytes)
-    payload = ReportCreate(**parsed)
-    result = _create_report(payload, db, IngestSource.UPLOAD)
-    create_security_audit_event(
-        db,
-        action="REPORT_INGESTED",
-        outcome="SUCCESS",
-        target_type="report",
-        target_id=str(result.report_id),
-        metadata={"ingest_source": IngestSource.UPLOAD.value, "risk_score": result.risk_score},
-        actor_user_id=principal.user_id,
-        actor_api_key_id=principal.api_key_id,
-        actor_type=_principal_actor_type(principal),
-        request_meta=request_meta(request),
-    )
-    db.commit()
-    return result
+    try:
+        parsed = parse_eml(raw_bytes)
+        payload = ReportCreate(**parsed)
+        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        create_security_audit_event(
+            db,
+            action="REPORT_INGESTED",
+            outcome="SUCCESS",
+            target_type="report",
+            target_id=str(report.id),
+            metadata={
+                "ingest_source": IngestSource.UPLOAD.value,
+                "risk_score": risk_score,
+                "file_type": "eml",
+            },
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+            actor_type=_principal_actor_type(principal),
+            request_meta=request_meta(request),
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    return ReportResult(report_id=report.id, risk_score=risk_score)
+
+
+@router.post("/report-msg", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
+async def create_report_from_msg(
+    request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.ingest")),
+):
+    filename = (file.filename or "").lower()
+    if not filename.endswith(".msg"):
+        raise HTTPException(status_code=415, detail="Only .msg files are supported")
+
+    raw_bytes = await file.read()
+    try:
+        parsed_report, parsed_attachments = parse_msg(raw_bytes)
+        payload = ReportCreate(**parsed_report)
+        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+
+        storage = ObjectStorageService()
+        for parsed_attachment in parsed_attachments:
+            stored = storage.put_attachment(
+                report_id=report.id,
+                filename=parsed_attachment.filename,
+                content_type=parsed_attachment.content_type,
+                data=parsed_attachment.data,
+            )
+            db.add(
+                Attachment(
+                    report_id=report.id,
+                    filename=parsed_attachment.filename,
+                    content_type=parsed_attachment.content_type,
+                    size_bytes=stored["size_bytes"],
+                    sha256=stored["sha256"],
+                    s3_key=stored["s3_key"],
+                )
+            )
+
+        create_security_audit_event(
+            db,
+            action="REPORT_INGESTED",
+            outcome="SUCCESS",
+            target_type="report",
+            target_id=str(report.id),
+            metadata={
+                "ingest_source": IngestSource.UPLOAD.value,
+                "risk_score": risk_score,
+                "file_type": "msg",
+                "attachment_count": len(parsed_attachments),
+            },
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+            actor_type=_principal_actor_type(principal),
+            request_meta=request_meta(request),
+        )
+        db.commit()
+    except MsgParseError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Invalid or unsupported .msg file") from exc
+    except ObjectStorageError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Attachment storage is unavailable") from exc
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception:
+        db.rollback()
+        raise
+    return ReportResult(report_id=report.id, risk_score=risk_score)
 
 
 @router.get("/reports", response_model=list[ReportOut])
@@ -349,6 +434,26 @@ def list_reports(
     query = query.offset(offset).limit(limit)
     reports = db.execute(query).scalars().all()
     return reports
+
+
+@router.get("/reports/{report_id}/attachments", response_model=list[AttachmentOut])
+def list_report_attachments(
+    report_id: int,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("reports.read")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return (
+        db.execute(
+            select(Attachment)
+            .where(Attachment.report_id == report_id)
+            .order_by(Attachment.created_at.desc(), Attachment.id.desc())
+        )
+        .scalars()
+        .all()
+    )
 
 
 @router.get("/dashboard/overview", response_model=DashboardOverviewOut)
