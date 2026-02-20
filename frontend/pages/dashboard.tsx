@@ -16,6 +16,7 @@ import {
   YAxis,
 } from "recharts";
 import { DashboardOverview, fetchDashboardOverview } from "../lib/api";
+import { useAuth } from "../lib/auth-context";
 
 type RangePreset = "all" | "7d" | "30d" | "90d" | "custom";
 
@@ -38,6 +39,9 @@ function presetBounds(preset: Exclude<RangePreset, "custom">): { start: string; 
 }
 
 export default function Dashboard() {
+  const { hasPermission } = useAuth();
+  const canRead = hasPermission("dashboard.read");
+  const canReadReports = hasPermission("reports.read");
   const [preset, setPreset] = useState<RangePreset>("90d");
   const [startDate, setStartDate] = useState<string>(presetBounds("90d").start);
   const [endDate, setEndDate] = useState<string>(presetBounds("90d").end);
@@ -55,6 +59,10 @@ export default function Dashboard() {
   }, [preset]);
 
   useEffect(() => {
+    if (!canRead) {
+      setLoading(false);
+      return;
+    }
     if (!startDate || !endDate) {
       return;
     }
@@ -91,7 +99,16 @@ export default function Dashboard() {
     return () => {
       active = false;
     };
-  }, [startDate, endDate]);
+  }, [startDate, endDate, canRead]);
+
+  if (!canRead) {
+    return (
+      <main className="full">
+        <h1>Overview</h1>
+        <p>Insufficient permissions.</p>
+      </main>
+    );
+  }
 
   const donutData = useMemo(
     () => [
@@ -108,9 +125,11 @@ export default function Dashboard() {
           <p className="dashboard-breadcrumb">Dashboard &gt; Overview</p>
           <h1>Overview</h1>
         </div>
-        <Link href="/reports" className="tab">
-          Go to Uploads
-        </Link>
+        {canReadReports ? (
+          <Link href="/reports" className="tab">
+            Go to Uploads
+          </Link>
+        ) : null}
       </header>
 
       <section className="card dashboard-filter-card">

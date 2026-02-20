@@ -1,8 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.admin_routes import router as admin_router
+from app.api.auth_routes import router as auth_router
 from app.api.routes import router as api_router
 from app.core.config import get_settings
+from app.db.session import SessionLocal
+from app.services.auth import bootstrap_admin_user
 
 
 def create_app() -> FastAPI:
@@ -17,7 +22,19 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(auth_router)
+    app.include_router(admin_router)
     app.include_router(api_router)
+
+    @app.on_event("startup")
+    def startup_bootstrap_admin() -> None:
+        db = SessionLocal()
+        try:
+            bootstrap_admin_user(db, settings)
+        except SQLAlchemyError:
+            db.rollback()
+        finally:
+            db.close()
 
     @app.get("/health")
     def health():

@@ -27,10 +27,17 @@ services:
       context: ../backend
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://mailtriage:mailtriage@postgres:5432/mailtriage}
-      ADMIN_USERNAME: ${ADMIN_USERNAME-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD-}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me}
       REPORTER_HASH_SALT: ${REPORTER_HASH_SALT:-change-me}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      AUTH_MODE: ${AUTH_MODE:-session_rbac}
+      AUTH_SESSION_TTL_MINUTES: ${AUTH_SESSION_TTL_MINUTES:-480}
+      AUTH_LEGACY_BASIC_ENABLED: ${AUTH_LEGACY_BASIC_ENABLED:-true}
+      AUTH_PASSWORD_MIN_LENGTH: ${AUTH_PASSWORD_MIN_LENGTH:-14}
+      AUTH_LOCKOUT_THRESHOLD: ${AUTH_LOCKOUT_THRESHOLD:-5}
+      AUTH_LOCKOUT_WINDOW_MINUTES: ${AUTH_LOCKOUT_WINDOW_MINUTES:-15}
+      AUTH_LOCKOUT_DURATION_MINUTES: ${AUTH_LOCKOUT_DURATION_MINUTES:-15}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
@@ -46,8 +53,6 @@ services:
       context: ../frontend
     environment:
       NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
-      NEXT_PUBLIC_API_USERNAME: ${NEXT_PUBLIC_API_USERNAME-}
-      NEXT_PUBLIC_API_PASSWORD: ${NEXT_PUBLIC_API_PASSWORD-}
     depends_on:
       - backend
     ports:

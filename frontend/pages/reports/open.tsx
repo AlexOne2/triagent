@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Report, fetchReports } from "../../lib/api";
+import { useAuth } from "../../lib/auth-context";
 
 export default function OpenReports() {
+  const { hasPermission } = useAuth();
+  const canRead = hasPermission("reports.read");
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!canRead) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     fetchReports(undefined, "OPEN", "UPLOAD")
       .then((data) => {
@@ -20,7 +27,16 @@ export default function OpenReports() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [canRead]);
+
+  if (!canRead) {
+    return (
+      <main>
+        <h1>Open Uploads</h1>
+        <p>Insufficient permissions.</p>
+      </main>
+    );
+  }
 
   return (
     <main>

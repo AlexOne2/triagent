@@ -1,13 +1,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Report, fetchReports } from "../lib/api";
+import { useAuth } from "../lib/auth-context";
 
 export default function InTray() {
+  const { hasPermission } = useAuth();
+  const canRead = hasPermission("reports.read");
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
+    if (!canRead) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     setLoading(true);
     fetchReports(query, undefined, "AUTO")
@@ -22,7 +29,16 @@ export default function InTray() {
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [query, canRead]);
+
+  if (!canRead) {
+    return (
+      <main className="full">
+        <h1>In-tray</h1>
+        <p>Insufficient permissions.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="full">

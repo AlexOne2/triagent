@@ -1,27 +1,48 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useAuth } from "../lib/auth-context";
 
 export default function AppHeader() {
   const router = useRouter();
   const path = router.pathname;
+  const { hasPermission, logout, user } = useAuth();
 
   const isDashboard = path.startsWith("/dashboard");
   const isInTray = path.startsWith("/in-tray");
   const isUploads = path === "/" || path.startsWith("/reports");
+  const isAdmin = path.startsWith("/admin");
+
+  const canReadReports = hasPermission("reports.read");
+  const canReadDashboard = hasPermission("dashboard.read");
+  const canAdminUsers = hasPermission("admin.users.read") || hasPermission("admin.api_keys.manage");
 
   return (
     <div className="app-header">
       <div className="app-brand">MailSentry</div>
       <div className="app-nav">
-        <Link href="/dashboard" className={`nav-button ${isDashboard ? "active" : ""}`.trim()}>
-          Dashboard
-        </Link>
-        <Link href="/in-tray" className={`nav-button ${isInTray ? "active" : ""}`.trim()}>
-          In-tray
-        </Link>
-        <Link href="/reports" className={`nav-button ${isUploads ? "active" : ""}`.trim()}>
-          Uploads
-        </Link>
+        {canReadDashboard ? (
+          <Link href="/dashboard" className={`nav-button ${isDashboard ? "active" : ""}`.trim()}>
+            Dashboard
+          </Link>
+        ) : null}
+        {canReadReports ? (
+          <Link href="/in-tray" className={`nav-button ${isInTray ? "active" : ""}`.trim()}>
+            In-tray
+          </Link>
+        ) : null}
+        {canReadReports ? (
+          <Link href="/reports" className={`nav-button ${isUploads ? "active" : ""}`.trim()}>
+            Uploads
+          </Link>
+        ) : null}
+        {canAdminUsers ? (
+          <Link href="/admin/users" className={`nav-button ${isAdmin ? "active" : ""}`.trim()}>
+            Admin
+          </Link>
+        ) : null}
+        <button className="nav-button" type="button" onClick={() => void logout()}>
+          Logout{user?.username ? ` (${user.username})` : ""}
+        </button>
       </div>
     </div>
   );

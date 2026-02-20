@@ -1,4 +1,6 @@
+from app.models.api_key import ApiKey
 from app.models.attachment import Attachment
+from app.models.auth_session import AuthSession
 from app.models.report import (
     CLASSIFICATION_CODES,
     ArtifactKind,
@@ -9,6 +11,8 @@ from app.models.report import (
     ResolutionDisposition,
 )
 from app.models.report_resolution import ReportResolution
+from app.models.security_audit import SecurityAuditEvent
+from app.models.user import Permission, Role, RolePermission, User, UserRole
 
 __all__ = [
     "Attachment",
@@ -20,4 +24,12 @@ __all__ = [
     "ArtifactKind",
     "IngestSource",
     "CLASSIFICATION_CODES",
+    "User",
+    "Role",
+    "Permission",
+    "UserRole",
+    "RolePermission",
+    "AuthSession",
+    "ApiKey",
+    "SecurityAuditEvent",
 ]

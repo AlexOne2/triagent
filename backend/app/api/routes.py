@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_actor_username, get_db, require_basic_auth
+from app.api.deps import get_db
+from app.api.security_deps import Principal, require_permission
 from app.core.config import get_settings
 from app.models.report import (
     ArtifactKind,
@@ -32,13 +33,13 @@ from app.schemas import (
     ReportOut,
     ReportResolutionOut,
     ReportResult,
-    ResolveReportRequest,
     ReportUpdate,
+    ResolveReportRequest,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
 from app.services.eml_parser import parse_eml
 
-router = APIRouter(prefix="/api", tags=["api"], dependencies=[Depends(require_basic_auth)])
+router = APIRouter(prefix="/api", tags=["api"])
 
 
 def _as_utc(value: datetime) -> datetime:
@@ -202,6 +203,8 @@ def _serialize_resolution(event: ReportResolution) -> ReportResolutionOut:
         note=event.note,
         flagged_artifacts=artifacts,
         actor=event.actor,
+        actor_user_id=event.actor_user_id,
+        actor_api_key_id=event.actor_api_key_id,
         created_at=event.created_at,
     )
 
@@ -261,7 +264,11 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
 
 
 @router.post("/report", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
-def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
+def create_report(
+    payload: ReportCreate,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("reports.ingest")),
+):
     return _create_report(payload, db, IngestSource.AUTO)
 
 
@@ -269,6 +276,7 @@ def create_report(payload: ReportCreate, db: Session = Depends(get_db)):
 async def create_report_from_eml(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("reports.ingest")),
 ):
     raw_bytes = await file.read()
     parsed = parse_eml(raw_bytes)
@@ -284,6 +292,7 @@ def list_reports(
     q: str | None = Query(default=None, max_length=200),
     status: ReportStatus | None = Query(default=None),
     source: IngestSource | None = Query(default=None),
+    _: Principal = Depends(require_permission("reports.read")),
 ):
     query = select(Report).order_by(Report.received_at.desc().nullslast(), Report.created_at.desc())
     if q:
@@ -306,6 +315,7 @@ def dashboard_overview(
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
     tz: str = Query(default="UTC"),
+    _: Principal = Depends(require_permission("dashboard.read")),
 ):
     start_utc, end_utc = _resolve_window(start, end)
     try:
@@ -400,7 +410,10 @@ def dashboard_overview(
 
 
 @router.get("/reports/stats")
-def report_stats(db: Session = Depends(get_db)):
+def report_stats(
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("dashboard.read")),
+):
     stmt = select(
         func.count(Report.id).label("total"),
         func.sum(case((Report.status == ReportStatus.OPEN, 1), else_=0)).label("open"),
@@ -417,7 +430,11 @@ def report_stats(db: Session = Depends(get_db)):
 
 
 @router.get("/reports/{report_id}", response_model=ReportOut)
-def get_report(report_id: int, db: Session = Depends(get_db)):
+def get_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("reports.read")),
+):
     report = db.get(Report, report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -429,7 +446,7 @@ def resolve_report(
     report_id: int,
     payload: ResolveReportRequest,
     db: Session = Depends(get_db),
-    actor_username: str = Depends(get_actor_username),
+    principal: Principal = Depends(require_permission("reports.resolve")),
 ):
     report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
     if report is None:
@@ -446,7 +463,7 @@ def resolve_report(
     report.resolution_note = payload.note
     report.flagged_artifacts_json = flagged_artifacts or None
     report.resolved_at = now
-    report.last_resolved_by = actor_username
+    report.last_resolved_by = principal.actor
 
     db.add(
         ReportResolution(
@@ -457,7 +474,9 @@ def resolve_report(
             classification_code=payload.classification_code,
             note=payload.note,
             flagged_artifacts_json=flagged_artifacts or None,
-            actor=actor_username,
+            actor=principal.actor,
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
         )
     )
 
@@ -470,7 +489,7 @@ def resolve_report(
 def reopen_report(
     report_id: int,
     db: Session = Depends(get_db),
-    actor_username: str = Depends(get_actor_username),
+    principal: Principal = Depends(require_permission("reports.reopen")),
 ):
     report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
     if report is None:
@@ -494,7 +513,9 @@ def reopen_report(
             classification_code=None,
             note=None,
             flagged_artifacts_json=None,
-            actor=actor_username,
+            actor=principal.actor,
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
         )
     )
 
@@ -504,7 +525,11 @@ def reopen_report(
 
 
 @router.get("/reports/{report_id}/resolutions", response_model=list[ReportResolutionOut])
-def list_report_resolutions(report_id: int, db: Session = Depends(get_db)):
+def list_report_resolutions(
+    report_id: int,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("resolutions.read")),
+):
     report = db.get(Report, report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -522,7 +547,12 @@ def list_report_resolutions(report_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/reports/{report_id}", response_model=ReportOut)
-def update_report(report_id: int, payload: ReportUpdate, db: Session = Depends(get_db)):
+def update_report(
+    report_id: int,
+    payload: ReportUpdate,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("reports.admin_override")),
+):
     report = db.get(Report, report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")

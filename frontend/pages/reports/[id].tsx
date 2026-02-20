@@ -3,8 +3,13 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Report, fetchReport, reopenReport } from "../../lib/api";
 import ResolveDrawer from "../../components/ResolveDrawer";
+import { useAuth } from "../../lib/auth-context";
 
 export default function ReportDetailPage() {
+  const { hasPermission } = useAuth();
+  const canRead = hasPermission("reports.read");
+  const canResolve = hasPermission("reports.resolve");
+  const canReopen = hasPermission("reports.reopen");
   const router = useRouter();
   const { id } = router.query;
   const [report, setReport] = useState<Report | null>(null);
@@ -14,6 +19,10 @@ export default function ReportDetailPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
+    if (!canRead) {
+      setLoading(false);
+      return;
+    }
     if (!id) return;
     let active = true;
     setLoading(true);
@@ -34,7 +43,7 @@ export default function ReportDetailPage() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, canRead]);
 
   const urls = useMemo(() => {
     if (!report) return [];
@@ -90,6 +99,15 @@ export default function ReportDetailPage() {
     );
   }
 
+  if (!canRead) {
+    return (
+      <main className="full">
+        <h1>Report</h1>
+        <p>Insufficient permissions.</p>
+      </main>
+    );
+  }
+
   if (error || !report) {
     return (
       <main>
@@ -108,18 +126,19 @@ export default function ReportDetailPage() {
           <p>Report #{report.id}</p>
         </div>
         <div className="report-detail-actions">
-          {report.status === "OPEN" ? (
+          {report.status === "OPEN" && canResolve ? (
             <button className="resolve-button" type="button" onClick={() => setDrawerOpen(true)} disabled={updating}>
               Resolve
             </button>
-          ) : (
-            <>
-              <span className={report.status === "PHISHING" ? "badge phishing" : "badge"}>{report.status}</span>
-              <button className="resolve-button secondary" type="button" onClick={handleReopen} disabled={updating}>
-                {updating ? "Reopening..." : "Reopen"}
-              </button>
-            </>
-          )}
+          ) : null}
+          {report.status !== "OPEN" ? (
+            <span className={report.status === "PHISHING" ? "badge phishing" : "badge"}>{report.status}</span>
+          ) : null}
+          {report.status !== "OPEN" && canReopen ? (
+            <button className="resolve-button secondary" type="button" onClick={handleReopen} disabled={updating}>
+              {updating ? "Reopening..." : "Reopen"}
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -274,7 +293,7 @@ export default function ReportDetailPage() {
       </section>
 
       <ResolveDrawer
-        open={drawerOpen}
+        open={drawerOpen && canResolve}
         report={report}
         onClose={() => setDrawerOpen(false)}
         onResolved={(updatedReport) => setReport(updatedReport)}

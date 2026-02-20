@@ -25,8 +25,9 @@ async function reportSuspicious() {
     const payload = await buildPayload();
     setStatus("Sending report...");
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    const authHeader = buildBasicAuth(config.apiUsername, config.apiPassword);
-    if (authHeader) headers.Authorization = authHeader;
+    if (config.apiKey) {
+      headers["X-API-Key"] = config.apiKey;
+    }
     const response = await fetch(`${config.backendUrl}/api/report`, {
       method: "POST",
       headers,
@@ -117,10 +118,4 @@ async function hashReporter(email: string, salt: string) {
 function emailDomain(email: string) {
   if (!email || !email.includes("@")) return undefined;
   return email.split("@")[1].toLowerCase();
-}
-
-function buildBasicAuth(username?: string, password?: string) {
-  if (!username || !password) return undefined;
-  const token = `${username}:${password}`;
-  return `Basic ${btoa(token)}`;
 }

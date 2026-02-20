@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Report, fetchReports, uploadEml } from "../../lib/api";
+import { useAuth } from "../../lib/auth-context";
 
 const statusClass = (status: Report["status"]) => {
   if (status === "PHISHING") return "badge phishing";
@@ -9,6 +10,9 @@ const statusClass = (status: Report["status"]) => {
 };
 
 export default function ReportList() {
+  const { hasPermission } = useAuth();
+  const canRead = hasPermission("reports.read");
+  const canIngest = hasPermission("reports.ingest");
   const [reports, setReports] = useState<Report[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [query, setQuery] = useState("");
@@ -19,6 +23,10 @@ export default function ReportList() {
   const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
+    if (!canRead) {
+      setLoading(false);
+      return;
+    }
     let active = true;
     setLoading(true);
     fetchReports(query, "OPEN", "UPLOAD")
@@ -38,7 +46,16 @@ export default function ReportList() {
     return () => {
       active = false;
     };
-  }, [query, reloadTick]);
+  }, [query, reloadTick, canRead]);
+
+  if (!canRead) {
+    return (
+      <main className="full">
+        <h1>Uploads</h1>
+        <p>Insufficient permissions.</p>
+      </main>
+    );
+  }
 
   return (
     <main className="full">
@@ -47,38 +64,18 @@ export default function ReportList() {
           <h1>Uploads</h1>
         </div>
       </header>
-      <div
-        className={`upload-zone ${dragActive ? "active" : ""}`}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragActive(true);
-        }}
-        onDragLeave={() => setDragActive(false)}
-        onDrop={async (event) => {
-          event.preventDefault();
-          setDragActive(false);
-          const file = event.dataTransfer.files?.[0];
-          if (!file) return;
-          setUploading(true);
-          setUploadStatus("Uploading...");
-          try {
-            await uploadEml(file);
-            setUploadStatus("Uploaded .eml successfully.");
-            setReloadTick((tick) => tick + 1);
-          } catch (err) {
-            setUploadStatus(err instanceof Error ? err.message : "Upload failed.");
-          } finally {
-            setUploading(false);
-          }
-        }}
-      >
-        <p>Upload .eml files to ingest reported mail.</p>
-        <input
-          type="file"
-          accept=".eml"
-          disabled={uploading}
-          onChange={async (event) => {
-            const file = event.target.files?.[0];
+      {canIngest ? (
+        <div
+          className={`upload-zone ${dragActive ? "active" : ""}`}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={async (event) => {
+            event.preventDefault();
+            setDragActive(false);
+            const file = event.dataTransfer.files?.[0];
             if (!file) return;
             setUploading(true);
             setUploadStatus("Uploading...");
@@ -90,24 +87,46 @@ export default function ReportList() {
               setUploadStatus(err instanceof Error ? err.message : "Upload failed.");
             } finally {
               setUploading(false);
-              event.target.value = "";
             }
           }}
-        />
-        <div className="upload-actions">
-          <button
-            type="button"
-            className="tab"
-            onClick={() => {
-              const input = document.querySelector<HTMLInputElement>(".upload-zone input[type='file']");
-              input?.click();
+        >
+          <p>Upload .eml files to ingest reported mail.</p>
+          <input
+            type="file"
+            accept=".eml"
+            disabled={uploading}
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              setUploading(true);
+              setUploadStatus("Uploading...");
+              try {
+                await uploadEml(file);
+                setUploadStatus("Uploaded .eml successfully.");
+                setReloadTick((tick) => tick + 1);
+              } catch (err) {
+                setUploadStatus(err instanceof Error ? err.message : "Upload failed.");
+              } finally {
+                setUploading(false);
+                event.target.value = "";
+              }
             }}
-          >
-            {uploading ? "Uploading..." : "Choose file"}
-          </button>
-          <span>{uploadStatus || "Drag & drop or choose a file."}</span>
+          />
+          <div className="upload-actions">
+            <button
+              type="button"
+              className="tab"
+              onClick={() => {
+                const input = document.querySelector<HTMLInputElement>(".upload-zone input[type='file']");
+                input?.click();
+              }}
+            >
+              {uploading ? "Uploading..." : "Choose file"}
+            </button>
+            <span>{uploadStatus || "Drag & drop or choose a file."}</span>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <input
         className="input"

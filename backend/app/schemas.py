@@ -24,6 +24,47 @@ def _validate_classification(value: Optional[str]) -> Optional[str]:
     return cleaned
 
 
+class AuthLoginRequest(BaseModel):
+    username: str
+    password: str
+
+    @field_validator("username", "password", mode="before")
+    @classmethod
+    def validate_non_empty(cls, value):
+        cleaned = str(value).strip() if value is not None else ""
+        if not cleaned:
+            raise ValueError("field is required")
+        return cleaned
+
+
+class AuthUserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    email: Optional[str]
+    is_active: bool
+    must_change_password: bool
+    last_login_at: Optional[datetime]
+    created_at: datetime
+    updated_at: datetime
+
+
+class AuthLoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    expires_at: datetime
+    user: AuthUserOut
+    permissions: List[str]
+    roles: List[str]
+
+
+class AuthMeResponse(BaseModel):
+    user: AuthUserOut
+    roles: List[str]
+    permissions: List[str]
+
+
 class ReportCreate(BaseModel):
     message_id: Optional[str] = None
     received_at: Optional[datetime] = None
@@ -172,6 +213,8 @@ class ReportResolutionOut(BaseModel):
     note: Optional[str]
     flagged_artifacts: List[FlaggedArtifactOut] = Field(default_factory=list)
     actor: str
+    actor_user_id: Optional[int] = None
+    actor_api_key_id: Optional[int] = None
     created_at: datetime
 
 
@@ -217,3 +260,155 @@ class DashboardOverviewOut(BaseModel):
     classifications: List[DashboardClassificationPoint]
     top_to_addresses: List[DashboardAddressPoint]
     top_from_addresses: List[DashboardAddressPoint]
+
+
+class PermissionOut(BaseModel):
+    id: int
+    key: str
+    description: Optional[str]
+    created_at: datetime
+
+
+class AdminRoleOut(BaseModel):
+    id: int
+    key: str
+    name: str
+    description: Optional[str]
+    is_system: bool
+    permissions: List[str]
+    created_at: datetime
+
+
+class AdminUserOut(BaseModel):
+    id: int
+    username: str
+    email: Optional[str]
+    is_active: bool
+    must_change_password: bool
+    failed_login_attempts: int
+    locked_until: Optional[datetime]
+    last_login_at: Optional[datetime]
+    role_keys: List[str]
+    created_at: datetime
+    updated_at: datetime
+
+
+class AdminUserCreate(BaseModel):
+    username: str
+    email: Optional[str] = None
+    password: str
+    role_keys: List[str]
+    is_active: bool = True
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def validate_username(cls, value):
+        cleaned = str(value).strip().lower() if value is not None else ""
+        if not cleaned:
+            raise ValueError("username is required")
+        return cleaned
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip().lower()
+        return cleaned or None
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password(cls, value):
+        cleaned = str(value) if value is not None else ""
+        if not cleaned:
+            raise ValueError("password is required")
+        return cleaned
+
+    @field_validator("role_keys", mode="before")
+    @classmethod
+    def validate_role_keys(cls, value):
+        if value is None:
+            raise ValueError("role_keys is required")
+        if not isinstance(value, list):
+            raise ValueError("role_keys must be a list")
+        cleaned = [str(item).strip().upper() for item in value if str(item).strip()]
+        if not cleaned:
+            raise ValueError("role_keys is required")
+        return cleaned
+
+
+class AdminUserUpdate(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def validate_email(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip().lower()
+        return cleaned or None
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def validate_password(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value)
+        return cleaned or None
+
+    @model_validator(mode="after")
+    def validate_payload(self):
+        if self.email is None and self.password is None and self.is_active is None:
+            raise ValueError("At least one field is required")
+        return self
+
+
+class AdminUserRoleUpdate(BaseModel):
+    role_keys: List[str]
+
+    @field_validator("role_keys", mode="before")
+    @classmethod
+    def validate_role_keys(cls, value):
+        if value is None or not isinstance(value, list):
+            raise ValueError("role_keys must be a list")
+        cleaned = [str(item).strip().upper() for item in value if str(item).strip()]
+        if not cleaned:
+            raise ValueError("role_keys is required")
+        return cleaned
+
+
+class AdminApiKeyCreate(BaseModel):
+    name: str
+    role_key: str = "INGESTOR"
+    expires_at: Optional[datetime] = None
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def validate_name(cls, value):
+        cleaned = str(value).strip() if value is not None else ""
+        if not cleaned:
+            raise ValueError("name is required")
+        return cleaned
+
+    @field_validator("role_key", mode="before")
+    @classmethod
+    def validate_role_key(cls, value):
+        cleaned = str(value).strip().upper() if value is not None else ""
+        if not cleaned:
+            raise ValueError("role_key is required")
+        return cleaned
+
+
+class AdminApiKeyOut(BaseModel):
+    id: int
+    name: str
+    key_prefix: str
+    role_key: str
+    created_by_user_id: Optional[int]
+    expires_at: Optional[datetime]
+    revoked_at: Optional[datetime]
+    last_used_at: Optional[datetime]
+    created_at: datetime
+    api_key: Optional[str] = None

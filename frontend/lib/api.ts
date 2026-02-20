@@ -1,3 +1,5 @@
+import { getAccessToken } from "./auth-storage";
+
 export const CLASSIFICATION_CODES = [
   "CRED_HARV",
   "DRIVE_BY",
@@ -41,6 +43,76 @@ export type FlaggedArtifact = {
   label?: string | null;
 };
 
+export type AuthUser = {
+  id: number;
+  username: string;
+  email?: string | null;
+  is_active: boolean;
+  must_change_password: boolean;
+  last_login_at?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AuthLoginResponse = {
+  access_token: string;
+  token_type: "bearer";
+  expires_at: string;
+  user: AuthUser;
+  permissions: string[];
+  roles: string[];
+};
+
+export type AuthMeResponse = {
+  user: AuthUser;
+  roles: string[];
+  permissions: string[];
+};
+
+export type PermissionOut = {
+  id: number;
+  key: string;
+  description?: string | null;
+  created_at: string;
+};
+
+export type AdminRoleOut = {
+  id: number;
+  key: string;
+  name: string;
+  description?: string | null;
+  is_system: boolean;
+  permissions: string[];
+  created_at: string;
+};
+
+export type AdminUserOut = {
+  id: number;
+  username: string;
+  email?: string | null;
+  is_active: boolean;
+  must_change_password: boolean;
+  failed_login_attempts: number;
+  locked_until?: string | null;
+  last_login_at?: string | null;
+  role_keys: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminApiKeyOut = {
+  id: number;
+  name: string;
+  key_prefix: string;
+  role_key: string;
+  created_by_user_id?: number | null;
+  expires_at?: string | null;
+  revoked_at?: string | null;
+  last_used_at?: string | null;
+  created_at: string;
+  api_key?: string | null;
+};
+
 export type ReportResolutionEvent = {
   id: number;
   action: "RESOLVE" | "REOPEN";
@@ -50,6 +122,8 @@ export type ReportResolutionEvent = {
   note?: string | null;
   flagged_artifacts: FlaggedArtifact[];
   actor: string;
+  actor_user_id?: number | null;
+  actor_api_key_id?: number | null;
   created_at: string;
 };
 
@@ -128,32 +202,76 @@ export type DashboardOverview = {
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-const API_USERNAME = process.env.NEXT_PUBLIC_API_USERNAME;
-const API_PASSWORD = process.env.NEXT_PUBLIC_API_PASSWORD;
 
-function basicAuthHeader(): string | undefined {
-  if (!API_USERNAME || !API_PASSWORD) return undefined;
-  const token = `${API_USERNAME}:${API_PASSWORD}`;
-  if (typeof window === "undefined") {
-    return `Basic ${Buffer.from(token).toString("base64")}`;
-  }
-  return `Basic ${btoa(token)}`;
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const authHeader = basicAuthHeader();
+async function request<T>(
+  path: string,
+  options?: RequestInit,
+  config: { auth?: boolean; expectJson?: boolean } = {}
+): Promise<T> {
+  const requiresAuth = config.auth ?? true;
+  const token = requiresAuth ? getAccessToken() : null;
+
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+
+  if (!headers["Content-Type"] && options?.body && !(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(authHeader ? { Authorization: authHeader } : {})
-    },
     ...options,
+    headers,
   });
+
+  if (res.status === 401 && requiresAuth && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Request failed: ${res.status}`);
   }
+
+  if (config.expectJson === false || res.status === 204) {
+    return undefined as T;
+  }
+
   return res.json();
+}
+
+export async function authLogin(payload: { username: string; password: string }): Promise<AuthLoginResponse> {
+  return request<AuthLoginResponse>(
+    "/api/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    { auth: false }
+  );
+}
+
+export async function authMe(): Promise<AuthMeResponse> {
+  return request<AuthMeResponse>("/api/auth/me");
+}
+
+export async function authLogout(): Promise<void> {
+  await request<void>(
+    "/api/auth/logout",
+    {
+      method: "POST",
+    },
+    { expectJson: false }
+  );
 }
 
 export async function fetchReports(
@@ -208,14 +326,25 @@ export async function fetchReportResolutions(id: number): Promise<ReportResoluti
 }
 
 export async function uploadEml(file: File): Promise<{ report_id: number; risk_score: number }> {
-  const authHeader = basicAuthHeader();
+  const token = getAccessToken();
   const form = new FormData();
   form.append("file", file);
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${BASE_URL}/api/report-eml`, {
     method: "POST",
-    headers: authHeader ? { Authorization: authHeader } : undefined,
+    headers,
     body: form,
   });
+
+  if (res.status === 401 && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || `Upload failed: ${res.status}`);
@@ -240,4 +369,67 @@ export async function fetchDashboardOverview(params: {
     search.set("tz", params.tz);
   }
   return request<DashboardOverview>(`/api/dashboard/overview?${search.toString()}`);
+}
+
+export async function fetchRoles(): Promise<AdminRoleOut[]> {
+  return request<AdminRoleOut[]>("/api/admin/roles");
+}
+
+export async function fetchPermissions(): Promise<PermissionOut[]> {
+  return request<PermissionOut[]>("/api/admin/permissions");
+}
+
+export async function fetchUsers(): Promise<AdminUserOut[]> {
+  return request<AdminUserOut[]>("/api/admin/users");
+}
+
+export async function createUser(payload: {
+  username: string;
+  email?: string | null;
+  password: string;
+  role_keys: string[];
+  is_active: boolean;
+}): Promise<AdminUserOut> {
+  return request<AdminUserOut>("/api/admin/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateUser(
+  userId: number,
+  payload: { email?: string | null; password?: string | null; is_active?: boolean }
+): Promise<AdminUserOut> {
+  return request<AdminUserOut>(`/api/admin/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function replaceUserRoles(userId: number, roleKeys: string[]): Promise<AdminUserOut> {
+  return request<AdminUserOut>(`/api/admin/users/${userId}/roles`, {
+    method: "PUT",
+    body: JSON.stringify({ role_keys: roleKeys }),
+  });
+}
+
+export async function fetchApiKeys(): Promise<AdminApiKeyOut[]> {
+  return request<AdminApiKeyOut[]>("/api/admin/api-keys");
+}
+
+export async function createApiKey(payload: {
+  name: string;
+  role_key: "INGESTOR";
+  expires_at?: string | null;
+}): Promise<AdminApiKeyOut> {
+  return request<AdminApiKeyOut>("/api/admin/api-keys", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function revokeApiKey(id: number): Promise<AdminApiKeyOut> {
+  return request<AdminApiKeyOut>(`/api/admin/api-keys/${id}/revoke`, {
+    method: "POST",
+  });
 }
