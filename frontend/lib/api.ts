@@ -444,6 +444,47 @@ export async function fetchReportAttachments(reportId: number): Promise<Attachme
   return request<Attachment[]>(`/api/reports/${reportId}/attachments`);
 }
 
+type EvidenceDownload = {
+  blob: Blob;
+  filename: string | null;
+};
+
+async function downloadReportEvidence(reportId: number, extension: "md" | "pdf"): Promise<EvidenceDownload> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/api/reports/${reportId}/evidence.${extension}`, {
+    method: "GET",
+    headers,
+  });
+
+  if (res.status === 401 && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Export failed: ${res.status}`);
+  }
+  const disposition = res.headers.get("content-disposition") || "";
+  const filenameMatch = disposition.match(/filename=\"([^\"]+)\"/i);
+  return {
+    blob: await res.blob(),
+    filename: filenameMatch ? filenameMatch[1] : null,
+  };
+}
+
+export async function downloadReportEvidenceMarkdown(reportId: number): Promise<EvidenceDownload> {
+  return downloadReportEvidence(reportId, "md");
+}
+
+export async function downloadReportEvidencePdf(reportId: number): Promise<EvidenceDownload> {
+  return downloadReportEvidence(reportId, "pdf");
+}
+
 export async function fetchReportStats(): Promise<ReportStats> {
   return request<ReportStats>("/api/reports/stats");
 }

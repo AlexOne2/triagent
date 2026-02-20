@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { Attachment, Report, fetchReport, fetchReportAttachments, reopenReport } from "../../lib/api";
+import {
+  Attachment,
+  Report,
+  downloadReportEvidenceMarkdown,
+  downloadReportEvidencePdf,
+  fetchReport,
+  fetchReportAttachments,
+  reopenReport,
+} from "../../lib/api";
 import ResolveDrawer from "../../components/ResolveDrawer";
 import { useAuth } from "../../lib/auth-context";
 
@@ -18,7 +26,9 @@ export default function ReportDetailPage() {
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -123,6 +133,28 @@ export default function ReportDetailPage() {
     }
   };
 
+  const handleEvidenceExport = async (format: "md" | "pdf") => {
+    if (!report || exportingFormat) return;
+    setExportingFormat(format);
+    setExportError(null);
+    try {
+      const download =
+        format === "md" ? await downloadReportEvidenceMarkdown(report.id) : await downloadReportEvidencePdf(report.id);
+      const url = window.URL.createObjectURL(download.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = download.filename || `report-${report.id}-evidence.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : "Failed to export evidence.");
+    } finally {
+      setExportingFormat(null);
+    }
+  };
+
   if (loading) {
     return (
       <main>
@@ -158,6 +190,22 @@ export default function ReportDetailPage() {
           <p>Report #{report.id}</p>
         </div>
         <div className="report-detail-actions">
+          <button
+            className="tab export-action"
+            type="button"
+            onClick={() => void handleEvidenceExport("md")}
+            disabled={!!exportingFormat}
+          >
+            {exportingFormat === "md" ? "Exporting .md..." : "Export .md"}
+          </button>
+          <button
+            className="tab export-action"
+            type="button"
+            onClick={() => void handleEvidenceExport("pdf")}
+            disabled={!!exportingFormat}
+          >
+            {exportingFormat === "pdf" ? "Exporting .pdf..." : "Export .pdf"}
+          </button>
           {report.status === "OPEN" && canResolve ? (
             <button className="resolve-button" type="button" onClick={() => setDrawerOpen(true)} disabled={updating}>
               Resolve
@@ -173,6 +221,7 @@ export default function ReportDetailPage() {
           ) : null}
         </div>
       </header>
+      {exportError ? <p className="report-detail-error">{exportError}</p> : null}
 
       <section className="split report-detail-split">
         <div className="panel report-detail-panel">

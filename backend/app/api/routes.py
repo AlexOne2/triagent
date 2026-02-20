@@ -4,7 +4,7 @@ from email.utils import parseaddr
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
@@ -42,6 +42,7 @@ from app.schemas import (
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
 from app.services.auth import create_security_audit_event
 from app.services.eml_parser import parse_eml
+from app.services.evidence_export import EvidenceExportService
 from app.services.msg_parser import MsgParseError, parse_msg
 from app.services.object_storage import ObjectStorageError, ObjectStorageService
 
@@ -71,6 +72,11 @@ def _resolve_window(start: datetime | None, end: datetime | None) -> tuple[datet
     if resolved_start > resolved_end:
         raise HTTPException(status_code=400, detail="start must be before end")
     return resolved_start, resolved_end
+
+
+def _evidence_filename(report_id: int, extension: str) -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return f"report-{report_id}-evidence-{stamp}.{extension}"
 
 
 def _normalize_email(value: str | None) -> str | None:
@@ -586,6 +592,88 @@ def get_report(
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     return report
+
+
+@router.get("/reports/{report_id}/evidence.md")
+def export_report_evidence_markdown(
+    request: Request,
+    report_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.read")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    service = EvidenceExportService(db)
+    bundle = service.build_bundle(report)
+    content = service.render_markdown(bundle)
+
+    create_security_audit_event(
+        db,
+        action="REPORT_EVIDENCE_EXPORTED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "format": "md",
+            "resolution_count": len(bundle.resolution_history),
+            "attachment_count": len(bundle.attachments),
+            "audit_event_count": len(bundle.audit_trail),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+
+    return Response(
+        content=content,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{_evidence_filename(report.id, "md")}"'},
+    )
+
+
+@router.get("/reports/{report_id}/evidence.pdf")
+def export_report_evidence_pdf(
+    request: Request,
+    report_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.read")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    service = EvidenceExportService(db)
+    bundle = service.build_bundle(report)
+    content = service.render_pdf(bundle)
+
+    create_security_audit_event(
+        db,
+        action="REPORT_EVIDENCE_EXPORTED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "format": "pdf",
+            "resolution_count": len(bundle.resolution_history),
+            "attachment_count": len(bundle.attachments),
+            "audit_event_count": len(bundle.audit_trail),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{_evidence_filename(report.id, "pdf")}"'},
+    )
 
 
 @router.post("/reports/{report_id}/resolve", response_model=ReportOut)

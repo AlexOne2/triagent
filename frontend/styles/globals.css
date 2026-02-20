@@ -479,6 +479,16 @@ p {
   gap: 10px;
 }
 
+.export-action {
+  min-width: 112px;
+  text-align: center;
+}
+
+.report-detail-error {
+  padding: 0 24px 8px;
+  color: var(--danger);
+}
+
 .auth-page {
   min-height: calc(100vh - 40px);
   display: flex;

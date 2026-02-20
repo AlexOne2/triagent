@@ -22,7 +22,7 @@ Legend:
   - [x] Analyst notes implemented (`resolution_note` + immutable resolution events).
 - [~] Evidence report export
   - [x] Audit export exists (NDJSON + manifests + chain verification).
-  - [ ] Case-level evidence export (PDF/Markdown with artifacts + rationale + case audit trail) not implemented.
+  - [x] Case-level evidence export implemented (.md + .pdf) including artifacts, rationale, and case audit/resolution history.
 - [x] Audit log
   - [x] "Who did what/when/what changed" is implemented for security + mutation events.
   - [x] Tamper-evident append-only hash chain + verify/export/prune controls implemented.
@@ -50,9 +50,8 @@ Legend:
 - [x] No external threat-intel/API dependency in core analysis path (on-prem offline-friendly).
 
 ## Prioritized next actions
-1. Add case-level evidence export endpoint/UI (`.md` first, optional PDF render) including artifacts, rationale, and resolution history.
-2. Add explicit proposed-verdict workflow (`PROPOSED_*` state + analyst approval transition).
-3. Add report retention policy controls (configurable TTL + purge command + audit events for deletions).
-4. Add formal security docs: threat model, hardening guide, install/upgrade/rollback runbook.
-5. Add SBOM + dependency scan commands in CI/dev (`cyclonedx` + `pip-audit`/`npm audit` report artifacts).
-6. Improve observability: structured JSON logs, sensitive-field masking policy, and minimal metrics/alerts.
+1. Add explicit proposed-verdict workflow (`PROPOSED_*` state + analyst approval transition).
+2. Add report retention policy controls (configurable TTL + purge command + audit events for deletions).
+3. Add formal security docs: threat model, hardening guide, install/upgrade/rollback runbook.
+4. Add SBOM + dependency scan commands in CI/dev (`cyclonedx` + `pip-audit`/`npm audit` report artifacts).
+5. Improve observability: structured JSON logs, sensitive-field masking policy, and minimal metrics/alerts.

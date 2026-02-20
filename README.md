@@ -90,8 +90,9 @@ npx office-addin-dev-certs install
 1) Login in the UI.
 2) Upload a `.eml` or `.msg` from Uploads, or use add-in ingestion.
 3) Open report detail and resolve/reopen via Resolve drawer.
-4) Review history and dashboard aggregations.
-5) Manage users/roles and API keys from Admin pages.
+4) Export case evidence from report detail (`.md` or `.pdf`).
+5) Review history and dashboard aggregations.
+6) Manage users/roles and API keys from Admin pages.
 
 ## API (Backend)
 
@@ -126,6 +127,8 @@ npx office-addin-dev-certs install
 - `GET /api/reports`
 - `GET /api/reports/{report_id}`
 - `GET /api/reports/{report_id}/attachments`
+- `GET /api/reports/{report_id}/evidence.md`
+- `GET /api/reports/{report_id}/evidence.pdf`
 - `PATCH /api/reports/{report_id}` (admin override)
 - `POST /api/reports/{report_id}/resolve`
 - `POST /api/reports/{report_id}/reopen`
@@ -138,6 +141,7 @@ npx office-addin-dev-certs install
 
 - Reporter identity is hashed with `REPORTER_HASH_SALT`.
 - `.msg` uploads extract attachments, compute SHA-256, and store blobs in MinIO with metadata in `attachments`.
+- Case evidence export is available per report in Markdown and PDF, including artifacts, rationale, resolution history, and case-scoped audit trail.
 - Audit events are append-only and hash-chained (`prev_hash`, `event_hash`) for tamper evidence.
 - Audit metadata is redacted and size-bounded (`AUDIT_MAX_METADATA_BYTES`) to avoid logging secrets.
 
