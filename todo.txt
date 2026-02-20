@@ -1,0 +1,60 @@
+# Gate 4 checklist - regulated smell test
+# Updated: 2026-02-20
+
+Legend:
+- [x] implemented
+- [~] partial
+- [ ] missing
+
+## MVP core (thin slice)
+- [~] Ingest EML/MSG (manual upload minimum)
+  - [x] Manual `.eml` upload implemented (`POST /api/report-eml`, Uploads drag/drop UI).
+  - [ ] `.msg` upload/parser not implemented.
+- [x] Parse and normalize
+  - [x] Headers/hops parsing (including `Received` hop extraction for IP/rDNS in current parser).
+  - [~] SPF/DKIM/DMARC signals shown from `Authentication-Results` header parsing only (no independent cryptographic verification engine yet).
+  - [x] URL extraction + normalization implemented.
+  - [ ] Attachment extraction + hashing pipeline not implemented (attachments table exists, UI currently says "No attachments captured in v0").
+- [~] Case lifecycle
+  - [x] Case ID available (`reports.id`).
+  - [ ] Case fingerprint/dedup workflow not active (legacy clustering removed; fingerprint helper exists but is unused).
+  - [~] Verdict workflow exists (resolve/reopen with disposition + classification), but there is no separate "proposed verdict" state requiring formal analyst approval.
+  - [x] Analyst notes implemented (`resolution_note` + immutable resolution events).
+- [~] Evidence report export
+  - [x] Audit export exists (NDJSON + manifests + chain verification).
+  - [ ] Case-level evidence export (PDF/Markdown with artifacts + rationale + case audit trail) not implemented.
+- [x] Audit log
+  - [x] "Who did what/when/what changed" is implemented for security + mutation events.
+  - [x] Tamper-evident append-only hash chain + verify/export/prune controls implemented.
+
+## Deployment and operability (minimum credible)
+- [x] Docker packaging (`docker compose` + Makefile workflows).
+- [x] Externalized configuration via env files.
+- [~] TLS support / reverse-proxy-ready
+  - [x] App is proxyable (separate backend/frontend services, configurable origins).
+  - [ ] First-class TLS termination config/certs not implemented in this repo.
+- [x] RBAC (session auth + per-user roles + API keys + permission checks).
+- [~] Retention and deletion controls
+  - [x] Audit retention/export/prune controls implemented.
+  - [ ] Report/email data retention policy and purge tooling not implemented.
+- [~] Observability basics
+  - [x] `/health` endpoint exists.
+  - [x] Runtime logs exist.
+  - [ ] Structured audit-safe app logging policy (field-level masking standard, log schema, metrics/alerts) not fully implemented.
+
+## Security hygiene pack (pilot-level)
+- [ ] Threat model document (short but explicit) missing.
+- [ ] SBOM generation output missing.
+- [ ] Dependency vulnerability scan output/report missing.
+- [ ] Hardening notes doc missing (required ports/storage/outbound dependencies, install/upgrade/rollback runbook).
+- [x] No external threat-intel/API dependency in core analysis path (on-prem offline-friendly).
+
+## Prioritized next actions
+1. Add `.msg` ingestion support and normalize into the existing report schema.
+2. Implement attachment extraction pipeline: enumerate MIME parts, hash (`sha256`), store metadata, persist blob to MinIO/filesystem.
+3. Add case-level evidence export endpoint/UI (`.md` first, optional PDF render) including artifacts, rationale, and resolution history.
+4. Add explicit proposed-verdict workflow (`PROPOSED_*` state + analyst approval transition).
+5. Add report retention policy controls (configurable TTL + purge command + audit events for deletions).
+6. Add formal security docs: threat model, hardening guide, install/upgrade/rollback runbook.
+7. Add SBOM + dependency scan commands in CI/dev (`cyclonedx` + `pip-audit`/`npm audit` report artifacts).
+8. Improve observability: structured JSON logs, sensitive-field masking policy, and minimal metrics/alerts.
