@@ -11,6 +11,8 @@ Core workflow:
 - Let analysts resolve campaigns and reports with full context
 - Export evidence reports and compliance-friendly audit history
 
+![Triagent dashboard](./Dashboard.png)
+
 ## Repo Structure
 
 - `backend/`: FastAPI API + SQLAlchemy + Alembic
@@ -249,3 +251,7 @@ make reset-data
   - `AUDIT_EXPORT_STORAGE` (`filesystem` or `minio`)
   - `AUDIT_EXPORT_BUCKET`, `AUDIT_EXPORT_PATH`
   - `AUDIT_MAX_METADATA_BYTES`
+
+## License
+
+This project is licensed under the MIT License. See [`LICENSE`](./LICENSE).
