@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Report, fetchReports, uploadEml, uploadMsg } from "../../lib/api";
+import { FileIngestItem, Report, fetchReports, uploadReportFiles } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 
 const statusClass = (status: Report["status"]) => {
@@ -19,18 +19,29 @@ export default function ReportList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadResults, setUploadResults] = useState<FileIngestItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
 
-  const uploadFile = async (file: File) => {
-    const name = file.name.toLowerCase();
-    if (name.endsWith(".eml")) {
-      return uploadEml(file);
+  const uploadFiles = async (files: File[]) => {
+    if (files.length === 0) {
+      return;
     }
-    if (name.endsWith(".msg")) {
-      return uploadMsg(file);
+    const allowed = files.filter((file) => {
+      const lowered = file.name.toLowerCase();
+      return lowered.endsWith(".eml") || lowered.endsWith(".msg");
+    });
+    if (allowed.length === 0) {
+      throw new Error("Unsupported file type. Upload .eml or .msg files.");
     }
-    throw new Error("Unsupported file type. Upload .eml or .msg files.");
+    const batch = await uploadReportFiles(allowed);
+    setUploadResults(batch.items);
+    setUploadStatus(
+      `Processed ${batch.items.length} files: ${batch.ingested_count} ingested, ${batch.failed_count} failed.`
+    );
+    if (batch.ingested_count > 0) {
+      setReloadTick((tick) => tick + 1);
+    }
   };
 
   useEffect(() => {
@@ -86,14 +97,12 @@ export default function ReportList() {
           onDrop={async (event) => {
             event.preventDefault();
             setDragActive(false);
-            const file = event.dataTransfer.files?.[0];
-            if (!file) return;
+            const droppedFiles = Array.from(event.dataTransfer.files || []);
+            if (!droppedFiles.length) return;
             setUploading(true);
             setUploadStatus("Uploading...");
             try {
-              await uploadFile(file);
-              setUploadStatus(`Uploaded ${file.name} successfully.`);
-              setReloadTick((tick) => tick + 1);
+              await uploadFiles(droppedFiles);
             } catch (err) {
               setUploadStatus(err instanceof Error ? err.message : "Upload failed.");
             } finally {
@@ -105,16 +114,15 @@ export default function ReportList() {
           <input
             type="file"
             accept=".eml,.msg"
+            multiple
             disabled={uploading}
             onChange={async (event) => {
-              const file = event.target.files?.[0];
-              if (!file) return;
+              const pickedFiles = Array.from(event.target.files || []);
+              if (!pickedFiles.length) return;
               setUploading(true);
               setUploadStatus("Uploading...");
               try {
-                await uploadFile(file);
-                setUploadStatus(`Uploaded ${file.name} successfully.`);
-                setReloadTick((tick) => tick + 1);
+                await uploadFiles(pickedFiles);
               } catch (err) {
                 setUploadStatus(err instanceof Error ? err.message : "Upload failed.");
               } finally {
@@ -134,8 +142,30 @@ export default function ReportList() {
             >
               {uploading ? "Uploading..." : "Choose file"}
             </button>
-            <span>{uploadStatus || "Drag & drop or choose a file."}</span>
+            <span>{uploadStatus || "Drag & drop files or choose files."}</span>
           </div>
+          {uploadResults.length > 0 ? (
+            <table className="table" style={{ marginTop: 8 }}>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Status</th>
+                  <th>Report</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {uploadResults.map((item, index) => (
+                  <tr key={`${item.filename}-${index}`}>
+                    <td>{item.filename}</td>
+                    <td>{item.status}</td>
+                    <td>{item.report_id ?? "-"}</td>
+                    <td>{item.error_message || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
         </div>
       ) : null}
 
@@ -164,6 +194,7 @@ export default function ReportList() {
                 <th>From</th>
                 <th>To</th>
                 <th>Subject</th>
+                <th>Campaign</th>
                 <th>Status</th>
                 <th>Date uploaded</th>
               </tr>
@@ -177,6 +208,9 @@ export default function ReportList() {
                     <Link href={`/reports/${report.id}`}>
                       {report.subject || "(no subject)"}
                     </Link>
+                  </td>
+                  <td>
+                    {report.campaign_id ? <Link href={`/campaigns/${report.campaign_id}`}>#{report.campaign_id}</Link> : "-"}
                   </td>
                   <td>
                     <span className={statusClass(report.status)}>{report.status}</span>

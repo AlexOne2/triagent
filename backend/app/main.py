@@ -14,7 +14,7 @@ from app.services.auth import bootstrap_admin_user
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="MailTriage", version="0.1.0")
+    app = FastAPI(title="Triagent", version="0.1.0")
 
     app.add_middleware(
         CORSMiddleware,

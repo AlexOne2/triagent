@@ -4,6 +4,7 @@ from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.report import IngestSource, Report, ReportStatus
 from app.services.analysis import calculate_risk, extract_urls
+from app.services.campaign_clustering import CampaignClusteringService
 
 SAMPLES = [
     {
@@ -35,6 +36,7 @@ def seed():
             return
 
         now = datetime.now(timezone.utc)
+        clustering = CampaignClusteringService(db)
         for idx, sample in enumerate(SAMPLES):
             urls = extract_urls(sample.get("body_text"), sample.get("body_html"))
             event_time = now - timedelta(hours=idx * 6)
@@ -59,6 +61,14 @@ def seed():
                 ingest_source=IngestSource.UPLOAD,
             )
             db.add(report)
+            db.flush()
+            clustering.auto_assign_report(
+                report,
+                actor_snapshot="seed-script",
+                actor_user_id=None,
+                actor_api_key_id=None,
+                allow_reassign=False,
+            )
 
         db.commit()
         print("Seed data inserted.")

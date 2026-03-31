@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import DateTime, Enum, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -37,6 +37,11 @@ class ArtifactKind(str, enum.Enum):
 class IngestSource(str, enum.Enum):
     UPLOAD = "UPLOAD"
     AUTO = "AUTO"
+
+
+class CampaignAssignmentMethod(str, enum.Enum):
+    AUTO = "AUTO"
+    MANUAL = "MANUAL"
 
 
 CLASSIFICATION_CODES = (
@@ -102,7 +107,20 @@ class Report(Base):
     flagged_artifacts_json: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True)
     resolved_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_resolved_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    campaign_id: Mapped[int | None] = mapped_column(
+        ForeignKey("campaigns.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    campaign_assignment_method: Mapped[CampaignAssignmentMethod | None] = mapped_column(
+        Enum(CampaignAssignmentMethod, name="campaign_assignment_method"),
+        nullable=True,
+    )
+    campaign_assignment_score: Mapped[float | None] = mapped_column(nullable=True)
+    campaign_assignment_explanation_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     attachments = relationship("Attachment", back_populates="report", cascade="all, delete-orphan")
     resolutions = relationship("ReportResolution", back_populates="report", cascade="all, delete-orphan")
+    campaign = relationship("Campaign", back_populates="reports", foreign_keys=[campaign_id])
+    feature = relationship("ReportFeature", back_populates="report", uselist=False, cascade="all, delete-orphan")

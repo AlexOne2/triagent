@@ -17,7 +17,7 @@ Legend:
   - [x] Attachment extraction + hashing implemented for `.msg` ingest (metadata in `attachments`, bytes in MinIO).
 - [~] Case lifecycle
   - [x] Case ID available (`reports.id`).
-  - [ ] Case fingerprint/dedup workflow not active (legacy clustering removed; fingerprint helper exists but is unused).
+  - [x] Campaign clustering implemented (hybrid feature-based auto-assignment + analyst correction APIs).
   - [~] Verdict workflow exists (resolve/reopen with disposition + classification), but there is no separate "proposed verdict" state requiring formal analyst approval.
   - [x] Analyst notes implemented (`resolution_note` + immutable resolution events).
 - [~] Evidence report export
@@ -30,6 +30,7 @@ Legend:
 ## Deployment and operability (minimum credible)
 - [x] Docker packaging (`docker compose` + Makefile workflows).
 - [x] Externalized configuration via env files.
+- [x] Multi-file manual ingestion (`POST /api/report-files`, partial-success semantics).
 - [~] TLS support / reverse-proxy-ready
   - [x] App is proxyable (separate backend/frontend services, configurable origins).
   - [ ] First-class TLS termination config/certs not implemented in this repo.
@@ -50,8 +51,8 @@ Legend:
 - [x] No external threat-intel/API dependency in core analysis path (on-prem offline-friendly).
 
 ## Prioritized next actions
-1. Add explicit proposed-verdict workflow (`PROPOSED_*` state + analyst approval transition).
-2. Add report retention policy controls (configurable TTL + purge command + audit events for deletions).
-3. Add formal security docs: threat model, hardening guide, install/upgrade/rollback runbook.
-4. Add SBOM + dependency scan commands in CI/dev (`cyclonedx` + `pip-audit`/`npm audit` report artifacts).
-5. Improve observability: structured JSON logs, sensitive-field masking policy, and minimal metrics/alerts.
+1. Calibrate clustering thresholds/weights against labeled campaign fixtures and track purity/fragmentation metrics over time.
+2. Add explicit proposed-verdict workflow (`PROPOSED_*` state + analyst approval transition).
+3. Add report retention policy controls (configurable TTL + purge command + audit events for deletions).
+4. Add formal security docs: threat model, hardening guide, install/upgrade/rollback runbook.
+5. Add SBOM + dependency scan commands in CI/dev (`cyclonedx` + `pip-audit`/`npm audit` report artifacts).

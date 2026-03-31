@@ -6,11 +6,13 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from app.models.report import (
     CLASSIFICATION_CODES,
     ArtifactKind,
+    CampaignAssignmentMethod,
     IngestSource,
     ReportStatus,
     ResolutionAction,
     ResolutionDisposition,
 )
+from app.models.campaign import CampaignEventAction
 from app.models.security_audit import AuditActorType
 
 
@@ -130,6 +132,10 @@ class ReportOut(BaseModel):
     resolved_at: Optional[datetime]
     last_resolved_by: Optional[str]
     ingest_source: IngestSource
+    campaign_id: Optional[int]
+    campaign_assignment_method: Optional[CampaignAssignmentMethod]
+    campaign_assignment_score: Optional[float]
+    campaign_assignment_explanation_json: Optional[Dict[str, Any]]
     created_at: datetime
 
 
@@ -235,6 +241,162 @@ class ReportResolutionOut(BaseModel):
 class ReportResult(BaseModel):
     report_id: int
     risk_score: int
+    campaign_id: Optional[int] = None
+
+
+class FileIngestResult(BaseModel):
+    filename: str
+    status: str
+    report_id: Optional[int] = None
+    campaign_id: Optional[int] = None
+    risk_score: Optional[int] = None
+    error_code: Optional[str] = None
+    error_message: Optional[str] = None
+
+
+class FileIngestBatchResult(BaseModel):
+    items: List[FileIngestResult]
+    ingested_count: int
+    failed_count: int
+
+
+class CampaignOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    campaign_key: str
+    name: Optional[str]
+    first_seen: Optional[datetime]
+    last_seen: Optional[datetime]
+    report_count: int
+    confidence_score: Optional[float]
+    is_locked: bool
+    lock_reason: Optional[str]
+    algorithm_version: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class CampaignEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    campaign_id: int
+    action: CampaignEventAction
+    report_id: Optional[int]
+    from_campaign_id: Optional[int]
+    to_campaign_id: Optional[int]
+    score: Optional[float]
+    features_json: Optional[Dict[str, Any]]
+    actor_user_id: Optional[int]
+    actor_api_key_id: Optional[int]
+    actor_snapshot: str
+    created_at: datetime
+
+
+class CampaignReclusterRequest(BaseModel):
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
+
+
+class CampaignReclusterResult(BaseModel):
+    processed_reports: int
+    reassigned_reports: int
+    created_campaigns: int
+    skipped_manual_reports: int
+
+
+class CampaignMergeRequest(BaseModel):
+    source_campaign_ids: List[int]
+    target_campaign_id: int
+
+    @field_validator("source_campaign_ids")
+    @classmethod
+    def validate_source_campaign_ids(cls, value):
+        cleaned = sorted({int(item) for item in value if int(item) > 0})
+        if not cleaned:
+            raise ValueError("source_campaign_ids is required")
+        return cleaned
+
+    @model_validator(mode="after")
+    def validate_target_not_empty(self):
+        if self.target_campaign_id <= 0:
+            raise ValueError("target_campaign_id must be positive")
+        if self.target_campaign_id in self.source_campaign_ids:
+            raise ValueError("target_campaign_id cannot be in source_campaign_ids")
+        return self
+
+
+class CampaignSplitRequest(BaseModel):
+    source_campaign_id: int
+    report_ids: List[int]
+    new_campaign_name: Optional[str] = None
+
+    @field_validator("source_campaign_id")
+    @classmethod
+    def validate_source_campaign_id(cls, value):
+        if int(value) <= 0:
+            raise ValueError("source_campaign_id must be positive")
+        return int(value)
+
+    @field_validator("report_ids")
+    @classmethod
+    def validate_report_ids(cls, value):
+        cleaned = sorted({int(item) for item in value if int(item) > 0})
+        if not cleaned:
+            raise ValueError("report_ids is required")
+        return cleaned
+
+    @field_validator("new_campaign_name", mode="before")
+    @classmethod
+    def validate_new_campaign_name(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
+
+
+class CampaignReassignRequest(BaseModel):
+    target_campaign_id: Optional[int] = None
+    create_new: bool = False
+    new_campaign_name: Optional[str] = None
+
+    @field_validator("target_campaign_id")
+    @classmethod
+    def validate_target_campaign_id(cls, value):
+        if value is None:
+            return None
+        if int(value) <= 0:
+            raise ValueError("target_campaign_id must be positive")
+        return int(value)
+
+    @field_validator("new_campaign_name", mode="before")
+    @classmethod
+    def validate_new_campaign_name(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
+
+    @model_validator(mode="after")
+    def validate_target_or_create(self):
+        if not self.create_new and self.target_campaign_id is None:
+            raise ValueError("target_campaign_id is required when create_new=false")
+        if self.create_new and self.target_campaign_id is not None:
+            raise ValueError("target_campaign_id must be null when create_new=true")
+        return self
+
+
+class CampaignLockRequest(BaseModel):
+    reason: Optional[str] = None
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def validate_reason(cls, value):
+        if value is None:
+            return None
+        cleaned = str(value).strip()
+        return cleaned or None
 
 
 class DashboardKpis(BaseModel):

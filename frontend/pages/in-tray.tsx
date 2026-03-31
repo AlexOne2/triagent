@@ -67,6 +67,7 @@ export default function InTray() {
                 <th>From</th>
                 <th>To</th>
                 <th>Subject</th>
+                <th>Campaign</th>
                 <th>Status</th>
                 <th>Date uploaded</th>
               </tr>
@@ -81,6 +82,7 @@ export default function InTray() {
                       {report.subject || "(no subject)"}
                     </Link>
                   </td>
+                  <td>{report.campaign_id ? <Link href={`/campaigns/${report.campaign_id}`}>#{report.campaign_id}</Link> : "-"}</td>
                   <td>
                     <span className={report.status === "PHISHING" ? "badge phishing" : "badge"}>
                       {report.status}

@@ -9,17 +9,19 @@ export default function AppHeader() {
 
   const isDashboard = path.startsWith("/dashboard");
   const isInTray = path.startsWith("/in-tray");
+  const isCampaigns = path.startsWith("/campaigns");
   const isUploads = path === "/" || path.startsWith("/reports");
   const isAdmin = path.startsWith("/admin");
 
   const canReadReports = hasPermission("reports.read");
   const canReadDashboard = hasPermission("dashboard.read");
+  const canReadCampaigns = hasPermission("campaigns.read");
   const canAdminUsers =
     hasPermission("admin.users.read") || hasPermission("admin.api_keys.manage") || hasPermission("audit.read");
 
   return (
     <div className="app-header">
-      <div className="app-brand">MailSentry</div>
+      <div className="app-brand">Triagent</div>
       <div className="app-nav">
         {canReadDashboard ? (
           <Link href="/dashboard" className={`nav-button ${isDashboard ? "active" : ""}`.trim()}>
@@ -29,6 +31,11 @@ export default function AppHeader() {
         {canReadReports ? (
           <Link href="/in-tray" className={`nav-button ${isInTray ? "active" : ""}`.trim()}>
             In-tray
+          </Link>
+        ) : null}
+        {canReadCampaigns ? (
+          <Link href="/campaigns" className={`nav-button ${isCampaigns ? "active" : ""}`.trim()}>
+            Campaigns
           </Link>
         ) : null}
         {canReadReports ? (

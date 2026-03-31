@@ -52,7 +52,7 @@ services:
       - postgres
       - minio
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
 
   frontend:
     build:
@@ -62,7 +62,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
 
 volumes:
   pgdata:

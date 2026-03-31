@@ -2,7 +2,7 @@ ENV_FILE = infra/.env
 ENV_EXAMPLE = infra/.env.example
 COMPOSE = docker compose -f infra/docker-compose.yml --env-file $(ENV_FILE)
 
-.PHONY: dev migrate seed down ensure-env build-backend audit-verify audit-export audit-prune
+.PHONY: dev migrate seed down ensure-env build-backend audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval reset-data
 
 ensure-env:
 	@if [ ! -f $(ENV_FILE) ]; then cp $(ENV_EXAMPLE) $(ENV_FILE); echo "Created $(ENV_FILE) from $(ENV_EXAMPLE)"; fi
@@ -36,3 +36,28 @@ audit-export: ensure-env
 audit-prune: ensure-env
 	$(COMPOSE) build backend
 	$(COMPOSE) run --rm backend python -m scripts.audit_maintenance prune
+
+campaign-backfill: ensure-env
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm backend python -m scripts.campaign_maintenance backfill
+
+campaign-recluster: ensure-env
+	@if [ -z "$(START)" ] && [ -z "$(END)" ]; then \
+		$(COMPOSE) build backend; \
+		$(COMPOSE) run --rm backend python -m scripts.campaign_maintenance recluster; \
+	else \
+		$(COMPOSE) build backend; \
+		$(COMPOSE) run --rm backend python -m scripts.campaign_maintenance recluster --start "$(START)" --end "$(END)"; \
+	fi
+
+campaign-metrics: ensure-env
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm backend python -m scripts.campaign_maintenance metrics
+
+campaign-eval: ensure-env
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.campaign_maintenance evaluate --manifest "/workspace/$(or $(MANIFEST),test_data/demo-dataset-50/manifest.json)"
+
+reset-data: ensure-env
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm backend python -m scripts.reset_ingested_data

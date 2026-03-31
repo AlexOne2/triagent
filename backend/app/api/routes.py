@@ -12,8 +12,10 @@ from app.api.deps import get_db
 from app.api.security_deps import Principal, require_permission, request_meta
 from app.core.config import get_settings
 from app.models.attachment import Attachment
+from app.models.campaign import Campaign, CampaignEvent
 from app.models.report import (
     ArtifactKind,
+    CampaignAssignmentMethod,
     IngestSource,
     Report,
     ReportStatus,
@@ -24,12 +26,22 @@ from app.models.security_audit import AuditActorType
 from app.models.report_resolution import ReportResolution
 from app.schemas import (
     AttachmentOut,
+    CampaignEventOut,
+    CampaignLockRequest,
+    CampaignMergeRequest,
+    CampaignOut,
+    CampaignReassignRequest,
+    CampaignReclusterRequest,
+    CampaignReclusterResult,
+    CampaignSplitRequest,
     DashboardAddressPoint,
     DashboardClassificationPoint,
     DashboardKpis,
     DashboardMaliciousSafe,
     DashboardOverviewOut,
     DashboardResolutionPoint,
+    FileIngestBatchResult,
+    FileIngestResult,
     FlaggedArtifactIn,
     FlaggedArtifactOut,
     ReportCreate,
@@ -40,6 +52,8 @@ from app.schemas import (
     ResolveReportRequest,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
+from app.services.campaign_clustering import CampaignClusteringService
+from app.services.campaign_service import CampaignService, CampaignServiceError
 from app.services.auth import create_security_audit_event
 from app.services.eml_parser import parse_eml
 from app.services.evidence_export import EvidenceExportService
@@ -77,6 +91,11 @@ def _resolve_window(start: datetime | None, end: datetime | None) -> tuple[datet
 def _evidence_filename(report_id: int, extension: str) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
     return f"report-{report_id}-evidence-{stamp}.{extension}"
+
+
+def _campaign_evidence_filename(campaign_id: int, extension: str) -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return f"campaign-{campaign_id}-evidence-{stamp}.{extension}"
 
 
 def _normalize_email(value: str | None) -> str | None:
@@ -285,6 +304,22 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
     return report, risk_score
 
 
+def _assign_campaign(
+    db: Session,
+    report: Report,
+    principal: Principal,
+) -> int | None:
+    clustering = CampaignClusteringService(db)
+    result = clustering.auto_assign_report(
+        report,
+        actor_snapshot=principal.actor,
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        allow_reassign=False,
+    )
+    return result.campaign_id
+
+
 @router.post("/report", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
 def create_report(
     request: Request,
@@ -294,13 +329,18 @@ def create_report(
 ):
     try:
         report, risk_score = _create_report(payload, db, IngestSource.AUTO)
+        campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
             db,
             action="REPORT_INGESTED",
             outcome="SUCCESS",
             target_type="report",
             target_id=str(report.id),
-            metadata={"ingest_source": IngestSource.AUTO.value, "risk_score": risk_score},
+            metadata={
+                "ingest_source": IngestSource.AUTO.value,
+                "risk_score": risk_score,
+                "campaign_id": campaign_id,
+            },
             actor_user_id=principal.user_id,
             actor_api_key_id=principal.api_key_id,
             actor_type=_principal_actor_type(principal),
@@ -310,7 +350,7 @@ def create_report(
     except Exception:
         db.rollback()
         raise
-    return ReportResult(report_id=report.id, risk_score=risk_score)
+    return ReportResult(report_id=report.id, risk_score=risk_score, campaign_id=report.campaign_id)
 
 
 @router.post("/report-eml", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
@@ -325,6 +365,7 @@ async def create_report_from_eml(
         parsed = parse_eml(raw_bytes)
         payload = ReportCreate(**parsed)
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
             db,
             action="REPORT_INGESTED",
@@ -335,6 +376,7 @@ async def create_report_from_eml(
                 "ingest_source": IngestSource.UPLOAD.value,
                 "risk_score": risk_score,
                 "file_type": "eml",
+                "campaign_id": campaign_id,
             },
             actor_user_id=principal.user_id,
             actor_api_key_id=principal.api_key_id,
@@ -345,7 +387,7 @@ async def create_report_from_eml(
     except Exception:
         db.rollback()
         raise
-    return ReportResult(report_id=report.id, risk_score=risk_score)
+    return ReportResult(report_id=report.id, risk_score=risk_score, campaign_id=report.campaign_id)
 
 
 @router.post("/report-msg", response_model=ReportResult, status_code=status.HTTP_201_CREATED)
@@ -384,6 +426,7 @@ async def create_report_from_msg(
                 )
             )
 
+        campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
             db,
             action="REPORT_INGESTED",
@@ -395,6 +438,7 @@ async def create_report_from_msg(
                 "risk_score": risk_score,
                 "file_type": "msg",
                 "attachment_count": len(parsed_attachments),
+                "campaign_id": campaign_id,
             },
             actor_user_id=principal.user_id,
             actor_api_key_id=principal.api_key_id,
@@ -414,7 +458,227 @@ async def create_report_from_msg(
     except Exception:
         db.rollback()
         raise
-    return ReportResult(report_id=report.id, risk_score=risk_score)
+    return ReportResult(report_id=report.id, risk_score=risk_score, campaign_id=report.campaign_id)
+
+
+def _ingest_uploaded_bytes(
+    *,
+    file_name: str,
+    raw_bytes: bytes,
+    db: Session,
+    principal: Principal,
+    request: Request,
+) -> ReportResult:
+    lowered_name = file_name.lower()
+    if lowered_name.endswith(".eml"):
+        parsed = parse_eml(raw_bytes)
+        payload = ReportCreate(**parsed)
+        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        campaign_id = _assign_campaign(db, report, principal)
+        create_security_audit_event(
+            db,
+            action="REPORT_INGESTED",
+            outcome="SUCCESS",
+            target_type="report",
+            target_id=str(report.id),
+            metadata={
+                "ingest_source": IngestSource.UPLOAD.value,
+                "risk_score": risk_score,
+                "file_type": "eml",
+                "campaign_id": campaign_id,
+            },
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+            actor_type=_principal_actor_type(principal),
+            request_meta=request_meta(request),
+        )
+        return ReportResult(report_id=report.id, risk_score=risk_score, campaign_id=report.campaign_id)
+
+    if lowered_name.endswith(".msg"):
+        parsed_report, parsed_attachments = parse_msg(raw_bytes)
+        payload = ReportCreate(**parsed_report)
+        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        storage = ObjectStorageService()
+        for parsed_attachment in parsed_attachments:
+            stored = storage.put_attachment(
+                report_id=report.id,
+                filename=parsed_attachment.filename,
+                content_type=parsed_attachment.content_type,
+                data=parsed_attachment.data,
+            )
+            db.add(
+                Attachment(
+                    report_id=report.id,
+                    filename=parsed_attachment.filename,
+                    content_type=parsed_attachment.content_type,
+                    size_bytes=stored["size_bytes"],
+                    sha256=stored["sha256"],
+                    s3_key=stored["s3_key"],
+                )
+            )
+
+        campaign_id = _assign_campaign(db, report, principal)
+        create_security_audit_event(
+            db,
+            action="REPORT_INGESTED",
+            outcome="SUCCESS",
+            target_type="report",
+            target_id=str(report.id),
+            metadata={
+                "ingest_source": IngestSource.UPLOAD.value,
+                "risk_score": risk_score,
+                "file_type": "msg",
+                "attachment_count": len(parsed_attachments),
+                "campaign_id": campaign_id,
+            },
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+            actor_type=_principal_actor_type(principal),
+            request_meta=request_meta(request),
+        )
+        return ReportResult(report_id=report.id, risk_score=risk_score, campaign_id=report.campaign_id)
+
+    raise HTTPException(status_code=415, detail="Only .eml and .msg files are supported")
+
+
+@router.post("/report-files", response_model=FileIngestBatchResult, status_code=status.HTTP_200_OK)
+async def create_reports_from_files(
+    request: Request,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.ingest")),
+):
+    if not files:
+        raise HTTPException(status_code=400, detail="At least one file is required")
+
+    results: list[FileIngestResult] = []
+    ingested_count = 0
+    failed_count = 0
+
+    for upload in files:
+        file_name = upload.filename or "uploaded-file"
+        raw_bytes = await upload.read()
+        try:
+            result = _ingest_uploaded_bytes(
+                file_name=file_name,
+                raw_bytes=raw_bytes,
+                db=db,
+                principal=principal,
+                request=request,
+            )
+            db.commit()
+            ingested_count += 1
+            results.append(
+                FileIngestResult(
+                    filename=file_name,
+                    status="INGESTED",
+                    report_id=result.report_id,
+                    campaign_id=result.campaign_id,
+                    risk_score=result.risk_score,
+                )
+            )
+        except HTTPException as exc:
+            db.rollback()
+            failed_count += 1
+            create_security_audit_event(
+                db,
+                action="REPORT_INGEST_FAILED",
+                outcome="FAILURE",
+                target_type="upload_file",
+                target_id=file_name,
+                metadata={"status_code": exc.status_code, "detail": exc.detail},
+                actor_user_id=principal.user_id,
+                actor_api_key_id=principal.api_key_id,
+                actor_type=_principal_actor_type(principal),
+                request_meta=request_meta(request),
+            )
+            db.commit()
+            results.append(
+                FileIngestResult(
+                    filename=file_name,
+                    status="FAILED",
+                    error_code=str(exc.status_code),
+                    error_message=str(exc.detail),
+                )
+            )
+        except MsgParseError:
+            db.rollback()
+            failed_count += 1
+            create_security_audit_event(
+                db,
+                action="REPORT_INGEST_FAILED",
+                outcome="FAILURE",
+                target_type="upload_file",
+                target_id=file_name,
+                metadata={"error": "invalid_msg"},
+                actor_user_id=principal.user_id,
+                actor_api_key_id=principal.api_key_id,
+                actor_type=_principal_actor_type(principal),
+                request_meta=request_meta(request),
+            )
+            db.commit()
+            results.append(
+                FileIngestResult(
+                    filename=file_name,
+                    status="FAILED",
+                    error_code="invalid_msg",
+                    error_message="Invalid or unsupported .msg file",
+                )
+            )
+        except ObjectStorageError:
+            db.rollback()
+            failed_count += 1
+            create_security_audit_event(
+                db,
+                action="REPORT_INGEST_FAILED",
+                outcome="FAILURE",
+                target_type="upload_file",
+                target_id=file_name,
+                metadata={"error": "storage_unavailable"},
+                actor_user_id=principal.user_id,
+                actor_api_key_id=principal.api_key_id,
+                actor_type=_principal_actor_type(principal),
+                request_meta=request_meta(request),
+            )
+            db.commit()
+            results.append(
+                FileIngestResult(
+                    filename=file_name,
+                    status="FAILED",
+                    error_code="storage_unavailable",
+                    error_message="Attachment storage is unavailable",
+                )
+            )
+        except Exception:
+            db.rollback()
+            failed_count += 1
+            create_security_audit_event(
+                db,
+                action="REPORT_INGEST_FAILED",
+                outcome="FAILURE",
+                target_type="upload_file",
+                target_id=file_name,
+                metadata={"error": "unexpected_error"},
+                actor_user_id=principal.user_id,
+                actor_api_key_id=principal.api_key_id,
+                actor_type=_principal_actor_type(principal),
+                request_meta=request_meta(request),
+            )
+            db.commit()
+            results.append(
+                FileIngestResult(
+                    filename=file_name,
+                    status="FAILED",
+                    error_code="unexpected_error",
+                    error_message="Unexpected ingest error",
+                )
+            )
+
+    return FileIngestBatchResult(
+        items=results,
+        ingested_count=ingested_count,
+        failed_count=failed_count,
+    )
 
 
 @router.get("/reports", response_model=list[ReportOut])
@@ -460,6 +724,334 @@ def list_report_attachments(
         .scalars()
         .all()
     )
+
+
+@router.get("/campaigns", response_model=list[CampaignOut])
+def list_campaigns(
+    db: Session = Depends(get_db),
+    q: str | None = Query(default=None, max_length=200),
+    source: IngestSource | None = Query(default=None),
+    status: ReportStatus | None = Query(default=None),
+    locked: bool | None = Query(default=None),
+    min_confidence: float | None = Query(default=None, ge=0.0, le=1.0),
+    limit: int = Query(default=50, ge=1, le=200),
+    cursor: int | None = Query(default=None, ge=1),
+    _: Principal = Depends(require_permission("campaigns.read")),
+):
+    query = select(Campaign).order_by(Campaign.last_seen.desc().nullslast(), Campaign.id.desc())
+    query = query.where(Campaign.report_count > 0)
+
+    if cursor is not None:
+        query = query.where(Campaign.id < cursor)
+    if q:
+        like = f"%{q.lower()}%"
+        query = query.where(
+            or_(
+                func.lower(Campaign.campaign_key).like(like),
+                func.lower(func.coalesce(Campaign.name, "")).like(like),
+            )
+        )
+    if locked is not None:
+        query = query.where(Campaign.is_locked.is_(locked))
+    if min_confidence is not None:
+        query = query.where(Campaign.confidence_score >= min_confidence)
+    if source or status:
+        report_subquery = select(Report.campaign_id).where(Report.campaign_id == Campaign.id)
+        if source:
+            report_subquery = report_subquery.where(Report.ingest_source == source)
+        if status:
+            report_subquery = report_subquery.where(Report.status == status)
+        query = query.where(report_subquery.exists())
+
+    return db.execute(query.limit(limit)).scalars().all()
+
+
+@router.get("/campaigns/{campaign_id}", response_model=CampaignOut)
+def get_campaign(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("campaigns.read")),
+):
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return campaign
+
+
+@router.get("/campaigns/{campaign_id}/reports", response_model=list[ReportOut])
+def list_campaign_reports(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    _: Principal = Depends(require_permission("campaigns.read")),
+):
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return (
+        db.execute(
+            select(Report)
+            .where(Report.campaign_id == campaign_id)
+            .order_by(Report.created_at.desc(), Report.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+
+
+@router.get("/campaigns/{campaign_id}/events", response_model=list[CampaignEventOut])
+def list_campaign_events(
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    limit: int = Query(default=200, ge=1, le=1000),
+    _: Principal = Depends(require_permission("campaigns.read")),
+):
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    return (
+        db.execute(
+            select(CampaignEvent)
+            .where(CampaignEvent.campaign_id == campaign_id)
+            .order_by(CampaignEvent.created_at.desc(), CampaignEvent.id.desc())
+            .limit(limit)
+        )
+        .scalars()
+        .all()
+    )
+
+
+@router.post("/campaigns/recluster", response_model=CampaignReclusterResult)
+def recluster_campaigns(
+    request: Request,
+    payload: CampaignReclusterRequest,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.run")),
+):
+    clustering = CampaignClusteringService(db)
+    stats = clustering.recluster(
+        start=payload.start,
+        end=payload.end,
+        actor_snapshot=principal.actor,
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+    )
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_RECLUSTER_RUN",
+        outcome="SUCCESS",
+        target_type="campaign_window",
+        target_id=f"{payload.start or 'begin'}..{payload.end or 'now'}",
+        metadata=stats,
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    return CampaignReclusterResult(**stats)
+
+
+@router.post("/campaigns/merge", response_model=CampaignOut)
+def merge_campaigns(
+    request: Request,
+    payload: CampaignMergeRequest,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.write")),
+):
+    service = CampaignService(db)
+    try:
+        campaign = service.merge_campaigns(
+            source_campaign_ids=payload.source_campaign_ids,
+            target_campaign_id=payload.target_campaign_id,
+            actor_snapshot=principal.actor,
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+        )
+    except CampaignServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_MERGED",
+        outcome="SUCCESS",
+        target_type="campaign",
+        target_id=str(campaign.id),
+        metadata={"source_campaign_ids": payload.source_campaign_ids},
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    db.refresh(campaign)
+    return campaign
+
+
+@router.post("/campaigns/split", response_model=CampaignOut)
+def split_campaign(
+    request: Request,
+    payload: CampaignSplitRequest,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.write")),
+):
+    service = CampaignService(db)
+    try:
+        campaign = service.split_campaign(
+            source_campaign_id=payload.source_campaign_id,
+            report_ids=payload.report_ids,
+            new_campaign_name=payload.new_campaign_name,
+            actor_snapshot=principal.actor,
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+        )
+    except CampaignServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_SPLIT",
+        outcome="SUCCESS",
+        target_type="campaign",
+        target_id=str(campaign.id),
+        metadata={
+            "source_campaign_id": payload.source_campaign_id,
+            "report_ids": payload.report_ids,
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    db.refresh(campaign)
+    return campaign
+
+
+@router.post("/reports/{report_id}/campaign/reassign", response_model=ReportOut)
+def reassign_report_campaign(
+    report_id: int,
+    request: Request,
+    payload: CampaignReassignRequest,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.write")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    service = CampaignService(db)
+    target_campaign: Campaign | None = None
+    if payload.create_new:
+        target_campaign = service.create_campaign_for_report(report, name=payload.new_campaign_name)
+    else:
+        target_campaign = db.get(Campaign, payload.target_campaign_id)
+        if target_campaign is None:
+            raise HTTPException(status_code=404, detail="Target campaign not found")
+
+    try:
+        report = service.reassign_report(
+            report=report,
+            target_campaign=target_campaign,
+            actor_snapshot=principal.actor,
+            actor_user_id=principal.user_id,
+            actor_api_key_id=principal.api_key_id,
+            reason="manual_reassign",
+        )
+    except CampaignServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_REPORT_REASSIGNED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={"campaign_id": report.campaign_id, "create_new": payload.create_new},
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+@router.post("/campaigns/{campaign_id}/lock", response_model=CampaignOut)
+def lock_campaign(
+    campaign_id: int,
+    request: Request,
+    payload: CampaignLockRequest,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.write")),
+):
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    service = CampaignService(db)
+    campaign = service.set_lock_state(
+        campaign=campaign,
+        locked=True,
+        reason=payload.reason,
+        actor_snapshot=principal.actor,
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+    )
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_LOCKED",
+        outcome="SUCCESS",
+        target_type="campaign",
+        target_id=str(campaign.id),
+        metadata={"reason": payload.reason},
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    db.refresh(campaign)
+    return campaign
+
+
+@router.post("/campaigns/{campaign_id}/unlock", response_model=CampaignOut)
+def unlock_campaign(
+    campaign_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.write")),
+):
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+    service = CampaignService(db)
+    campaign = service.set_lock_state(
+        campaign=campaign,
+        locked=False,
+        reason=None,
+        actor_snapshot=principal.actor,
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+    )
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_UNLOCKED",
+        outcome="SUCCESS",
+        target_type="campaign",
+        target_id=str(campaign.id),
+        metadata=None,
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    db.refresh(campaign)
+    return campaign
 
 
 @router.get("/dashboard/overview", response_model=DashboardOverviewOut)
@@ -673,6 +1265,88 @@ def export_report_evidence_pdf(
         content=content,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{_evidence_filename(report.id, "pdf")}"'},
+    )
+
+
+@router.get("/campaigns/{campaign_id}/evidence.md")
+def export_campaign_evidence_markdown(
+    request: Request,
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.read")),
+):
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    service = EvidenceExportService(db)
+    bundle = service.build_campaign_bundle(campaign)
+    content = service.render_campaign_markdown(bundle)
+
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_EVIDENCE_EXPORTED",
+        outcome="SUCCESS",
+        target_type="campaign",
+        target_id=str(campaign.id),
+        metadata={
+            "format": "md",
+            "report_count": bundle.report_count,
+            "resolution_count": len(bundle.resolution_history),
+            "audit_event_count": len(bundle.audit_trail),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+
+    return Response(
+        content=content,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{_campaign_evidence_filename(campaign.id, "md")}"'},
+    )
+
+
+@router.get("/campaigns/{campaign_id}/evidence.pdf")
+def export_campaign_evidence_pdf(
+    request: Request,
+    campaign_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("campaigns.read")),
+):
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="Campaign not found")
+
+    service = EvidenceExportService(db)
+    bundle = service.build_campaign_bundle(campaign)
+    content = service.render_campaign_pdf(bundle)
+
+    create_security_audit_event(
+        db,
+        action="CAMPAIGN_EVIDENCE_EXPORTED",
+        outcome="SUCCESS",
+        target_type="campaign",
+        target_id=str(campaign.id),
+        metadata={
+            "format": "pdf",
+            "report_count": bundle.report_count,
+            "resolution_count": len(bundle.resolution_history),
+            "audit_event_count": len(bundle.audit_trail),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+
+    return Response(
+        content=content,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{_campaign_evidence_filename(campaign.id, "pdf")}"'},
     )
 
 

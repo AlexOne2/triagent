@@ -6,9 +6,9 @@
            xsi:type="MailApp">
   <Id>b6c7b6f5-33c1-4f5e-9f9a-7bb3e0f1d6d2</Id>
   <Version>0.1.0.0</Version>
-  <ProviderName>MailTriage</ProviderName>
+  <ProviderName>Triagent</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="MailTriage Report" />
+  <DisplayName DefaultValue="Triagent Report" />
   <Description DefaultValue="Report suspicious emails to your SOC." />
   <IconUrl DefaultValue="https://localhost:3001/src/assets/icon-32.png" />
   <HighResolutionIconUrl DefaultValue="https://localhost:3001/src/assets/icon-80.png" />
@@ -82,7 +82,7 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3001/taskpane.html" />
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="Group.Label" DefaultValue="MailTriage" />
+        <bt:String id="Group.Label" DefaultValue="Triagent" />
         <bt:String id="Report.Label" DefaultValue="Report suspicious email" />
       </bt:ShortStrings>
       <bt:LongStrings>

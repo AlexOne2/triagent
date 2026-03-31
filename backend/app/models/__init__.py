@@ -1,7 +1,9 @@
 from app.models.api_key import ApiKey
 from app.models.attachment import Attachment
 from app.models.auth_session import AuthSession
+from app.models.campaign import Campaign, CampaignEvent, CampaignEventAction, ReportFeature
 from app.models.report import (
+    CampaignAssignmentMethod,
     CLASSIFICATION_CODES,
     ArtifactKind,
     IngestSource,
@@ -18,9 +20,14 @@ __all__ = [
     "Attachment",
     "Report",
     "ReportResolution",
+    "Campaign",
+    "CampaignEvent",
+    "CampaignEventAction",
+    "ReportFeature",
     "ReportStatus",
     "ResolutionAction",
     "ResolutionDisposition",
+    "CampaignAssignmentMethod",
     "ArtifactKind",
     "IngestSource",
     "CLASSIFICATION_CODES",

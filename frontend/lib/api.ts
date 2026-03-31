@@ -177,6 +177,8 @@ export type ReportResolutionEvent = {
   created_at: string;
 };
 
+export type CampaignAssignmentMethod = "AUTO" | "MANUAL";
+
 export type Report = {
   id: number;
   message_id?: string | null;
@@ -208,6 +210,10 @@ export type Report = {
   resolved_at?: string | null;
   last_resolved_by?: string | null;
   ingest_source?: "UPLOAD" | "AUTO";
+  campaign_id?: number | null;
+  campaign_assignment_method?: CampaignAssignmentMethod | null;
+  campaign_assignment_score?: number | null;
+  campaign_assignment_explanation_json?: Record<string, unknown> | null;
   created_at: string;
 };
 
@@ -220,6 +226,68 @@ export type Attachment = {
   sha256?: string | null;
   s3_key?: string | null;
   created_at: string;
+};
+
+export type FileIngestItem = {
+  filename: string;
+  status: "INGESTED" | "FAILED";
+  report_id?: number | null;
+  campaign_id?: number | null;
+  risk_score?: number | null;
+  error_code?: string | null;
+  error_message?: string | null;
+};
+
+export type FileIngestBatchResult = {
+  items: FileIngestItem[];
+  ingested_count: number;
+  failed_count: number;
+};
+
+export type Campaign = {
+  id: number;
+  campaign_key: string;
+  name?: string | null;
+  first_seen?: string | null;
+  last_seen?: string | null;
+  report_count: number;
+  confidence_score?: number | null;
+  is_locked: boolean;
+  lock_reason?: string | null;
+  algorithm_version: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CampaignEventAction =
+  | "AUTO_ASSIGN"
+  | "MANUAL_REASSIGN"
+  | "MERGE"
+  | "SPLIT"
+  | "LOCK"
+  | "UNLOCK"
+  | "RECLUSTER";
+
+export type CampaignEvent = {
+  id: number;
+  campaign_id: number;
+  action: CampaignEventAction;
+  report_id?: number | null;
+  from_campaign_id?: number | null;
+  to_campaign_id?: number | null;
+  score?: number | null;
+  features_json?: Record<string, unknown> | null;
+  actor_user_id?: number | null;
+  actor_api_key_id?: number | null;
+  actor_snapshot: string;
+  created_at: string;
+};
+
+export type CampaignReclusterResult = {
+  processed_reports: number;
+  reassigned_reports: number;
+  created_campaigns: number;
+  skipped_manual_reports: number;
 };
 
 export type ReportStats = {
@@ -440,8 +508,131 @@ export async function uploadMsg(file: File): Promise<{ report_id: number; risk_s
   return res.json();
 }
 
+export async function uploadReportFiles(files: File[]): Promise<FileIngestBatchResult> {
+  const token = getAccessToken();
+  const form = new FormData();
+  for (const file of files) {
+    form.append("files", file);
+  }
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/api/report-files`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+
+  if (res.status === 401 && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Upload failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function fetchReportAttachments(reportId: number): Promise<Attachment[]> {
   return request<Attachment[]>(`/api/reports/${reportId}/attachments`);
+}
+
+export async function fetchCampaigns(params?: {
+  q?: string;
+  source?: "UPLOAD" | "AUTO";
+  status?: "OPEN" | "BENIGN" | "PHISHING";
+  locked?: boolean;
+  min_confidence?: number;
+  limit?: number;
+  cursor?: number;
+}): Promise<Campaign[]> {
+  const search = new URLSearchParams();
+  if (params?.q) search.set("q", params.q);
+  if (params?.source) search.set("source", params.source);
+  if (params?.status) search.set("status", params.status);
+  if (typeof params?.locked === "boolean") search.set("locked", String(params.locked));
+  if (typeof params?.min_confidence === "number") search.set("min_confidence", String(params.min_confidence));
+  if (typeof params?.limit === "number") search.set("limit", String(params.limit));
+  if (typeof params?.cursor === "number") search.set("cursor", String(params.cursor));
+  const suffix = search.toString();
+  return request<Campaign[]>(suffix ? `/api/campaigns?${suffix}` : "/api/campaigns");
+}
+
+export async function fetchCampaign(campaignId: number): Promise<Campaign> {
+  return request<Campaign>(`/api/campaigns/${campaignId}`);
+}
+
+export async function fetchCampaignReports(
+  campaignId: number,
+  params?: { limit?: number; offset?: number }
+): Promise<Report[]> {
+  const search = new URLSearchParams();
+  if (params?.limit) search.set("limit", String(params.limit));
+  if (params?.offset) search.set("offset", String(params.offset));
+  const suffix = search.toString();
+  return request<Report[]>(suffix ? `/api/campaigns/${campaignId}/reports?${suffix}` : `/api/campaigns/${campaignId}/reports`);
+}
+
+export async function fetchCampaignEvents(campaignId: number, limit = 200): Promise<CampaignEvent[]> {
+  return request<CampaignEvent[]>(`/api/campaigns/${campaignId}/events?limit=${limit}`);
+}
+
+export async function reclusterCampaigns(payload: {
+  start?: string | null;
+  end?: string | null;
+}): Promise<CampaignReclusterResult> {
+  return request<CampaignReclusterResult>("/api/campaigns/recluster", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function mergeCampaigns(payload: {
+  source_campaign_ids: number[];
+  target_campaign_id: number;
+}): Promise<Campaign> {
+  return request<Campaign>("/api/campaigns/merge", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function splitCampaign(payload: {
+  source_campaign_id: number;
+  report_ids: number[];
+  new_campaign_name?: string | null;
+}): Promise<Campaign> {
+  return request<Campaign>("/api/campaigns/split", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function reassignReportCampaign(
+  reportId: number,
+  payload: { target_campaign_id?: number | null; create_new: boolean; new_campaign_name?: string | null }
+): Promise<Report> {
+  return request<Report>(`/api/reports/${reportId}/campaign/reassign`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function lockCampaign(campaignId: number, reason?: string | null): Promise<Campaign> {
+  return request<Campaign>(`/api/campaigns/${campaignId}/lock`, {
+    method: "POST",
+    body: JSON.stringify({ reason: reason || null }),
+  });
+}
+
+export async function unlockCampaign(campaignId: number): Promise<Campaign> {
+  return request<Campaign>(`/api/campaigns/${campaignId}/unlock`, {
+    method: "POST",
+  });
 }
 
 type EvidenceDownload = {
@@ -449,14 +640,14 @@ type EvidenceDownload = {
   filename: string | null;
 };
 
-async function downloadReportEvidence(reportId: number, extension: "md" | "pdf"): Promise<EvidenceDownload> {
+async function downloadEvidence(path: string): Promise<EvidenceDownload> {
   const token = getAccessToken();
   const headers: Record<string, string> = {};
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BASE_URL}/api/reports/${reportId}/evidence.${extension}`, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     method: "GET",
     headers,
   });
@@ -477,12 +668,24 @@ async function downloadReportEvidence(reportId: number, extension: "md" | "pdf")
   };
 }
 
+async function downloadReportEvidence(reportId: number, extension: "md" | "pdf"): Promise<EvidenceDownload> {
+  return downloadEvidence(`/api/reports/${reportId}/evidence.${extension}`);
+}
+
 export async function downloadReportEvidenceMarkdown(reportId: number): Promise<EvidenceDownload> {
   return downloadReportEvidence(reportId, "md");
 }
 
 export async function downloadReportEvidencePdf(reportId: number): Promise<EvidenceDownload> {
   return downloadReportEvidence(reportId, "pdf");
+}
+
+export async function downloadCampaignEvidenceMarkdown(campaignId: number): Promise<EvidenceDownload> {
+  return downloadEvidence(`/api/campaigns/${campaignId}/evidence.md`);
+}
+
+export async function downloadCampaignEvidencePdf(campaignId: number): Promise<EvidenceDownload> {
+  return downloadEvidence(`/api/campaigns/${campaignId}/evidence.pdf`);
 }
 
 export async function fetchReportStats(): Promise<ReportStats> {
