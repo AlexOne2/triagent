@@ -28,6 +28,10 @@ Core workflow:
 cp infra/.env.example infra/.env
 ```
 
+The default local ports are controlled by:
+- `FRONTEND_PORT` (default `3000`)
+- `BACKEND_PORT` (default `8000`)
+
 2) Run migrations:
 
 ```bash
@@ -46,8 +50,25 @@ make dev
 make seed
 ```
 
-Dashboard: http://localhost:3000
-Backend health: http://localhost:8000/health
+Open:
+- Dashboard: `http://localhost:${FRONTEND_PORT}` (default `http://localhost:3000`)
+- Login: `http://localhost:${FRONTEND_PORT}/login`
+- Backend docs: `http://localhost:${BACKEND_PORT}/docs` (default `http://localhost:8000/docs`)
+- Backend health: `http://localhost:${BACKEND_PORT}/health`
+
+If port `3000` is already in use, set a different `FRONTEND_PORT` in `infra/.env` and update `CORS_ORIGINS` accordingly.
+
+## Development Defaults
+
+This repository ships with local-development defaults for convenience:
+
+- `ADMIN_USERNAME=admin`
+- `ADMIN_PASSWORD=change-me`
+- `MINIO_ROOT_USER=minioadmin`
+- `MINIO_ROOT_PASSWORD=minioadmin`
+- `REPORTER_HASH_SALT=change-me`
+
+These are demo defaults only. Change them before any shared, persistent, or externally reachable deployment.
 
 ## Product Positioning
 
@@ -61,11 +82,30 @@ Triagent is designed around a campaign-first phishing triage workflow:
 
 The goal is not blind automation. The goal is faster, more consistent analyst decisions with full traceability.
 
+## Public Demo Scope
+
+This public repository is intended as a working validation demo for campaign-first phishing triage.
+
+Implemented in the public demo:
+- `.eml` and `.msg` ingestion
+- campaign clustering with analyst correction workflows
+- report and campaign evidence export
+- analyst resolution workflow
+- RBAC and tamper-evident audit logging
+- Docker-based local deployment
+
+Still demo-grade / not production-complete:
+- clustering thresholds and model quality need more real-world tuning
+- deployment is Compose-first, not enterprise packaging
+- secrets management is local-config based
+- external integrations and enterprise SSO are not the focus of this repo
+- sample datasets and workflows are designed to demonstrate the concept clearly
+
 ## Authentication and RBAC
 
 - Auth mode defaults to `session_rbac`.
 - On backend startup, if no users exist and `ADMIN_USERNAME` / `ADMIN_PASSWORD` are set, an initial admin user is bootstrapped.
-- Login at `http://localhost:3000/login` using that admin user.
+- Login at `http://localhost:${FRONTEND_PORT}/login` using that admin user.
 - Legacy basic-auth bridge can be enabled/disabled with `AUTH_LEGACY_BASIC_ENABLED`.
 
 ### Core permissions
@@ -87,6 +127,7 @@ The goal is not blind automation. The goal is faster, more consistent analyst de
 - Edit `outlook-addin/config.json`
   - `backendUrl`
   - `apiKey` (create one from Admin -> API Keys, role `INGESTOR`)
+  - `reporterSalt` is a local demo placeholder and should be replaced outside throwaway development environments
   - Add-in prefers raw file submission when supported (`/api/report-msg` for MSG, `/api/report-eml` for EML), and falls back to JSON `/api/report` if raw file APIs are unavailable in the client.
 
 2) Install add-in deps and start dev server:
