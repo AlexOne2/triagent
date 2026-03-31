@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True)
 
     database_url: str = Field(
-        default="postgresql+psycopg2://mailtriage:mailtriage@postgres:5432/mailtriage",
+        default="postgresql+psycopg2://triagent:triagent@postgres:5432/triagent",
         alias="DATABASE_URL",
     )
 
@@ -31,14 +31,14 @@ class Settings(BaseSettings):
     audit_retention_days: int = Field(default=395, alias="AUDIT_RETENTION_DAYS")
     audit_export_enabled: bool = Field(default=True, alias="AUDIT_EXPORT_ENABLED")
     audit_export_storage: str = Field(default="filesystem", alias="AUDIT_EXPORT_STORAGE")
-    audit_export_bucket: str = Field(default="mailtriage-audit", alias="AUDIT_EXPORT_BUCKET")
-    audit_export_path: str = Field(default="/tmp/mailtriage-audit", alias="AUDIT_EXPORT_PATH")
+    audit_export_bucket: str = Field(default="triagent-audit", alias="AUDIT_EXPORT_BUCKET")
+    audit_export_path: str = Field(default="/tmp/triagent-audit", alias="AUDIT_EXPORT_PATH")
     audit_max_metadata_bytes: int = Field(default=8192, alias="AUDIT_MAX_METADATA_BYTES")
 
     minio_endpoint: str = Field(default="http://minio:9000", alias="MINIO_ENDPOINT")
     minio_access_key: str = Field(default="minioadmin", alias="MINIO_ACCESS_KEY")
     minio_secret_key: str = Field(default="minioadmin", alias="MINIO_SECRET_KEY")
-    minio_bucket: str = Field(default="mailtriage", alias="MINIO_BUCKET")
+    minio_bucket: str = Field(default="triagent", alias="MINIO_BUCKET")
 
     def cors_origins_list(self) -> List[str]:
         if not self.cors_origins:

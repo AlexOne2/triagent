@@ -2,9 +2,9 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-mailtriage}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mailtriage}
-      POSTGRES_DB: ${POSTGRES_DB:-mailtriage}
+      POSTGRES_USER: ${POSTGRES_USER:-triagent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-triagent}
+      POSTGRES_DB: ${POSTGRES_DB:-triagent}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -26,7 +26,7 @@ services:
     build:
       context: ../backend
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://mailtriage:mailtriage@postgres:5432/mailtriage}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://triagent:triagent@postgres:5432/triagent}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change-me}
       REPORTER_HASH_SALT: ${REPORTER_HASH_SALT:-change-me}
@@ -41,13 +41,13 @@ services:
       AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-395}
       AUDIT_EXPORT_ENABLED: ${AUDIT_EXPORT_ENABLED:-true}
       AUDIT_EXPORT_STORAGE: ${AUDIT_EXPORT_STORAGE:-filesystem}
-      AUDIT_EXPORT_BUCKET: ${AUDIT_EXPORT_BUCKET:-mailtriage-audit}
-      AUDIT_EXPORT_PATH: ${AUDIT_EXPORT_PATH:-/tmp/mailtriage-audit}
+      AUDIT_EXPORT_BUCKET: ${AUDIT_EXPORT_BUCKET:-triagent-audit}
+      AUDIT_EXPORT_PATH: ${AUDIT_EXPORT_PATH:-/tmp/triagent-audit}
       AUDIT_MAX_METADATA_BYTES: ${AUDIT_MAX_METADATA_BYTES:-8192}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
-      MINIO_BUCKET: ${MINIO_BUCKET:-mailtriage}
+      MINIO_BUCKET: ${MINIO_BUCKET:-triagent}
     depends_on:
       - postgres
       - minio
