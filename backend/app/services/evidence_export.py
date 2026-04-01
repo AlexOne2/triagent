@@ -1,0 +1,1147 @@
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Iterable
+from urllib.parse import urlsplit
+
+from fpdf import FPDF
+from sqlalchemy import and_, or_, select
+from sqlalchemy.orm import Session
+
+from app.models.api_key import ApiKey
+from app.models.attachment import Attachment
+from app.models.campaign import Campaign
+from app.models.report import Report, ReportStatus, ResolutionAction
+from app.models.report_resolution import ReportResolution
+from app.models.security_audit import AuditActorType, SecurityAuditEvent
+from app.models.user import User
+
+
+@dataclass
+class EvidenceAttachment:
+    filename: str | None
+    content_type: str | None
+    size_bytes: int | None
+    sha256: str | None
+    s3_key: str | None
+    created_at: datetime | None
+
+
+@dataclass
+class EvidenceResolution:
+    action: str
+    disposition: str | None
+    status_after: str
+    classification_code: str | None
+    note: str | None
+    actor: str
+    created_at: datetime | None
+
+
+@dataclass
+class EvidenceAuditEvent:
+    created_at: datetime | None
+    action: str
+    outcome: str
+    actor: str
+    request_id: str | None
+    event_uuid: str
+    event_hash: str
+
+
+@dataclass
+class EvidenceBundle:
+    report_id: int
+    subject: str | None
+    ingest_source: str | None
+    generated_at: datetime
+    created_at: datetime | None
+    received_at: datetime | None
+    status: str
+    disposition: str
+    classification_code: str | None
+    rationale_note: str | None
+    resolved_at: datetime | None
+    last_resolved_by: str | None
+    from_addr: str | None
+    from_domain: str | None
+    reply_to: list[str]
+    return_path: str | None
+    return_path_domain: str | None
+    originating_ip: str | None
+    message_id: str | None
+    urls: list[str]
+    url_domains: list[str]
+    flagged_artifacts: list[dict]
+    attachments: list[EvidenceAttachment]
+    resolution_history: list[EvidenceResolution]
+    audit_trail: list[EvidenceAuditEvent]
+
+
+@dataclass
+class CampaignEvidenceReport:
+    report_id: int
+    subject: str | None
+    from_addr: str | None
+    status: str
+    classification_code: str | None
+    risk_score: int | None
+    assignment_score: float | None
+    created_at: datetime | None
+    resolved_at: datetime | None
+    last_resolved_by: str | None
+
+
+@dataclass
+class CampaignEvidenceResolution:
+    report_id: int
+    report_subject: str | None
+    action: str
+    disposition: str | None
+    status_after: str
+    classification_code: str | None
+    note: str | None
+    actor: str
+    created_at: datetime | None
+
+
+@dataclass
+class CampaignEvidenceBundle:
+    campaign_id: int
+    campaign_key: str
+    campaign_name: str | None
+    first_seen: datetime | None
+    last_seen: datetime | None
+    report_count: int
+    is_locked: bool
+    lock_reason: str | None
+    algorithm_version: str
+    generated_at: datetime
+    disposition: str
+    status_counts: dict[str, int]
+    resolved_ratio: float
+    classification_counts: list[tuple[str, int]]
+    top_sender_addresses: list[tuple[str, int]]
+    top_sender_domains: list[tuple[str, int]]
+    top_url_domains: list[tuple[str, int]]
+    top_attachment_hashes: list[tuple[str, int]]
+    flagged_artifacts: list[tuple[str, str, int]]
+    reports: list[CampaignEvidenceReport]
+    resolution_history: list[CampaignEvidenceResolution]
+    audit_trail: list[EvidenceAuditEvent]
+
+
+def _fmt_utc(value: datetime | None) -> str:
+    if value is None:
+        return "-"
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    else:
+        value = value.astimezone(timezone.utc)
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def _md_escape(value: str | None) -> str:
+    if value is None:
+        return "-"
+    return str(value).replace("|", r"\|")
+
+
+def _safe_pdf_text(value: str | None) -> str:
+    if not value:
+        return "-"
+    return value.encode("latin-1", "replace").decode("latin-1")
+
+
+def extract_email_domain(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip().lower()
+    if "@" not in cleaned:
+        return None
+    domain = cleaned.rsplit("@", 1)[-1].strip()
+    return domain or None
+
+
+def extract_url_domain(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    parsed = urlsplit(cleaned if "://" in cleaned else f"//{cleaned}", scheme="http")
+    if not parsed.hostname:
+        return None
+    return parsed.hostname.lower()
+
+
+def build_actor_label(
+    *,
+    actor_snapshot: str | None = None,
+    actor_type: AuditActorType | str | None = None,
+    actor_user_id: int | None = None,
+    actor_api_key_id: int | None = None,
+    user_lookup: dict[int, str] | None = None,
+    api_key_lookup: dict[int, str] | None = None,
+) -> str:
+    if actor_user_id is not None and user_lookup and actor_user_id in user_lookup:
+        return user_lookup[actor_user_id]
+
+    if actor_api_key_id is not None and api_key_lookup and actor_api_key_id in api_key_lookup:
+        return f"api-key:{api_key_lookup[actor_api_key_id]}"
+
+    if actor_snapshot:
+        return actor_snapshot
+
+    kind = actor_type.value if isinstance(actor_type, AuditActorType) else (actor_type or "")
+    if kind == AuditActorType.USER.value:
+        return f"user:{actor_user_id}" if actor_user_id is not None else "user"
+    if kind == AuditActorType.API_KEY.value:
+        return f"api-key:{actor_api_key_id}" if actor_api_key_id is not None else "api-key"
+    if kind == AuditActorType.LEGACY.value:
+        return "legacy"
+    if kind == AuditActorType.SYSTEM.value:
+        return "system"
+    return "unknown"
+
+
+def _status_disposition(status: ReportStatus) -> str:
+    if status == ReportStatus.PHISHING:
+        return "MALICIOUS"
+    if status == ReportStatus.BENIGN:
+        return "SAFE"
+    return "UNRESOLVED"
+
+
+def _pdf_section_title(pdf: FPDF, title: str) -> None:
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.multi_cell(pdf.epw, 8, _safe_pdf_text(title))
+    pdf.ln(1)
+
+
+def _pdf_line(pdf: FPDF, text: str, *, bold: bool = False) -> None:
+    pdf.set_font("Helvetica", "B" if bold else "", 10)
+    pdf.multi_cell(pdf.epw, 6, _safe_pdf_text(text))
+
+
+def _pdf_kv_lines(rows: Iterable[tuple[str, str]]) -> list[str]:
+    return [f"{label}: {value}" for label, value in rows]
+
+
+class EvidenceExportService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def build_bundle(self, report: Report) -> EvidenceBundle:
+        attachments = (
+            self.db.execute(
+                select(Attachment)
+                .where(Attachment.report_id == report.id)
+                .order_by(Attachment.created_at.asc(), Attachment.id.asc())
+            )
+            .scalars()
+            .all()
+        )
+        resolutions = (
+            self.db.execute(
+                select(ReportResolution)
+                .where(ReportResolution.report_id == report.id)
+                .order_by(ReportResolution.created_at.asc(), ReportResolution.id.asc())
+            )
+            .scalars()
+            .all()
+        )
+        audits = (
+            self.db.execute(
+                select(SecurityAuditEvent)
+                .where(
+                    SecurityAuditEvent.target_type == "report",
+                    SecurityAuditEvent.target_id == str(report.id),
+                )
+                .order_by(SecurityAuditEvent.created_at.asc(), SecurityAuditEvent.id.asc())
+            )
+            .scalars()
+            .all()
+        )
+
+        user_ids = {item.actor_user_id for item in resolutions if item.actor_user_id is not None}
+        user_ids.update({item.actor_user_id for item in audits if item.actor_user_id is not None})
+        api_key_ids = {item.actor_api_key_id for item in resolutions if item.actor_api_key_id is not None}
+        api_key_ids.update({item.actor_api_key_id for item in audits if item.actor_api_key_id is not None})
+
+        user_lookup: dict[int, str] = {}
+        if user_ids:
+            user_rows = self.db.execute(select(User.id, User.username).where(User.id.in_(user_ids))).all()
+            user_lookup = {row[0]: row[1] for row in user_rows}
+
+        api_key_lookup: dict[int, str] = {}
+        if api_key_ids:
+            key_rows = self.db.execute(select(ApiKey.id, ApiKey.name).where(ApiKey.id.in_(api_key_ids))).all()
+            api_key_lookup = {row[0]: row[1] for row in key_rows}
+
+        resolution_history = [
+            EvidenceResolution(
+                action=item.action.value,
+                disposition=item.disposition.value if item.disposition else None,
+                status_after=item.status_after.value,
+                classification_code=item.classification_code,
+                note=item.note,
+                actor=build_actor_label(
+                    actor_snapshot=item.actor,
+                    actor_user_id=item.actor_user_id,
+                    actor_api_key_id=item.actor_api_key_id,
+                    user_lookup=user_lookup,
+                    api_key_lookup=api_key_lookup,
+                ),
+                created_at=item.created_at,
+            )
+            for item in resolutions
+        ]
+        latest_resolve = next((item for item in reversed(resolutions) if item.action == ResolutionAction.RESOLVE), None)
+
+        disposition = (
+            latest_resolve.disposition.value
+            if latest_resolve and latest_resolve.disposition
+            else _status_disposition(report.status)
+        )
+        classification_code = report.classification_code or (latest_resolve.classification_code if latest_resolve else None)
+        rationale_note = report.resolution_note or (latest_resolve.note if latest_resolve else None)
+
+        audit_trail = [
+            EvidenceAuditEvent(
+                created_at=item.created_at,
+                action=item.action,
+                outcome=item.outcome,
+                actor=build_actor_label(
+                    actor_type=item.actor_type,
+                    actor_user_id=item.actor_user_id,
+                    actor_api_key_id=item.actor_api_key_id,
+                    user_lookup=user_lookup,
+                    api_key_lookup=api_key_lookup,
+                ),
+                request_id=item.request_id,
+                event_uuid=item.event_uuid,
+                event_hash=item.event_hash,
+            )
+            for item in audits
+        ]
+
+        urls = [item for item in (report.urls_json or []) if item]
+        url_domains = sorted({domain for domain in (extract_url_domain(item) for item in urls) if domain})
+
+        return EvidenceBundle(
+            report_id=report.id,
+            subject=report.subject,
+            ingest_source=report.ingest_source.value if report.ingest_source else None,
+            generated_at=datetime.now(timezone.utc),
+            created_at=report.created_at,
+            received_at=report.received_at or report.date,
+            status=report.status.value,
+            disposition=disposition,
+            classification_code=classification_code,
+            rationale_note=rationale_note,
+            resolved_at=report.resolved_at,
+            last_resolved_by=report.last_resolved_by,
+            from_addr=report.from_addr,
+            from_domain=extract_email_domain(report.from_addr),
+            reply_to=list(report.reply_to or []),
+            return_path=report.return_path,
+            return_path_domain=extract_email_domain(report.return_path),
+            originating_ip=report.originating_ip,
+            message_id=report.message_id,
+            urls=urls,
+            url_domains=url_domains,
+            flagged_artifacts=list(report.flagged_artifacts_json or []),
+            attachments=[
+                EvidenceAttachment(
+                    filename=item.filename,
+                    content_type=item.content_type,
+                    size_bytes=item.size_bytes,
+                    sha256=item.sha256,
+                    s3_key=item.s3_key,
+                    created_at=item.created_at,
+                )
+                for item in attachments
+            ],
+            resolution_history=resolution_history,
+            audit_trail=audit_trail,
+        )
+
+    def render_markdown(self, bundle: EvidenceBundle) -> str:
+        lines: list[str] = []
+        lines.append("# Triagent Evidence Report")
+        lines.append("")
+        lines.append("## Report Identity")
+        lines.append("")
+        lines.append(f"- Case ID: `{bundle.report_id}`")
+        lines.append(f"- Subject: {_md_escape(bundle.subject)}")
+        lines.append(f"- Ingest Source: {_md_escape(bundle.ingest_source)}")
+        lines.append(f"- Report Created (UTC): {_fmt_utc(bundle.created_at)}")
+        lines.append(f"- Message Received (UTC): {_fmt_utc(bundle.received_at)}")
+        lines.append(f"- Export Generated (UTC): {_fmt_utc(bundle.generated_at)}")
+        lines.append("")
+        lines.append("## Current Verdict and Rationale")
+        lines.append("")
+        lines.append(f"- Status: `{bundle.status}`")
+        lines.append(f"- Disposition: `{bundle.disposition}`")
+        lines.append(f"- Classification: `{_md_escape(bundle.classification_code)}`")
+        lines.append(f"- Resolution Note: {_md_escape(bundle.rationale_note)}")
+        lines.append(f"- Resolved At (UTC): {_fmt_utc(bundle.resolved_at)}")
+        lines.append(f"- Last Resolved By: {_md_escape(bundle.last_resolved_by)}")
+        lines.append("")
+        lines.append("## Artifacts")
+        lines.append("")
+        lines.append("### Messaging")
+        lines.append("")
+        lines.append(f"- From: {_md_escape(bundle.from_addr)}")
+        lines.append(f"- From Domain: {_md_escape(bundle.from_domain)}")
+        lines.append(f"- Reply-To: {_md_escape(', '.join(bundle.reply_to) if bundle.reply_to else None)}")
+        lines.append(f"- Return-Path: {_md_escape(bundle.return_path)}")
+        lines.append(f"- Return-Path Domain: {_md_escape(bundle.return_path_domain)}")
+        lines.append(f"- Originating IP: {_md_escape(bundle.originating_ip)}")
+        lines.append(f"- Message-ID: {_md_escape(bundle.message_id)}")
+        lines.append("")
+        lines.append("### URLs")
+        lines.append("")
+        if bundle.urls:
+            for item in bundle.urls:
+                lines.append(f"- {_md_escape(item)}")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("### URL Domains")
+        lines.append("")
+        if bundle.url_domains:
+            for domain in bundle.url_domains:
+                lines.append(f"- {_md_escape(domain)}")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("### Attachments")
+        lines.append("")
+        lines.append("| Filename | Content Type | Size (bytes) | SHA-256 | Storage Key |")
+        lines.append("| --- | --- | ---: | --- | --- |")
+        if bundle.attachments:
+            for item in bundle.attachments:
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            _md_escape(item.filename),
+                            _md_escape(item.content_type),
+                            _md_escape(str(item.size_bytes) if item.size_bytes is not None else None),
+                            _md_escape(item.sha256),
+                            _md_escape(item.s3_key),
+                        ]
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("| - | - | - | - | - |")
+        lines.append("")
+        lines.append("### Flagged Artifacts")
+        lines.append("")
+        if bundle.flagged_artifacts:
+            for item in bundle.flagged_artifacts:
+                label = item.get("label") or "-"
+                kind = item.get("kind") or "-"
+                value = item.get("value") or "-"
+                lines.append(f"- `{_md_escape(str(kind))}`: {_md_escape(str(value))} ({_md_escape(str(label))})")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("## Resolution History")
+        lines.append("")
+        lines.append("| Timestamp (UTC) | Action | Disposition | Status After | Classification | Actor | Note |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+        if bundle.resolution_history:
+            for item in bundle.resolution_history:
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            _fmt_utc(item.created_at),
+                            _md_escape(item.action),
+                            _md_escape(item.disposition),
+                            _md_escape(item.status_after),
+                            _md_escape(item.classification_code),
+                            _md_escape(item.actor),
+                            _md_escape(item.note),
+                        ]
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("| - | - | - | - | - | - | - |")
+        lines.append("")
+        lines.append("## Case Audit Trail")
+        lines.append("")
+        lines.append("| Timestamp (UTC) | Action | Outcome | Actor | Request ID | Event UUID | Event Hash |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+        if bundle.audit_trail:
+            for item in bundle.audit_trail:
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            _fmt_utc(item.created_at),
+                            _md_escape(item.action),
+                            _md_escape(item.outcome),
+                            _md_escape(item.actor),
+                            _md_escape(item.request_id),
+                            _md_escape(item.event_uuid),
+                            _md_escape(item.event_hash),
+                        ]
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("| - | - | - | - | - | - | - |")
+        lines.append("")
+        return "\n".join(lines)
+
+    def render_pdf(self, bundle: EvidenceBundle) -> bytes:
+        pdf = FPDF(format="A4")
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+
+        _pdf_section_title(pdf, "Triagent Evidence Report")
+        _pdf_line(pdf, "")
+
+        _pdf_section_title(pdf, "Report Identity")
+        for line in _pdf_kv_lines(
+            [
+                ("Case ID", str(bundle.report_id)),
+                ("Subject", bundle.subject or "-"),
+                ("Ingest Source", bundle.ingest_source or "-"),
+                ("Report Created (UTC)", _fmt_utc(bundle.created_at)),
+                ("Message Received (UTC)", _fmt_utc(bundle.received_at)),
+                ("Export Generated (UTC)", _fmt_utc(bundle.generated_at)),
+            ]
+        ):
+            _pdf_line(pdf, line)
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Current Verdict and Rationale")
+        for line in _pdf_kv_lines(
+            [
+                ("Status", bundle.status),
+                ("Disposition", bundle.disposition),
+                ("Classification", bundle.classification_code or "-"),
+                ("Resolution Note", bundle.rationale_note or "-"),
+                ("Resolved At (UTC)", _fmt_utc(bundle.resolved_at)),
+                ("Last Resolved By", bundle.last_resolved_by or "-"),
+            ]
+        ):
+            _pdf_line(pdf, line)
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Artifacts")
+        _pdf_line(pdf, "Messaging", bold=True)
+        for line in _pdf_kv_lines(
+            [
+                ("From", bundle.from_addr or "-"),
+                ("From Domain", bundle.from_domain or "-"),
+                ("Reply-To", ", ".join(bundle.reply_to) if bundle.reply_to else "-"),
+                ("Return-Path", bundle.return_path or "-"),
+                ("Return-Path Domain", bundle.return_path_domain or "-"),
+                ("Originating IP", bundle.originating_ip or "-"),
+                ("Message-ID", bundle.message_id or "-"),
+            ]
+        ):
+            _pdf_line(pdf, line)
+
+        _pdf_line(pdf, "URLs", bold=True)
+        if bundle.urls:
+            for item in bundle.urls:
+                _pdf_line(pdf, f"- {item}")
+        else:
+            _pdf_line(pdf, "-")
+
+        _pdf_line(pdf, "URL Domains", bold=True)
+        if bundle.url_domains:
+            for item in bundle.url_domains:
+                _pdf_line(pdf, f"- {item}")
+        else:
+            _pdf_line(pdf, "-")
+
+        _pdf_line(pdf, "Attachments", bold=True)
+        if bundle.attachments:
+            for item in bundle.attachments:
+                _pdf_line(
+                    pdf,
+                    (
+                        f"- filename={item.filename or '-'}; type={item.content_type or '-'}; "
+                        f"size={item.size_bytes if item.size_bytes is not None else '-'}; "
+                        f"sha256={item.sha256 or '-'}; key={item.s3_key or '-'}"
+                    ),
+                )
+        else:
+            _pdf_line(pdf, "-")
+
+        _pdf_line(pdf, "Flagged Artifacts", bold=True)
+        if bundle.flagged_artifacts:
+            for item in bundle.flagged_artifacts:
+                _pdf_line(
+                    pdf,
+                    f"- {item.get('kind') or '-'}: {item.get('value') or '-'} ({item.get('label') or '-'})",
+                )
+        else:
+            _pdf_line(pdf, "-")
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Resolution History")
+        if bundle.resolution_history:
+            for item in bundle.resolution_history:
+                _pdf_line(
+                    pdf,
+                    (
+                        f"- {_fmt_utc(item.created_at)} | action={item.action} | disposition={item.disposition or '-'} | "
+                        f"status={item.status_after} | classification={item.classification_code or '-'} | "
+                        f"actor={item.actor} | note={item.note or '-'}"
+                    ),
+                )
+        else:
+            _pdf_line(pdf, "-")
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Case Audit Trail")
+        if bundle.audit_trail:
+            for item in bundle.audit_trail:
+                _pdf_line(
+                    pdf,
+                    (
+                        f"- {_fmt_utc(item.created_at)} | action={item.action} | outcome={item.outcome} | "
+                        f"actor={item.actor} | request_id={item.request_id or '-'} | "
+                        f"event_uuid={item.event_uuid} | hash={item.event_hash}"
+                    ),
+                )
+        else:
+            _pdf_line(pdf, "-")
+
+        rendered = pdf.output()
+        if isinstance(rendered, bytes):
+            return rendered
+        if isinstance(rendered, str):
+            return rendered.encode("latin-1")
+        return bytes(rendered)
+
+    @staticmethod
+    def _campaign_disposition(status_counts: dict[str, int]) -> str:
+        open_count = int(status_counts.get(ReportStatus.OPEN.value, 0))
+        benign_count = int(status_counts.get(ReportStatus.BENIGN.value, 0))
+        phishing_count = int(status_counts.get(ReportStatus.PHISHING.value, 0))
+        total = open_count + benign_count + phishing_count
+        if total == 0:
+            return "UNASSIGNED"
+        if phishing_count > 0 and benign_count == 0 and open_count == 0:
+            return "MALICIOUS"
+        if benign_count > 0 and phishing_count == 0 and open_count == 0:
+            return "SAFE"
+        if open_count > 0 and (benign_count > 0 or phishing_count > 0):
+            return "PARTIALLY_RESOLVED"
+        if open_count == total:
+            return "OPEN"
+        return "MIXED"
+
+    @staticmethod
+    def _top_counter(counter: Counter[str], limit: int = 20) -> list[tuple[str, int]]:
+        return sorted(counter.items(), key=lambda item: (-item[1], item[0]))[:limit]
+
+    def build_campaign_bundle(self, campaign: Campaign) -> CampaignEvidenceBundle:
+        reports = (
+            self.db.execute(
+                select(Report).where(Report.campaign_id == campaign.id).order_by(Report.created_at.asc(), Report.id.asc())
+            )
+            .scalars()
+            .all()
+        )
+        report_ids = [item.id for item in reports]
+        report_id_strings = [str(item) for item in report_ids]
+
+        attachments: list[Attachment] = []
+        if report_ids:
+            attachments = (
+                self.db.execute(
+                    select(Attachment)
+                    .join(Report, Report.id == Attachment.report_id)
+                    .where(Report.campaign_id == campaign.id)
+                    .order_by(Attachment.created_at.asc(), Attachment.id.asc())
+                )
+                .scalars()
+                .all()
+            )
+
+        resolution_rows = []
+        if report_ids:
+            resolution_rows = self.db.execute(
+                select(ReportResolution, Report.id, Report.subject)
+                .join(Report, Report.id == ReportResolution.report_id)
+                .where(Report.campaign_id == campaign.id)
+                .order_by(ReportResolution.created_at.asc(), ReportResolution.id.asc())
+            ).all()
+
+        audit_clause = and_(
+            SecurityAuditEvent.target_type == "campaign",
+            SecurityAuditEvent.target_id == str(campaign.id),
+        )
+        if report_id_strings:
+            audit_clause = or_(
+                audit_clause,
+                and_(
+                    SecurityAuditEvent.target_type == "report",
+                    SecurityAuditEvent.target_id.in_(report_id_strings),
+                ),
+            )
+        audits = (
+            self.db.execute(
+                select(SecurityAuditEvent)
+                .where(audit_clause)
+                .order_by(SecurityAuditEvent.created_at.asc(), SecurityAuditEvent.id.asc())
+            )
+            .scalars()
+            .all()
+        )
+
+        user_ids = {item.actor_user_id for item in audits if item.actor_user_id is not None}
+        api_key_ids = {item.actor_api_key_id for item in audits if item.actor_api_key_id is not None}
+        for resolution, _, _ in resolution_rows:
+            if resolution.actor_user_id is not None:
+                user_ids.add(resolution.actor_user_id)
+            if resolution.actor_api_key_id is not None:
+                api_key_ids.add(resolution.actor_api_key_id)
+
+        user_lookup: dict[int, str] = {}
+        if user_ids:
+            user_rows = self.db.execute(select(User.id, User.username).where(User.id.in_(user_ids))).all()
+            user_lookup = {row[0]: row[1] for row in user_rows}
+
+        api_key_lookup: dict[int, str] = {}
+        if api_key_ids:
+            api_key_rows = self.db.execute(select(ApiKey.id, ApiKey.name).where(ApiKey.id.in_(api_key_ids))).all()
+            api_key_lookup = {row[0]: row[1] for row in api_key_rows}
+
+        status_counts = Counter[str]()
+        classification_counter = Counter[str]()
+        sender_address_counter = Counter[str]()
+        sender_domain_counter = Counter[str]()
+        url_domain_counter = Counter[str]()
+        attachment_hash_counter = Counter[str]()
+        flagged_counter = Counter[tuple[str, str]]()
+
+        report_rows: list[CampaignEvidenceReport] = []
+        for item in reports:
+            status_counts[item.status.value] += 1
+            if item.status in {ReportStatus.BENIGN, ReportStatus.PHISHING}:
+                classification_counter[item.classification_code or "UNCLASSIFIED"] += 1
+            sender = item.from_addr.strip().lower() if item.from_addr else None
+            if sender:
+                sender_address_counter[sender] += 1
+                sender_domain = extract_email_domain(sender)
+                if sender_domain:
+                    sender_domain_counter[sender_domain] += 1
+            for url in item.urls_json or []:
+                domain = extract_url_domain(url)
+                if domain:
+                    url_domain_counter[domain] += 1
+            for artifact in item.flagged_artifacts_json or []:
+                kind = str(artifact.get("kind") or "-")
+                value = str(artifact.get("value") or "-")
+                flagged_counter[(kind, value)] += 1
+
+            report_rows.append(
+                CampaignEvidenceReport(
+                    report_id=item.id,
+                    subject=item.subject,
+                    from_addr=item.from_addr,
+                    status=item.status.value,
+                    classification_code=item.classification_code,
+                    risk_score=item.risk_score,
+                    assignment_score=item.campaign_assignment_score,
+                    created_at=item.created_at,
+                    resolved_at=item.resolved_at,
+                    last_resolved_by=item.last_resolved_by,
+                )
+            )
+
+        for item in attachments:
+            if item.sha256:
+                attachment_hash_counter[item.sha256] += 1
+
+        resolution_history = [
+            CampaignEvidenceResolution(
+                report_id=report_id,
+                report_subject=report_subject,
+                action=resolution.action.value,
+                disposition=resolution.disposition.value if resolution.disposition else None,
+                status_after=resolution.status_after.value,
+                classification_code=resolution.classification_code,
+                note=resolution.note,
+                actor=build_actor_label(
+                    actor_snapshot=resolution.actor,
+                    actor_user_id=resolution.actor_user_id,
+                    actor_api_key_id=resolution.actor_api_key_id,
+                    user_lookup=user_lookup,
+                    api_key_lookup=api_key_lookup,
+                ),
+                created_at=resolution.created_at,
+            )
+            for resolution, report_id, report_subject in resolution_rows
+        ]
+
+        audit_trail = [
+            EvidenceAuditEvent(
+                created_at=item.created_at,
+                action=item.action,
+                outcome=item.outcome,
+                actor=build_actor_label(
+                    actor_type=item.actor_type,
+                    actor_user_id=item.actor_user_id,
+                    actor_api_key_id=item.actor_api_key_id,
+                    user_lookup=user_lookup,
+                    api_key_lookup=api_key_lookup,
+                ),
+                request_id=item.request_id,
+                event_uuid=item.event_uuid,
+                event_hash=item.event_hash,
+            )
+            for item in audits
+        ]
+
+        report_count = len(reports)
+        resolved_count = status_counts.get(ReportStatus.BENIGN.value, 0) + status_counts.get(ReportStatus.PHISHING.value, 0)
+        resolved_ratio = (resolved_count / report_count) if report_count else 0.0
+
+        return CampaignEvidenceBundle(
+            campaign_id=campaign.id,
+            campaign_key=campaign.campaign_key,
+            campaign_name=campaign.name,
+            first_seen=campaign.first_seen,
+            last_seen=campaign.last_seen,
+            report_count=report_count,
+            is_locked=campaign.is_locked,
+            lock_reason=campaign.lock_reason,
+            algorithm_version=campaign.algorithm_version,
+            generated_at=datetime.now(timezone.utc),
+            disposition=self._campaign_disposition(dict(status_counts)),
+            status_counts=dict(status_counts),
+            resolved_ratio=resolved_ratio,
+            classification_counts=self._top_counter(classification_counter, limit=50),
+            top_sender_addresses=self._top_counter(sender_address_counter, limit=20),
+            top_sender_domains=self._top_counter(sender_domain_counter, limit=20),
+            top_url_domains=self._top_counter(url_domain_counter, limit=30),
+            top_attachment_hashes=self._top_counter(attachment_hash_counter, limit=30),
+            flagged_artifacts=[(kind, value, count) for (kind, value), count in sorted(flagged_counter.items(), key=lambda item: (-item[1], item[0][0], item[0][1]))],
+            reports=report_rows,
+            resolution_history=resolution_history,
+            audit_trail=audit_trail,
+        )
+
+    def render_campaign_markdown(self, bundle: CampaignEvidenceBundle) -> str:
+        lines: list[str] = []
+        lines.append("# Triagent Campaign Evidence Report")
+        lines.append("")
+        lines.append("## Campaign Identity")
+        lines.append("")
+        lines.append(f"- Campaign ID: `{bundle.campaign_id}`")
+        lines.append(f"- Campaign Key: `{bundle.campaign_key}`")
+        lines.append(f"- Campaign Name: {_md_escape(bundle.campaign_name)}")
+        lines.append(f"- Reports: `{bundle.report_count}`")
+        lines.append(f"- First Seen (UTC): {_fmt_utc(bundle.first_seen)}")
+        lines.append(f"- Last Seen (UTC): {_fmt_utc(bundle.last_seen)}")
+        lines.append(f"- Locked: `{bundle.is_locked}`")
+        lines.append(f"- Lock Reason: {_md_escape(bundle.lock_reason)}")
+        lines.append(f"- Algorithm Version: `{bundle.algorithm_version}`")
+        lines.append(f"- Export Generated (UTC): {_fmt_utc(bundle.generated_at)}")
+        lines.append("")
+
+        open_count = bundle.status_counts.get(ReportStatus.OPEN.value, 0)
+        benign_count = bundle.status_counts.get(ReportStatus.BENIGN.value, 0)
+        phishing_count = bundle.status_counts.get(ReportStatus.PHISHING.value, 0)
+        resolved_count = benign_count + phishing_count
+        lines.append("## Resolution Summary")
+        lines.append("")
+        lines.append(f"- Campaign Disposition: `{bundle.disposition}`")
+        lines.append(f"- Open Reports: `{open_count}`")
+        lines.append(f"- Resolved Reports: `{resolved_count}`")
+        lines.append(f"- Resolved Malicious (PHISHING): `{phishing_count}`")
+        lines.append(f"- Resolved Safe (BENIGN): `{benign_count}`")
+        lines.append(f"- Resolution Coverage: `{round(bundle.resolved_ratio * 100, 2)}%`")
+        lines.append("")
+        lines.append("### Classification Distribution")
+        lines.append("")
+        lines.append("| Classification | Count |")
+        lines.append("| --- | ---: |")
+        if bundle.classification_counts:
+            for code, count in bundle.classification_counts:
+                lines.append(f"| `{_md_escape(code)}` | {count} |")
+        else:
+            lines.append("| - | 0 |")
+        lines.append("")
+
+        lines.append("## Shared Artifacts")
+        lines.append("")
+        lines.append("### Top Sender Addresses")
+        lines.append("")
+        if bundle.top_sender_addresses:
+            for value, count in bundle.top_sender_addresses:
+                lines.append(f"- {_md_escape(value)} (`{count}`)")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("### Top Sender Domains")
+        lines.append("")
+        if bundle.top_sender_domains:
+            for value, count in bundle.top_sender_domains:
+                lines.append(f"- {_md_escape(value)} (`{count}`)")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("### Top URL Domains")
+        lines.append("")
+        if bundle.top_url_domains:
+            for value, count in bundle.top_url_domains:
+                lines.append(f"- {_md_escape(value)} (`{count}`)")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("### Top Attachment Hashes (SHA-256)")
+        lines.append("")
+        if bundle.top_attachment_hashes:
+            for value, count in bundle.top_attachment_hashes:
+                lines.append(f"- `{_md_escape(value)}` (`{count}`)")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("### Flagged Artifacts")
+        lines.append("")
+        lines.append("| Kind | Value | Count |")
+        lines.append("| --- | --- | ---: |")
+        if bundle.flagged_artifacts:
+            for kind, value, count in bundle.flagged_artifacts:
+                lines.append(f"| `{_md_escape(kind)}` | {_md_escape(value)} | {count} |")
+        else:
+            lines.append("| - | - | 0 |")
+        lines.append("")
+
+        lines.append("## Member Reports")
+        lines.append("")
+        lines.append("| Report ID | Status | Classification | From | Subject | Risk | Assign Score | Created (UTC) | Resolved (UTC) | Resolved By |")
+        lines.append("| ---: | --- | --- | --- | --- | ---: | ---: | --- | --- | --- |")
+        if bundle.reports:
+            for item in bundle.reports:
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            str(item.report_id),
+                            _md_escape(item.status),
+                            _md_escape(item.classification_code),
+                            _md_escape(item.from_addr),
+                            _md_escape(item.subject),
+                            _md_escape(str(item.risk_score) if item.risk_score is not None else None),
+                            _md_escape(
+                                f"{item.assignment_score:.4f}" if item.assignment_score is not None else None
+                            ),
+                            _fmt_utc(item.created_at),
+                            _fmt_utc(item.resolved_at),
+                            _md_escape(item.last_resolved_by),
+                        ]
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("| - | - | - | - | - | - | - | - | - | - |")
+        lines.append("")
+
+        lines.append("## Resolution History")
+        lines.append("")
+        lines.append("| Timestamp (UTC) | Report ID | Report Subject | Action | Disposition | Status After | Classification | Actor | Note |")
+        lines.append("| --- | ---: | --- | --- | --- | --- | --- | --- | --- |")
+        if bundle.resolution_history:
+            for item in bundle.resolution_history:
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            _fmt_utc(item.created_at),
+                            str(item.report_id),
+                            _md_escape(item.report_subject),
+                            _md_escape(item.action),
+                            _md_escape(item.disposition),
+                            _md_escape(item.status_after),
+                            _md_escape(item.classification_code),
+                            _md_escape(item.actor),
+                            _md_escape(item.note),
+                        ]
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("| - | - | - | - | - | - | - | - | - |")
+        lines.append("")
+
+        lines.append("## Campaign Audit Trail")
+        lines.append("")
+        lines.append("| Timestamp (UTC) | Action | Outcome | Actor | Request ID | Event UUID | Event Hash |")
+        lines.append("| --- | --- | --- | --- | --- | --- | --- |")
+        if bundle.audit_trail:
+            for item in bundle.audit_trail:
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            _fmt_utc(item.created_at),
+                            _md_escape(item.action),
+                            _md_escape(item.outcome),
+                            _md_escape(item.actor),
+                            _md_escape(item.request_id),
+                            _md_escape(item.event_uuid),
+                            _md_escape(item.event_hash),
+                        ]
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("| - | - | - | - | - | - | - |")
+        lines.append("")
+        return "\n".join(lines)
+
+    def render_campaign_pdf(self, bundle: CampaignEvidenceBundle) -> bytes:
+        pdf = FPDF(format="A4")
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+
+        _pdf_section_title(pdf, "Triagent Campaign Evidence Report")
+        _pdf_line(pdf, "")
+
+        _pdf_section_title(pdf, "Campaign Identity")
+        for line in _pdf_kv_lines(
+            [
+                ("Campaign ID", str(bundle.campaign_id)),
+                ("Campaign Key", bundle.campaign_key),
+                ("Campaign Name", bundle.campaign_name or "-"),
+                ("Reports", str(bundle.report_count)),
+                ("First Seen (UTC)", _fmt_utc(bundle.first_seen)),
+                ("Last Seen (UTC)", _fmt_utc(bundle.last_seen)),
+                ("Locked", str(bundle.is_locked)),
+                ("Lock Reason", bundle.lock_reason or "-"),
+                ("Algorithm Version", bundle.algorithm_version),
+                ("Export Generated (UTC)", _fmt_utc(bundle.generated_at)),
+            ]
+        ):
+            _pdf_line(pdf, line)
+
+        open_count = bundle.status_counts.get(ReportStatus.OPEN.value, 0)
+        benign_count = bundle.status_counts.get(ReportStatus.BENIGN.value, 0)
+        phishing_count = bundle.status_counts.get(ReportStatus.PHISHING.value, 0)
+        resolved_count = benign_count + phishing_count
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Resolution Summary")
+        for line in _pdf_kv_lines(
+            [
+                ("Campaign Disposition", bundle.disposition),
+                ("Open Reports", str(open_count)),
+                ("Resolved Reports", str(resolved_count)),
+                ("Resolved Malicious (PHISHING)", str(phishing_count)),
+                ("Resolved Safe (BENIGN)", str(benign_count)),
+                ("Resolution Coverage", f"{round(bundle.resolved_ratio * 100, 2)}%"),
+            ]
+        ):
+            _pdf_line(pdf, line)
+
+        _pdf_line(pdf, "Classification Distribution", bold=True)
+        if bundle.classification_counts:
+            for code, count in bundle.classification_counts:
+                _pdf_line(pdf, f"- {code}: {count}")
+        else:
+            _pdf_line(pdf, "-")
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Shared Artifacts")
+        _pdf_line(pdf, "Top Sender Addresses", bold=True)
+        if bundle.top_sender_addresses:
+            for value, count in bundle.top_sender_addresses:
+                _pdf_line(pdf, f"- {value} ({count})")
+        else:
+            _pdf_line(pdf, "-")
+        _pdf_line(pdf, "Top Sender Domains", bold=True)
+        if bundle.top_sender_domains:
+            for value, count in bundle.top_sender_domains:
+                _pdf_line(pdf, f"- {value} ({count})")
+        else:
+            _pdf_line(pdf, "-")
+        _pdf_line(pdf, "Top URL Domains", bold=True)
+        if bundle.top_url_domains:
+            for value, count in bundle.top_url_domains:
+                _pdf_line(pdf, f"- {value} ({count})")
+        else:
+            _pdf_line(pdf, "-")
+        _pdf_line(pdf, "Top Attachment Hashes (SHA-256)", bold=True)
+        if bundle.top_attachment_hashes:
+            for value, count in bundle.top_attachment_hashes:
+                _pdf_line(pdf, f"- {value} ({count})")
+        else:
+            _pdf_line(pdf, "-")
+        _pdf_line(pdf, "Flagged Artifacts", bold=True)
+        if bundle.flagged_artifacts:
+            for kind, value, count in bundle.flagged_artifacts:
+                _pdf_line(pdf, f"- {kind}: {value} ({count})")
+        else:
+            _pdf_line(pdf, "-")
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Member Reports")
+        if bundle.reports:
+            for item in bundle.reports:
+                _pdf_line(
+                    pdf,
+                    (
+                        f"- report={item.report_id} | status={item.status} | class={item.classification_code or '-'} | "
+                        f"from={item.from_addr or '-'} | subject={item.subject or '-'} | risk={item.risk_score if item.risk_score is not None else '-'} | "
+                        f"score={f'{item.assignment_score:.4f}' if item.assignment_score is not None else '-'} | "
+                        f"created={_fmt_utc(item.created_at)} | resolved={_fmt_utc(item.resolved_at)} | by={item.last_resolved_by or '-'}"
+                    ),
+                )
+        else:
+            _pdf_line(pdf, "-")
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Resolution History")
+        if bundle.resolution_history:
+            for item in bundle.resolution_history:
+                _pdf_line(
+                    pdf,
+                    (
+                        f"- {_fmt_utc(item.created_at)} | report={item.report_id} | action={item.action} | "
+                        f"disposition={item.disposition or '-'} | status={item.status_after} | "
+                        f"classification={item.classification_code or '-'} | actor={item.actor} | note={item.note or '-'}"
+                    ),
+                )
+        else:
+            _pdf_line(pdf, "-")
+
+        pdf.ln(2)
+        _pdf_section_title(pdf, "Campaign Audit Trail")
+        if bundle.audit_trail:
+            for item in bundle.audit_trail:
+                _pdf_line(
+                    pdf,
+                    (
+                        f"- {_fmt_utc(item.created_at)} | action={item.action} | outcome={item.outcome} | "
+                        f"actor={item.actor} | request_id={item.request_id or '-'} | "
+                        f"event_uuid={item.event_uuid} | hash={item.event_hash}"
+                    ),
+                )
+        else:
+            _pdf_line(pdf, "-")
+
+        rendered = pdf.output()
+        if isinstance(rendered, bytes):
+            return rendered
+        if isinstance(rendered, str):
+            return rendered.encode("latin-1")
+        return bytes(rendered)
