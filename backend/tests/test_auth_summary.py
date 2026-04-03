@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
 from app.models.report import Report, ReportStatus
 from app.services.auth_summary import build_auth_summary
@@ -43,6 +44,38 @@ class AuthSummaryTests(unittest.TestCase):
         self.assertEqual(summary["dkim"]["signature_count"], 1)
         self.assertEqual(summary["dkim"]["signatures"][0]["selector"], "google")
         self.assertEqual(summary["dmarc"]["header_from"], "chef-treff.de")
+
+    def test_dkim_signature_header_backfills_missing_fields(self):
+        report = make_report(
+            headers_json={
+                "Authentication-Results": (
+                    "mx.google.com; "
+                    "dkim=pass header.i=@chef-treff.de header.s=google header.b=Peg9DTme; "
+                    "spf=pass (google.com: domain of emilio@chef-treff.de designates 209.85.220.41 as permitted sender) "
+                    "smtp.mailfrom=emilio@chef-treff.de; "
+                    "dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=chef-treff.de"
+                ),
+                "Received-SPF": (
+                    "pass (google.com: domain of emilio@chef-treff.de designates 209.85.220.41 as permitted sender) "
+                    "client-ip=209.85.220.41;"
+                ),
+                "DKIM-Signature": (
+                    "v=1; a=rsa-sha256; c=relaxed/relaxed; d=chef-treff.de; s=google; "
+                    "bh=abc123; b=def456"
+                ),
+            },
+            from_addr="emilio@chef-treff.de",
+            return_path="<emilio@chef-treff.de>",
+            originating_ip=None,
+            originating_rdns="445429363121",
+        )
+
+        summary = build_auth_summary(report)
+        self.assertEqual(summary["spf"]["originating_ip"], "209.85.220.41")
+        self.assertEqual(summary["spf"]["source_header"], "Received-SPF")
+        self.assertNotEqual(summary["spf"]["originating_rdns"], "445429363121")
+        self.assertEqual(summary["dkim"]["signatures"][0]["signing_domain"], "chef-treff.de")
+        self.assertEqual(summary["dkim"]["signatures"][0]["algorithm"], "rsa-sha256")
 
     def test_dmarc_fail_with_header_from(self):
         report = make_report(
@@ -115,6 +148,44 @@ class AuthSummaryTests(unittest.TestCase):
         self.assertEqual(summary["overview"]["dkim"], "unknown")
         self.assertEqual(summary["overview"]["dmarc"], "unknown")
         self.assertEqual(summary["overview"]["arc"], "unknown")
+
+    @patch("app.services.auth_summary._lookup_txt_records")
+    @patch("app.services.auth_summary._lookup_ptr_record")
+    def test_dns_resolution_enriches_spf_dmarc_and_ptr(self, mock_ptr, mock_txt):
+        def lookup_txt(name: str):
+            if name == "chef-treff.de":
+                return ("v=spf1 include:_spf.google.com ~all",)
+            if name == "_dmarc.chef-treff.de":
+                return ("v=DMARC1; p=none;",)
+            return ()
+
+        mock_txt.side_effect = lookup_txt
+        mock_ptr.return_value = "mail-sor-f41.google.com"
+
+        report = make_report(
+            headers_json={
+                "Authentication-Results": (
+                    "mx.google.com; "
+                    "spf=pass (google.com: domain of emilio@chef-treff.de designates 209.85.220.41 as permitted sender) "
+                    "smtp.mailfrom=emilio@chef-treff.de; "
+                    "dkim=pass header.i=@chef-treff.de header.s=google; "
+                    "dmarc=pass header.from=chef-treff.de"
+                ),
+                "Received-SPF": (
+                    "pass (google.com: domain of emilio@chef-treff.de designates 209.85.220.41 as permitted sender) "
+                    "client-ip=209.85.220.41;"
+                ),
+            },
+            from_addr="emilio@chef-treff.de",
+            return_path="<emilio@chef-treff.de>",
+            originating_ip=None,
+            originating_rdns=None,
+        )
+
+        summary = build_auth_summary(report)
+        self.assertEqual(summary["spf"]["dns_record"], "v=spf1 include:_spf.google.com ~all")
+        self.assertEqual(summary["spf"]["originating_rdns"], "mail-sor-f41.google.com")
+        self.assertEqual(summary["dmarc"]["dns_record"], "v=DMARC1; p=none;")
 
 
 if __name__ == "__main__":

@@ -213,6 +213,7 @@ export type ReportAuthSummary = {
     return_path_domain?: string | null;
     originating_ip?: string | null;
     originating_rdns?: string | null;
+    dns_record?: string | null;
     raw?: string | null;
   };
   dkim: {
@@ -226,6 +227,7 @@ export type ReportAuthSummary = {
     aligned_from_domain?: string | null;
     aligned_mailfrom_domain?: string | null;
     policy?: string | null;
+    dns_record?: string | null;
     raw?: string | null;
   };
   arc: {

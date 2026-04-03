@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     auth_lockout_threshold: int = Field(default=5, alias="AUTH_LOCKOUT_THRESHOLD")
     auth_lockout_window_minutes: int = Field(default=15, alias="AUTH_LOCKOUT_WINDOW_MINUTES")
     auth_lockout_duration_minutes: int = Field(default=15, alias="AUTH_LOCKOUT_DURATION_MINUTES")
+    auth_dns_enabled: bool = Field(default=True, alias="AUTH_DNS_ENABLED")
+    auth_dns_timeout_seconds: float = Field(default=2.0, alias="AUTH_DNS_TIMEOUT_SECONDS")
 
     audit_retention_days: int = Field(default=395, alias="AUDIT_RETENTION_DAYS")
     audit_export_enabled: bool = Field(default=True, alias="AUDIT_EXPORT_ENABLED")

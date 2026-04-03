@@ -37,6 +37,23 @@ function hasValue(value?: string | null): boolean {
   return !!value && value.trim().length > 0;
 }
 
+function hasAnyValue(values: Array<string | null | undefined>): boolean {
+  return values.some((value) => hasValue(value));
+}
+
+function displayAuthValue(value?: string | null, fallback = "unknown"): string {
+  return hasValue(value) ? value!.trim() : fallback;
+}
+
+function renderFixedAuthField(label: string, value?: string | null, fallback = "unknown") {
+  return (
+    <>
+      <label>{label}</label>
+      <div>{displayAuthValue(value, fallback)}</div>
+    </>
+  );
+}
+
 function renderAuthField(label: string, value?: string | null) {
   if (!hasValue(value)) return null;
   return (
@@ -45,6 +62,58 @@ function renderAuthField(label: string, value?: string | null) {
       <div>{value}</div>
     </>
   );
+}
+
+function extractRecord(rawValue: string | null | undefined, prefix: "spf" | "dmarc"): string | null {
+  if (!hasValue(rawValue)) return null;
+  const source = rawValue!.trim();
+  const pattern =
+    prefix === "spf" ? /(v=spf1\b.*)$/i : /(v=dmarc1\b.*)$/i;
+  const match = source.match(pattern);
+  return match ? match[1].trim() : null;
+}
+
+function extractParenthesized(rawValue: string | null | undefined): string | null {
+  if (!hasValue(rawValue)) return null;
+  const match = rawValue!.match(/\(([^()]*)\)/);
+  return match ? match[1].trim() : null;
+}
+
+function formatSpfOriginatingIp(ip?: string | null, sourceHeader?: string | null): string {
+  const cleanIp = hasValue(ip) ? ip!.trim() : null;
+  const cleanSource = hasValue(sourceHeader) ? sourceHeader!.trim() : null;
+  if (cleanIp && cleanSource) return `${cleanIp} (${cleanSource})`;
+  if (cleanIp) return cleanIp;
+  return "unknown";
+}
+
+function formatDkimVerificationSummary(signatureCount: number, statuses: AuthStatus[]): string {
+  if (!signatureCount) return "No signatures";
+  const counts = statuses.reduce<Record<string, number>>((acc, status) => {
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  const summary = Object.entries(counts)
+    .map(([status, count]) => `${count} ${authStatusLabel(status as AuthStatus).toUpperCase()}`)
+    .join(", ");
+  return `${signatureCount} signature${signatureCount === 1 ? "" : "s"} - ${summary}`;
+}
+
+function formatSelectorDisplay(selector?: string | null, signingDomain?: string | null): string {
+  if (hasValue(selector) && hasValue(signingDomain)) {
+    return `${selector!.trim()}._domainkey.${signingDomain!.trim()}`;
+  }
+  return displayAuthValue(selector);
+}
+
+function formatDmarcRecord(policy?: string | null, raw?: string | null): string {
+  const parsed = extractRecord(raw, "dmarc");
+  if (parsed) return parsed;
+  if (hasValue(policy)) {
+    const cleaned = policy!.trim().toLowerCase();
+    return cleaned.toLowerCase().startsWith("v=dmarc1") ? cleaned : `v=DMARC1; p=${cleaned};`;
+  }
+  return "unknown";
 }
 
 export default function ReportDetailPage() {
@@ -129,6 +198,30 @@ export default function ReportDetailPage() {
   const latestReport = report;
   const latestHeaders = (report?.headers_json as Record<string, unknown>) || {};
   const authSummary = report?.auth_summary;
+  const spfRecord = extractRecord(authSummary?.raw_headers.received_spf || authSummary?.spf.raw, "spf");
+  const dkimStatuses = authSummary?.dkim.signatures.map((signature) => signature.result) || [];
+  const primarySignature = authSummary?.dkim.signatures[0];
+  const hasSpfDetails = hasAnyValue([
+    authSummary?.spf.source_header,
+    authSummary?.spf.authserv_id,
+    authSummary?.spf.receiver,
+    authSummary?.spf.smtp_mailfrom,
+    authSummary?.spf.smtp_helo,
+    authSummary?.spf.return_path_domain,
+    authSummary?.spf.originating_ip,
+    authSummary?.spf.originating_rdns,
+  ]);
+  const hasDmarcDetails = hasAnyValue([
+    authSummary?.dmarc.header_from,
+    authSummary?.dmarc.aligned_from_domain,
+    authSummary?.dmarc.aligned_mailfrom_domain,
+    authSummary?.dmarc.policy,
+  ]);
+  const hasArcDetails = hasAnyValue([
+    authSummary?.arc.instance,
+    authSummary?.arc.seal_result,
+    authSummary?.arc.message_signature_result,
+  ]);
   const receivedHeaders = Object.entries(latestHeaders)
     .filter(([key]) => key.toLowerCase() === "received")
     .map(([, value]) => String(value));
@@ -294,67 +387,62 @@ export default function ReportDetailPage() {
 
           {leftTab === "Authentication" ? (
             <div className="detail-auth">
-              <div className="auth-overview-grid">
-                {[
-                  { label: "SPF", status: authSummary?.overview.spf },
-                  { label: "DKIM", status: authSummary?.overview.dkim },
-                  { label: "DMARC", status: authSummary?.overview.dmarc },
-                  { label: "ARC", status: authSummary?.overview.arc },
-                ].map((item) => (
-                  <div key={item.label} className="auth-overview-card">
-                    <span className="auth-overview-label">{item.label}</span>
-                    <span className={authStatusClass(item.status)}>{authStatusLabel(item.status)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <section className={`auth-card auth-card-${authStatusTone(authSummary?.spf.result)}`}>
-                <div className="auth-card-header">
-                  <div>
-                    <p className="auth-card-eyebrow">Envelope sender validation</p>
-                    <h3>SPF</h3>
-                  </div>
+              <section className={`auth-section auth-section-${authStatusTone(authSummary?.spf.result)}`}>
+                <div className="auth-section-header">
+                  <h3>SPF</h3>
                   <span className={authStatusClass(authSummary?.spf.result)}>{authStatusLabel(authSummary?.spf.result)}</span>
                 </div>
-                <div className="kv detail-kv auth-kv">
-                  {renderAuthField("Source", authSummary?.spf.source_header)}
-                  {renderAuthField("Auth server", authSummary?.spf.authserv_id)}
-                  {renderAuthField("Receiver", authSummary?.spf.receiver)}
-                  {renderAuthField("Envelope sender", authSummary?.spf.smtp_mailfrom)}
-                  {renderAuthField("HELO/EHLO", authSummary?.spf.smtp_helo)}
-                  {renderAuthField("Return-Path domain", authSummary?.spf.return_path_domain)}
-                  {renderAuthField("Originating IP", authSummary?.spf.originating_ip)}
-                  {renderAuthField("Originating rDNS", authSummary?.spf.originating_rdns)}
+                <div className="kv auth-detail-grid">
+                  {renderFixedAuthField(
+                    "Originating IP",
+                    formatSpfOriginatingIp(authSummary?.spf.originating_ip, authSummary?.spf.source_header),
+                  )}
+                  {renderFixedAuthField("rDNS", authSummary?.spf.originating_rdns)}
+                  {renderFixedAuthField("Return-Path domain", authSummary?.spf.return_path_domain)}
+                  {renderFixedAuthField(
+                    "SPF record",
+                    authSummary?.spf.dns_record ||
+                      spfRecord ||
+                      extractParenthesized(authSummary?.raw_headers.received_spf || authSummary?.spf.raw),
+                  )}
+                  {!hasSpfDetails ? <div className="auth-empty">No structured SPF details parsed.</div> : null}
                 </div>
               </section>
 
-              <section className={`auth-card auth-card-${authStatusTone(authSummary?.dkim.result)}`}>
-                <div className="auth-card-header">
-                  <div>
-                    <p className="auth-card-eyebrow">Message integrity signatures</p>
-                    <h3>DKIM</h3>
-                  </div>
+              <section className={`auth-section auth-section-${authStatusTone(authSummary?.dkim.result)}`}>
+                <div className="auth-section-header">
+                  <h3>DKIM</h3>
                   <span className={authStatusClass(authSummary?.dkim.result)}>{authStatusLabel(authSummary?.dkim.result)}</span>
                 </div>
-                <div className="auth-card-meta">
-                  {authSummary?.dkim.signature_count
-                    ? `${authSummary.dkim.signature_count} signature${authSummary.dkim.signature_count === 1 ? "" : "s"}`
-                    : "No DKIM signatures parsed"}
+                <div className="auth-section-meta">
+                  <span className="auth-meta-label">Verification(s)</span>
+                  <span>{formatDkimVerificationSummary(authSummary?.dkim.signature_count || 0, dkimStatuses)}</span>
                 </div>
-                {authSummary?.dkim.signatures?.length ? (
-                  <div className="auth-stack">
-                    {authSummary.dkim.signatures.map((signature, index) => (
-                      <div key={`${signature.selector || "sig"}-${index}`} className="auth-subcard">
-                        <div className="auth-subcard-header">
-                          <strong>Signature {index + 1}</strong>
+                <div className="kv auth-detail-grid">
+                  {renderFixedAuthField(
+                    "Selector",
+                    formatSelectorDisplay(primarySignature?.selector, primarySignature?.signing_domain),
+                  )}
+                  {renderFixedAuthField("Signing domain", primarySignature?.signing_domain)}
+                  {renderFixedAuthField("Algorithm", primarySignature?.algorithm)}
+                  {renderFixedAuthField("Verification", displayAuthValue(primarySignature?.result).toUpperCase())}
+                </div>
+                {authSummary?.dkim.signatures && authSummary.dkim.signatures.length > 1 ? (
+                  <div className="auth-signature-list">
+                    {authSummary.dkim.signatures.slice(1).map((signature, index) => (
+                      <div key={`${signature.selector || "sig"}-${index + 1}`} className="auth-signature-item">
+                        <div className="auth-signature-header">
+                          <strong>Signature {index + 2}</strong>
                           <span className={authStatusClass(signature.result)}>{authStatusLabel(signature.result)}</span>
                         </div>
-                        <div className="kv detail-kv auth-kv">
-                          {renderAuthField("Signing domain", signature.signing_domain)}
-                          {renderAuthField("Identity", signature.identity)}
-                          {renderAuthField("Selector", signature.selector)}
-                          {renderAuthField("Algorithm", signature.algorithm)}
-                          {renderAuthField("Canonicalization", signature.canonicalization)}
+                        <div className="kv auth-detail-grid">
+                          {renderFixedAuthField(
+                            "Selector",
+                            formatSelectorDisplay(signature.selector, signature.signing_domain),
+                          )}
+                          {renderFixedAuthField("Signing domain", signature.signing_domain)}
+                          {renderFixedAuthField("Algorithm", signature.algorithm)}
+                          {renderFixedAuthField("Verification", displayAuthValue(signature.result).toUpperCase())}
                         </div>
                       </div>
                     ))}
@@ -362,34 +450,31 @@ export default function ReportDetailPage() {
                 ) : null}
               </section>
 
-              <section className={`auth-card auth-card-${authStatusTone(authSummary?.dmarc.result)}`}>
-                <div className="auth-card-header">
-                  <div>
-                    <p className="auth-card-eyebrow">Alignment and policy result</p>
-                    <h3>DMARC</h3>
-                  </div>
+              <section className={`auth-section auth-section-${authStatusTone(authSummary?.dmarc.result)}`}>
+                <div className="auth-section-header">
+                  <h3>DMARC</h3>
                   <span className={authStatusClass(authSummary?.dmarc.result)}>{authStatusLabel(authSummary?.dmarc.result)}</span>
                 </div>
-                <div className="kv detail-kv auth-kv">
-                  {renderAuthField("Header.From domain", authSummary?.dmarc.header_from)}
-                  {renderAuthField("Aligned From domain", authSummary?.dmarc.aligned_from_domain)}
-                  {renderAuthField("Aligned MailFrom domain", authSummary?.dmarc.aligned_mailfrom_domain)}
-                  {renderAuthField("Policy", authSummary?.dmarc.policy)}
+                <div className="kv auth-detail-grid">
+                  {renderFixedAuthField("From domain", authSummary?.dmarc.header_from)}
+                  {renderFixedAuthField(
+                    "DMARC record",
+                    authSummary?.dmarc.dns_record || formatDmarcRecord(authSummary?.dmarc.policy, authSummary?.dmarc.raw),
+                  )}
+                  {!hasDmarcDetails ? <div className="auth-empty">No structured DMARC details parsed.</div> : null}
                 </div>
               </section>
 
-              <section className={`auth-card auth-card-${authStatusTone(authSummary?.arc.result)}`}>
-                <div className="auth-card-header">
-                  <div>
-                    <p className="auth-card-eyebrow">Forwarding chain preservation</p>
-                    <h3>ARC</h3>
-                  </div>
+              <section className={`auth-section auth-section-${authStatusTone(authSummary?.arc.result)}`}>
+                <div className="auth-section-header">
+                  <h3>ARC</h3>
                   <span className={authStatusClass(authSummary?.arc.result)}>{authStatusLabel(authSummary?.arc.result)}</span>
                 </div>
-                <div className="kv detail-kv auth-kv">
+                <div className="kv auth-detail-grid">
                   {renderAuthField("Instance", authSummary?.arc.instance)}
                   {renderAuthField("Seal result", authSummary?.arc.seal_result)}
                   {renderAuthField("Message signature result", authSummary?.arc.message_signature_result)}
+                  {!hasArcDetails ? <div className="auth-empty">No structured ARC details parsed.</div> : null}
                 </div>
               </section>
 

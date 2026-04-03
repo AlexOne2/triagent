@@ -119,6 +119,7 @@ class AuthSpfOut(BaseModel):
     return_path_domain: Optional[str] = None
     originating_ip: Optional[str] = None
     originating_rdns: Optional[str] = None
+    dns_record: Optional[str] = None
     raw: Optional[str] = None
 
 
@@ -144,6 +145,7 @@ class AuthDmarcOut(BaseModel):
     aligned_from_domain: Optional[str] = None
     aligned_mailfrom_domain: Optional[str] = None
     policy: Optional[str] = None
+    dns_record: Optional[str] = None
     raw: Optional[str] = None
 
 

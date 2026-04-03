@@ -128,5 +128,9 @@ def _extract_originating_rdns(received_headers: list[str]) -> str | None:
     header = received_headers[-1]
     match = re.search(r"from\s+([^\s\(]+)", header, re.IGNORECASE)
     if match:
-        return match.group(1)
+        candidate = match.group(1).strip()
+        lowered = candidate.lower()
+        if lowered == "unknown" or re.fullmatch(r"\d+", candidate):
+            return None
+        return candidate
     return None
