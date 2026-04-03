@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
   Attachment,
   AuthStatus,
+  FlaggedArtifact,
   Report,
   downloadReportEvidenceMarkdown,
   downloadReportEvidencePdf,
@@ -13,6 +14,7 @@ import {
 } from "../../lib/api";
 import ResolveDrawer from "../../components/ResolveDrawer";
 import { useAuth } from "../../lib/auth-context";
+import { artifactKey, buildReportArtifacts } from "../../lib/report-artifacts";
 
 function authStatusLabel(status?: AuthStatus | null): string {
   if (!status || status === "unknown") return "Unknown";
@@ -43,25 +45,6 @@ function hasAnyValue(values: Array<string | null | undefined>): boolean {
 
 function displayAuthValue(value?: string | null, fallback = "unknown"): string {
   return hasValue(value) ? value!.trim() : fallback;
-}
-
-function renderFixedAuthField(label: string, value?: string | null, fallback = "unknown") {
-  return (
-    <>
-      <label>{label}</label>
-      <div>{displayAuthValue(value, fallback)}</div>
-    </>
-  );
-}
-
-function renderAuthField(label: string, value?: string | null) {
-  if (!hasValue(value)) return null;
-  return (
-    <>
-      <label>{label}</label>
-      <div>{value}</div>
-    </>
-  );
 }
 
 function extractRecord(rawValue: string | null | undefined, prefix: "spf" | "dmarc"): string | null {
@@ -116,6 +99,10 @@ function formatDmarcRecord(policy?: string | null, raw?: string | null): string 
   return "unknown";
 }
 
+function displayFieldValue(value?: string | null, fallback = "-"): string {
+  return hasValue(value) ? value!.trim() : fallback;
+}
+
 export default function ReportDetailPage() {
   const { hasPermission } = useAuth();
   const canRead = hasPermission("reports.read");
@@ -133,6 +120,7 @@ export default function ReportDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [stagedArtifactKeys, setStagedArtifactKeys] = useState<string[]>([]);
 
   useEffect(() => {
     if (!canRead) {
@@ -226,9 +214,60 @@ export default function ReportDetailPage() {
     .filter(([key]) => key.toLowerCase() === "received")
     .map(([, value]) => String(value));
   const xHeaders = Object.entries(latestHeaders).filter(([key]) => key.toLowerCase().startsWith("x-"));
+  const availableArtifacts = useMemo(() => {
+    if (!report) return [];
+    return buildReportArtifacts(report);
+  }, [report]);
 
   const [leftTab, setLeftTab] = useState("Details");
   const [rightTab, setRightTab] = useState("Rendered");
+
+  useEffect(() => {
+    if (!report) {
+      setStagedArtifactKeys([]);
+      return;
+    }
+    setStagedArtifactKeys((report.flagged_artifacts_json || []).map((artifact) => artifactKey(artifact)));
+  }, [report]);
+
+  const findArtifact = (kind: FlaggedArtifact["kind"], value?: string | null) => {
+    if (!hasValue(value)) return undefined;
+    return availableArtifacts.find((artifact) => artifact.kind === kind && artifact.value === value!.trim());
+  };
+
+  const toggleArtifact = (artifact?: FlaggedArtifact) => {
+    if (!artifact) return;
+    const key = artifactKey(artifact);
+    setStagedArtifactKeys((current) =>
+      current.includes(key) ? current.filter((item) => item !== key) : [...current, key],
+    );
+  };
+
+  const renderFlagButton = (artifact?: FlaggedArtifact) => {
+    if (!artifact) return null;
+    const active = stagedArtifactKeys.includes(artifactKey(artifact));
+    return (
+      <button
+        type="button"
+        className={`flag-toggle ${active ? "active" : ""}`}
+        aria-label={active ? "Unflag field" : "Flag field"}
+        title={active ? "Marked for flagging" : "Flag this field"}
+        onClick={() => toggleArtifact(artifact)}
+      >
+        ⚑
+      </button>
+    );
+  };
+
+  const renderFieldRow = (label: string, value: ReactNode, artifact?: FlaggedArtifact) => (
+    <>
+      <label>{label}</label>
+      <div className="detail-field-value">
+        <span>{value}</span>
+        {renderFlagButton(artifact)}
+      </div>
+    </>
+  );
 
   const handleReopen = async () => {
     if (!report) return;
@@ -236,6 +275,7 @@ export default function ReportDetailPage() {
     try {
       const updated = await reopenReport(report.id);
       setReport(updated);
+      setStagedArtifactKeys((updated.flagged_artifacts_json || []).map((artifact) => artifactKey(artifact)));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reopen report.");
@@ -351,37 +391,35 @@ export default function ReportDetailPage() {
 
           {leftTab === "Details" ? (
             <div className="kv detail-kv">
-              <label>From</label>
-              <div>{latestReport?.from_addr || "-"}</div>
-              <label>Display Name</label>
-              <div>{latestReport?.from_display_name || "-"}</div>
-              <label>Sender</label>
-              <div>{latestReport?.sender || "-"}</div>
-              <label>To</label>
-              <div>{latestReport?.to_addrs?.join(", ") || "-"}</div>
-              <label>Cc</label>
-              <div>{latestReport?.cc_addrs?.join(", ") || "-"}</div>
-              <label>In-Reply-To</label>
-              <div>{latestReport?.in_reply_to || "-"}</div>
-              <label>Timestamp</label>
-              <div>
-                {latestReport?.received_at
+              {renderFieldRow("From", displayFieldValue(latestReport?.from_addr), findArtifact("FROM_ADDR", latestReport?.from_addr))}
+              {renderFieldRow("Display Name", displayFieldValue(latestReport?.from_display_name))}
+              {renderFieldRow("Sender", displayFieldValue(latestReport?.sender))}
+              {renderFieldRow("To", latestReport?.to_addrs?.join(", ") || "-")}
+              {renderFieldRow("Cc", latestReport?.cc_addrs?.join(", ") || "-")}
+              {renderFieldRow("In-Reply-To", displayFieldValue(latestReport?.in_reply_to))}
+              {renderFieldRow(
+                "Timestamp",
+                latestReport?.received_at
                   ? new Date(latestReport.received_at).toLocaleString()
                   : latestReport?.date
                   ? new Date(latestReport.date).toLocaleString()
-                  : "-"}
-              </div>
-              <label>Reply-To</label>
-              <div>{latestReport?.reply_to?.join(", ") || "-"}</div>
-              <label>Message ID</label>
-              <div>{latestReport?.message_id || "-"}</div>
-              <label>Return-Path</label>
-              <div>{latestReport?.return_path || "-"}</div>
-              <label>Originating IP + rDNS</label>
-              <div>
-                {latestReport?.originating_ip || "-"}
-                {latestReport?.originating_rdns ? ` (${latestReport.originating_rdns})` : ""}
-              </div>
+                  : "-",
+              )}
+              {renderFieldRow("Reply-To", latestReport?.reply_to?.join(", ") || "-")}
+              {renderFieldRow("Message ID", displayFieldValue(latestReport?.message_id))}
+              {renderFieldRow(
+                "Return-Path",
+                displayFieldValue(latestReport?.return_path),
+                findArtifact("RETURN_PATH", latestReport?.return_path),
+              )}
+              {renderFieldRow(
+                "Originating IP + rDNS",
+                <>
+                  {latestReport?.originating_ip || "-"}
+                  {latestReport?.originating_rdns ? ` (${latestReport.originating_rdns})` : ""}
+                </>,
+                findArtifact("ORIGINATING_IP", latestReport?.originating_ip),
+              )}
             </div>
           ) : null}
 
@@ -393,17 +431,23 @@ export default function ReportDetailPage() {
                   <span className={authStatusClass(authSummary?.spf.result)}>{authStatusLabel(authSummary?.spf.result)}</span>
                 </div>
                 <div className="kv auth-detail-grid">
-                  {renderFixedAuthField(
+                  {renderFieldRow(
                     "Originating IP",
                     formatSpfOriginatingIp(authSummary?.spf.originating_ip, authSummary?.spf.source_header),
+                    findArtifact("ORIGINATING_IP", authSummary?.spf.originating_ip || latestReport?.originating_ip),
                   )}
-                  {renderFixedAuthField("rDNS", authSummary?.spf.originating_rdns)}
-                  {renderFixedAuthField("Return-Path domain", authSummary?.spf.return_path_domain)}
-                  {renderFixedAuthField(
+                  {renderFieldRow("rDNS", displayAuthValue(authSummary?.spf.originating_rdns))}
+                  {renderFieldRow(
+                    "Return-Path domain",
+                    displayAuthValue(authSummary?.spf.return_path_domain),
+                    findArtifact("RETURN_PATH_DOMAIN", authSummary?.spf.return_path_domain),
+                  )}
+                  {renderFieldRow(
                     "SPF record",
                     authSummary?.spf.dns_record ||
                       spfRecord ||
-                      extractParenthesized(authSummary?.raw_headers.received_spf || authSummary?.spf.raw),
+                      extractParenthesized(authSummary?.raw_headers.received_spf || authSummary?.spf.raw) ||
+                      "unknown",
                   )}
                   {!hasSpfDetails ? <div className="auth-empty">No structured SPF details parsed.</div> : null}
                 </div>
@@ -419,13 +463,13 @@ export default function ReportDetailPage() {
                   <span>{formatDkimVerificationSummary(authSummary?.dkim.signature_count || 0, dkimStatuses)}</span>
                 </div>
                 <div className="kv auth-detail-grid">
-                  {renderFixedAuthField(
+                  {renderFieldRow(
                     "Selector",
                     formatSelectorDisplay(primarySignature?.selector, primarySignature?.signing_domain),
                   )}
-                  {renderFixedAuthField("Signing domain", primarySignature?.signing_domain)}
-                  {renderFixedAuthField("Algorithm", primarySignature?.algorithm)}
-                  {renderFixedAuthField("Verification", displayAuthValue(primarySignature?.result).toUpperCase())}
+                  {renderFieldRow("Signing domain", displayAuthValue(primarySignature?.signing_domain))}
+                  {renderFieldRow("Algorithm", displayAuthValue(primarySignature?.algorithm))}
+                  {renderFieldRow("Verification", displayAuthValue(primarySignature?.result).toUpperCase())}
                 </div>
                 {authSummary?.dkim.signatures && authSummary.dkim.signatures.length > 1 ? (
                   <div className="auth-signature-list">
@@ -436,13 +480,10 @@ export default function ReportDetailPage() {
                           <span className={authStatusClass(signature.result)}>{authStatusLabel(signature.result)}</span>
                         </div>
                         <div className="kv auth-detail-grid">
-                          {renderFixedAuthField(
-                            "Selector",
-                            formatSelectorDisplay(signature.selector, signature.signing_domain),
-                          )}
-                          {renderFixedAuthField("Signing domain", signature.signing_domain)}
-                          {renderFixedAuthField("Algorithm", signature.algorithm)}
-                          {renderFixedAuthField("Verification", displayAuthValue(signature.result).toUpperCase())}
+                          {renderFieldRow("Selector", formatSelectorDisplay(signature.selector, signature.signing_domain))}
+                          {renderFieldRow("Signing domain", displayAuthValue(signature.signing_domain))}
+                          {renderFieldRow("Algorithm", displayAuthValue(signature.algorithm))}
+                          {renderFieldRow("Verification", displayAuthValue(signature.result).toUpperCase())}
                         </div>
                       </div>
                     ))}
@@ -456,8 +497,12 @@ export default function ReportDetailPage() {
                   <span className={authStatusClass(authSummary?.dmarc.result)}>{authStatusLabel(authSummary?.dmarc.result)}</span>
                 </div>
                 <div className="kv auth-detail-grid">
-                  {renderFixedAuthField("From domain", authSummary?.dmarc.header_from)}
-                  {renderFixedAuthField(
+                  {renderFieldRow(
+                    "From domain",
+                    displayAuthValue(authSummary?.dmarc.header_from),
+                    findArtifact("FROM_DOMAIN", authSummary?.dmarc.header_from),
+                  )}
+                  {renderFieldRow(
                     "DMARC record",
                     authSummary?.dmarc.dns_record || formatDmarcRecord(authSummary?.dmarc.policy, authSummary?.dmarc.raw),
                   )}
@@ -471,9 +516,15 @@ export default function ReportDetailPage() {
                   <span className={authStatusClass(authSummary?.arc.result)}>{authStatusLabel(authSummary?.arc.result)}</span>
                 </div>
                 <div className="kv auth-detail-grid">
-                  {renderAuthField("Instance", authSummary?.arc.instance)}
-                  {renderAuthField("Seal result", authSummary?.arc.seal_result)}
-                  {renderAuthField("Message signature result", authSummary?.arc.message_signature_result)}
+                  {hasValue(authSummary?.arc.instance)
+                    ? renderFieldRow("Instance", authSummary!.arc.instance!)
+                    : null}
+                  {hasValue(authSummary?.arc.seal_result)
+                    ? renderFieldRow("Seal result", authSummary!.arc.seal_result!)
+                    : null}
+                  {hasValue(authSummary?.arc.message_signature_result)
+                    ? renderFieldRow("Message signature result", authSummary!.arc.message_signature_result!)
+                    : null}
                   {!hasArcDetails ? <div className="auth-empty">No structured ARC details parsed.</div> : null}
                 </div>
               </section>
@@ -617,8 +668,12 @@ export default function ReportDetailPage() {
       <ResolveDrawer
         open={drawerOpen && canResolve}
         report={report}
+        preselectedArtifactKeys={stagedArtifactKeys}
         onClose={() => setDrawerOpen(false)}
-        onResolved={(updatedReport) => setReport(updatedReport)}
+        onResolved={(updatedReport) => {
+          setReport(updatedReport);
+          setStagedArtifactKeys((updatedReport.flagged_artifacts_json || []).map((artifact) => artifactKey(artifact)));
+        }}
       />
     </main>
   );

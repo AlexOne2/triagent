@@ -10,105 +10,23 @@ import {
   resolveReport,
   ResolutionDisposition,
 } from "../lib/api";
+import { artifactKey, buildReportArtifacts } from "../lib/report-artifacts";
 
 type ResolveDrawerProps = {
   open: boolean;
   report: Report;
   onClose: () => void;
   onResolved: (report: Report) => void;
+  preselectedArtifactKeys?: string[];
 };
 
-function domainFromAddress(value?: string | null): string | null {
-  if (!value) return null;
-  const at = value.indexOf("@");
-  if (at === -1 || at === value.length - 1) return null;
-  return value.slice(at + 1).toLowerCase();
-}
-
-function domainFromUrl(value: string): string | null {
-  try {
-    return new URL(value).hostname.toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-function buildArtifacts(report: Report): FlaggedArtifact[] {
-  const items: FlaggedArtifact[] = [];
-  const push = (artifact: FlaggedArtifact) => {
-    if (!items.some((item) => item.kind === artifact.kind && item.value === artifact.value)) {
-      items.push(artifact);
-    }
-  };
-
-  if (report.from_addr) {
-    push({
-      kind: "FROM_ADDR",
-      value: report.from_addr,
-      label: `From email address - ${report.from_addr}`,
-    });
-    const fromDomain = domainFromAddress(report.from_addr);
-    if (fromDomain) {
-      push({
-        kind: "FROM_DOMAIN",
-        value: fromDomain,
-        label: `From domain - ${fromDomain}`,
-      });
-    }
-  }
-
-  for (const replyTo of report.reply_to || []) {
-    push({
-      kind: "REPLY_TO",
-      value: replyTo,
-      label: `Reply-To - ${replyTo}`,
-    });
-  }
-
-  if (report.return_path) {
-    push({
-      kind: "RETURN_PATH",
-      value: report.return_path,
-      label: `Return-Path email address - ${report.return_path}`,
-    });
-    const returnPathDomain = domainFromAddress(report.return_path);
-    if (returnPathDomain) {
-      push({
-        kind: "RETURN_PATH_DOMAIN",
-        value: returnPathDomain,
-        label: `Return-Path domain - ${returnPathDomain}`,
-      });
-    }
-  }
-
-  if (report.originating_ip) {
-    push({
-      kind: "ORIGINATING_IP",
-      value: report.originating_ip,
-      label: `Originating IP - ${report.originating_ip}${report.originating_rdns ? ` (${report.originating_rdns})` : ""}`,
-    });
-  }
-
-  for (const url of report.urls_json || []) {
-    push({
-      kind: "URL",
-      value: url,
-      label: `Message URL - ${url}`,
-    });
-    const urlDomain = domainFromUrl(url);
-    if (urlDomain) {
-      push({
-        kind: "URL_DOMAIN",
-        value: urlDomain,
-        label: `Message URL domain - ${urlDomain}`,
-      });
-    }
-  }
-
-  return items;
-}
-
-export default function ResolveDrawer({ open, report, onClose, onResolved }: ResolveDrawerProps) {
+export default function ResolveDrawer({
+  open,
+  report,
+  onClose,
+  onResolved,
+  preselectedArtifactKeys = [],
+}: ResolveDrawerProps) {
   const [disposition, setDisposition] = useState<ResolutionDisposition>("MALICIOUS");
   const [classificationCode, setClassificationCode] = useState<ClassificationCode | "UNCLASSIFIED">("UNCLASSIFIED");
   const [note, setNote] = useState("");
@@ -118,18 +36,19 @@ export default function ResolveDrawer({ open, report, onClose, onResolved }: Res
   const [history, setHistory] = useState<ReportResolutionEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const availableArtifacts = useMemo(() => buildArtifacts(report), [report]);
+  const availableArtifacts = useMemo(() => buildReportArtifacts(report), [report]);
 
   useEffect(() => {
     if (!open) return;
     setDisposition("MALICIOUS");
     setClassificationCode(report.classification_code || "UNCLASSIFIED");
     setNote(report.resolution_note || "");
-    setSelectedArtifacts(
-      (report.flagged_artifacts_json || []).map((artifact) => `${artifact.kind}::${artifact.value}`)
-    );
+    setSelectedArtifacts(Array.from(new Set([
+      ...(report.flagged_artifacts_json || []).map((artifact) => artifactKey(artifact)),
+      ...preselectedArtifactKeys,
+    ])));
     setError(null);
-  }, [open, report]);
+  }, [open, report, preselectedArtifactKeys]);
 
   useEffect(() => {
     if (!open) return;
@@ -158,7 +77,7 @@ export default function ResolveDrawer({ open, report, onClose, onResolved }: Res
   }
 
   const chosenArtifacts = availableArtifacts.filter((artifact) =>
-    selectedArtifacts.includes(`${artifact.kind}::${artifact.value}`)
+    selectedArtifacts.includes(artifactKey(artifact))
   );
 
   async function handleResolve() {
@@ -224,7 +143,7 @@ export default function ResolveDrawer({ open, report, onClose, onResolved }: Res
             {availableArtifacts.length === 0 ? <p>No artifacts available.</p> : null}
             <div className="resolve-artifact-list">
               {availableArtifacts.map((artifact) => {
-                const key = `${artifact.kind}::${artifact.value}`;
+                const key = artifactKey(artifact);
                 return (
                   <label key={key} className="resolve-artifact-item">
                     <input

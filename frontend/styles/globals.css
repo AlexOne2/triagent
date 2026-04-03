@@ -447,6 +447,20 @@ p {
   word-break: break-word;
 }
 
+.detail-field-value {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detail-field-value > span {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .detail-kv .select {
   font-size: 14px;
   min-width: 220px;
@@ -573,6 +587,35 @@ p {
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.flag-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #d8ddd6;
+  border-radius: 999px;
+  background: #fff;
+  color: #98a2b3;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.flag-toggle:hover {
+  color: #0f766e;
+  border-color: #9fd4cc;
+  background: #f3fbfa;
+}
+
+.flag-toggle.active {
+  color: #0f766e;
+  border-color: #84d6c6;
+  background: #e9f9f4;
 }
 
 .auth-empty {
