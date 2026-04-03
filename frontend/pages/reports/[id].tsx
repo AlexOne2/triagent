@@ -103,6 +103,11 @@ function displayFieldValue(value?: string | null, fallback = "-"): string {
   return hasValue(value) ? value!.trim() : fallback;
 }
 
+function stripAngleBrackets(value?: string | null): string | null {
+  if (!hasValue(value)) return null;
+  return value!.trim().replace(/^<|>$/g, "");
+}
+
 function toVirusTotalUrlId(url: string): string {
   if (typeof window === "undefined") {
     return Buffer.from(url, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
@@ -113,6 +118,69 @@ function toVirusTotalUrlId(url: string): string {
     binary += String.fromCharCode(byte);
   });
   return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+type TransmissionHop = {
+  index: number;
+  raw: string;
+  timestamp?: string | null;
+  receivedFrom?: string | null;
+  receivedBy?: string | null;
+  protocol?: string | null;
+};
+
+type HeaderEntry = {
+  key: string;
+  value: string;
+};
+
+function normalizeHeaderValues(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter(Boolean);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return [value];
+  }
+  return [];
+}
+
+function flattenHeaderEntries(headers: Record<string, unknown>, predicate: (key: string) => boolean): HeaderEntry[] {
+  const entries: HeaderEntry[] = [];
+
+  for (const [key, value] of Object.entries(headers)) {
+    if (!predicate(key)) continue;
+    const values = normalizeHeaderValues(value);
+    if (values.length === 0) continue;
+    values.forEach((item) => {
+      entries.push({ key, value: item });
+    });
+  }
+
+  return entries;
+}
+
+function matchSection(raw: string, pattern: RegExp): string | null {
+  const match = raw.match(pattern);
+  return match ? match[1].trim() : null;
+}
+
+function parseReceivedHeader(raw: string, index: number): TransmissionHop {
+  const trimmed = raw.trim();
+  const lastSemicolon = trimmed.lastIndexOf(";");
+  const main = lastSemicolon >= 0 ? trimmed.slice(0, lastSemicolon).trim() : trimmed;
+  const timestamp = lastSemicolon >= 0 ? trimmed.slice(lastSemicolon + 1).trim() : null;
+  const receivedFrom = matchSection(main, /\bfrom\s+(.+?)(?=\s+\bby\b|$)/i);
+  const receivedBy = matchSection(main, /\bby\s+(.+?)(?=\s+\bwith\b|\s+\bid\b|\s+\bfor\b|$)/i);
+  const protocol = matchSection(main, /\bwith\s+(.+?)(?=\s+\bid\b|\s+\bfor\b|$)/i);
+
+  return {
+    index,
+    raw: trimmed,
+    timestamp,
+    receivedFrom,
+    receivedBy,
+    protocol,
+  };
 }
 
 export default function ReportDetailPage() {
@@ -133,6 +201,7 @@ export default function ReportDetailPage() {
   const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [stagedArtifactKeys, setStagedArtifactKeys] = useState<string[]>([]);
+  const [xHeaderQuery, setXHeaderQuery] = useState("");
 
   useEffect(() => {
     if (!canRead) {
@@ -222,10 +291,25 @@ export default function ReportDetailPage() {
     authSummary?.arc.seal_result,
     authSummary?.arc.message_signature_result,
   ]);
-  const receivedHeaders = Object.entries(latestHeaders)
-    .filter(([key]) => key.toLowerCase() === "received")
-    .map(([, value]) => String(value));
-  const xHeaders = Object.entries(latestHeaders).filter(([key]) => key.toLowerCase().startsWith("x-"));
+  const receivedHeaders = normalizeHeaderValues(latestHeaders["Received"]);
+  const transmissionHops = useMemo(
+    () =>
+      [...receivedHeaders]
+        .reverse()
+        .map((raw, index) => parseReceivedHeader(raw, index + 1)),
+    [receivedHeaders],
+  );
+  const xHeaderEntries = useMemo(
+    () => flattenHeaderEntries(latestHeaders, (key) => key.toLowerCase().startsWith("x-")),
+    [latestHeaders],
+  );
+  const filteredXHeaderEntries = useMemo(() => {
+    const query = xHeaderQuery.trim().toLowerCase();
+    if (!query) return xHeaderEntries;
+    return xHeaderEntries.filter(
+      (entry) => entry.key.toLowerCase().includes(query) || entry.value.toLowerCase().includes(query),
+    );
+  }, [xHeaderEntries, xHeaderQuery]);
   const availableArtifacts = useMemo(() => {
     if (!report) return [];
     return buildReportArtifacts(report);
@@ -440,16 +524,18 @@ export default function ReportDetailPage() {
               {renderFieldRow("Message ID", displayFieldValue(latestReport?.message_id))}
               {renderFieldRow(
                 "Return-Path",
-                displayFieldValue(latestReport?.return_path),
+                displayFieldValue(stripAngleBrackets(latestReport?.return_path)),
                 findArtifact("RETURN_PATH", latestReport?.return_path),
               )}
               {renderFieldRow(
                 "Originating IP + rDNS",
                 <>
-                  {latestReport?.originating_ip || "-"}
-                  {latestReport?.originating_rdns ? ` (${latestReport.originating_rdns})` : ""}
+                  {latestReport?.originating_ip || authSummary?.spf.originating_ip || "-"}
+                  {latestReport?.originating_rdns || authSummary?.spf.originating_rdns
+                    ? ` (${latestReport?.originating_rdns || authSummary?.spf.originating_rdns})`
+                    : ""}
                 </>,
-                findArtifact("ORIGINATING_IP", latestReport?.originating_ip),
+                findArtifact("ORIGINATING_IP", latestReport?.originating_ip || authSummary?.spf.originating_ip),
               )}
             </div>
           ) : null}
@@ -686,16 +772,88 @@ export default function ReportDetailPage() {
           ) : null}
 
           {leftTab === "Transmission" ? (
-            <div className="mono detail-mono detail-section">
-              {receivedHeaders.length > 0 ? receivedHeaders.join("\n\n") : "No Received headers found."}
+            <div className="detail-section transmission-tab">
+              {transmissionHops.length === 0 ? (
+                <p>No Received headers found.</p>
+              ) : (
+                <div className="transmission-list">
+                  {transmissionHops.map((hop) => (
+                    <section key={hop.index} className="transmission-hop">
+                      <div className="transmission-hop-head">
+                        <h3>Hop {hop.index}</h3>
+                        <span>{hop.timestamp || "Timestamp unavailable"}</span>
+                      </div>
+                      <div className="transmission-hop-body">
+                        <div className="transmission-rail" aria-hidden="true" />
+                        <div className="transmission-events">
+                          {hop.receivedFrom ? (
+                            <div className="transmission-event">
+                              <span className="transmission-dot" aria-hidden="true" />
+                              <div>
+                                <strong>Received from</strong>
+                                <span>{hop.receivedFrom}</span>
+                              </div>
+                            </div>
+                          ) : null}
+                          {hop.receivedBy ? (
+                            <div className="transmission-event">
+                              <span className="transmission-dot" aria-hidden="true" />
+                              <div>
+                                <strong>Received by</strong>
+                                <span>{hop.receivedBy}</span>
+                              </div>
+                            </div>
+                          ) : null}
+                          {hop.protocol ? (
+                            <div className="transmission-meta">
+                              <strong>Protocol</strong>
+                              <span>{hop.protocol}</span>
+                            </div>
+                          ) : null}
+                          <details className="transmission-raw">
+                            <summary>Show raw</summary>
+                            <div className="mono detail-mono">{hop.raw}</div>
+                          </details>
+                        </div>
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )}
             </div>
           ) : null}
 
           {leftTab === "X-Headers" ? (
-            <div className="mono detail-mono detail-section">
-              {xHeaders.length > 0
-                ? xHeaders.map(([key, value]) => `${key}: ${String(value)}`).join("\n")
-                : "No X- headers found."}
+            <div className="detail-section xheaders-tab">
+              <div className="xheaders-search-row">
+                <input
+                  className="input xheaders-search"
+                  type="search"
+                  placeholder="Search X-headers"
+                  value={xHeaderQuery}
+                  onChange={(event) => setXHeaderQuery(event.target.value)}
+                />
+                <div className="xheaders-search-meta">
+                  <span>{filteredXHeaderEntries.length} results</span>
+                  {xHeaderQuery ? (
+                    <button type="button" className="xheaders-clear" onClick={() => setXHeaderQuery("")}>
+                      Clear
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {filteredXHeaderEntries.length > 0 ? (
+                <div className="xheaders-list">
+                  {filteredXHeaderEntries.map((entry, index) => (
+                    <div key={`${entry.key}-${index}`} className="xheader-row">
+                      <div className="xheader-key">{entry.key.toLowerCase()}</div>
+                      <div className="xheader-value">{entry.value}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>{xHeaderEntries.length > 0 ? "No matching X-headers." : "No X- headers found."}</p>
+              )}
             </div>
           ) : null}
         </div>

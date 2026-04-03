@@ -55,6 +55,27 @@ def _get_body_parts(msg) -> tuple[str | None, str | None]:
     return body_text, body_html
 
 
+def _serialize_headers(msg) -> Dict[str, Any]:
+    headers: Dict[str, Any] = {}
+    seen: set[str] = set()
+
+    for key in msg.keys():
+        lowered = key.lower()
+        if lowered in seen:
+            continue
+        seen.add(lowered)
+
+        values = [str(value) for value in msg.get_all(key, [])]
+        if lowered == "received" and values:
+            headers[key] = values
+        elif lowered.startswith("x-") and len(values) > 1:
+            headers[key] = values
+        else:
+            headers[key] = str(msg.get(key))
+
+    return headers
+
+
 def parse_eml(raw_bytes: bytes) -> Dict[str, Any]:
     msg = BytesParser(policy=policy.default).parsebytes(raw_bytes)
 
@@ -86,8 +107,8 @@ def parse_eml(raw_bytes: bytes) -> Dict[str, Any]:
 
     body_text, body_html = _get_body_parts(msg)
 
-    headers: Dict[str, Any] = {k: v for (k, v) in msg.items()}
     received_headers = msg.get_all("received", [])
+    headers = _serialize_headers(msg)
     originating_ip = _extract_originating_ip(received_headers)
     originating_rdns = _extract_originating_rdns(received_headers)
 

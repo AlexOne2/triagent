@@ -10,7 +10,7 @@ from typing import Any
 
 import extract_msg
 
-from app.services.eml_parser import _extract_originating_ip, _extract_originating_rdns
+from app.services.eml_parser import _extract_originating_ip, _extract_originating_rdns, _serialize_headers
 
 
 class MsgParseError(RuntimeError):
@@ -57,10 +57,8 @@ def _parse_headers(raw_headers: str | None) -> tuple[dict[str, Any], list[str]]:
     if not raw_headers:
         return {}, []
     parsed = HeaderParser(policy=policy.default).parsestr(raw_headers)
-    headers = {key: str(value) for key, value in parsed.items()}
+    headers = _serialize_headers(parsed)
     received_headers = [str(item) for item in parsed.get_all("received", [])]
-    if received_headers:
-        headers["Received"] = received_headers
     return headers, received_headers
 
 
