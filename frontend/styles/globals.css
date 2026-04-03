@@ -309,6 +309,65 @@ p {
   word-break: break-word;
 }
 
+.url-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.url-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.url-summary-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #f8faf8;
+  color: #475467;
+  font-size: 13px;
+}
+
+.url-record-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.url-record {
+  border-top: 1px solid var(--border);
+  padding: 0 2px;
+}
+
+.url-record:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.url-record-grid {
+  grid-template-columns: 120px minmax(0, 1fr);
+}
+
+.url-record-grid label {
+  font-weight: 700;
+}
+
+.url-primary-link,
+.url-domain-link,
+.url-action-link {
+  color: #145ea8;
+  text-decoration: none;
+}
+
+.url-primary-link:hover,
+.url-domain-link:hover,
+.url-action-link:hover {
+  text-decoration: underline;
+}
+
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -7,7 +7,7 @@ function domainFromAddress(value?: string | null): string | null {
   return value.slice(at + 1).toLowerCase();
 }
 
-function domainFromUrl(value: string): string | null {
+export function domainFromUrl(value: string): string | null {
   try {
     return new URL(value).hostname.toLowerCase();
   } catch {

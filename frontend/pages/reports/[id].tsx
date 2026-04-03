@@ -14,7 +14,7 @@ import {
 } from "../../lib/api";
 import ResolveDrawer from "../../components/ResolveDrawer";
 import { useAuth } from "../../lib/auth-context";
-import { artifactKey, buildReportArtifacts } from "../../lib/report-artifacts";
+import { artifactKey, buildReportArtifacts, domainFromUrl } from "../../lib/report-artifacts";
 
 function authStatusLabel(status?: AuthStatus | null): string {
   if (!status || status === "unknown") return "Unknown";
@@ -101,6 +101,18 @@ function formatDmarcRecord(policy?: string | null, raw?: string | null): string 
 
 function displayFieldValue(value?: string | null, fallback = "-"): string {
   return hasValue(value) ? value!.trim() : fallback;
+}
+
+function toVirusTotalUrlId(url: string): string {
+  if (typeof window === "undefined") {
+    return Buffer.from(url, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+  const bytes = new TextEncoder().encode(url);
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 export default function ReportDetailPage() {
@@ -234,6 +246,25 @@ export default function ReportDetailPage() {
     if (!hasValue(value)) return undefined;
     return availableArtifacts.find((artifact) => artifact.kind === kind && artifact.value === value!.trim());
   };
+
+  const urlRecords = useMemo(
+    () =>
+      urls.map((url) => {
+        const domain = domainFromUrl(url);
+        return {
+          url,
+          domain,
+          urlArtifact: findArtifact("URL", url),
+          domainArtifact: domain ? findArtifact("URL_DOMAIN", domain) : undefined,
+          virusTotalUrl: `https://www.virustotal.com/gui/url/${toVirusTotalUrlId(url)}`,
+        };
+      }),
+    [urls, availableArtifacts],
+  );
+  const uniqueUrlDomains = useMemo(
+    () => new Set(urlRecords.map((record) => record.domain).filter(Boolean)).size,
+    [urlRecords],
+  );
 
   const toggleArtifact = (artifact?: FlaggedArtifact) => {
     if (!artifact) return;
@@ -555,15 +586,68 @@ export default function ReportDetailPage() {
           ) : null}
 
           {leftTab === "URLs" ? (
-            <div className="detail-section">
-              {urls.length === 0 ? <p>No URLs detected.</p> : null}
-              <div className="url-list">
-                {urls.map((url) => (
-                  <span key={url} className="url-pill">
-                    {url}
-                  </span>
-                ))}
-              </div>
+            <div className="detail-section url-tab">
+              {urlRecords.length === 0 ? (
+                <p>No URLs detected.</p>
+              ) : (
+                <>
+                  <div className="url-summary">
+                    <span className="url-summary-stat">
+                      <strong>{urlRecords.length}</strong> URLs
+                    </span>
+                    <span className="url-summary-stat">
+                      <strong>{uniqueUrlDomains}</strong> domains
+                    </span>
+                  </div>
+                  <div className="url-record-list">
+                    {urlRecords.map((record, index) => (
+                      <section key={`${record.url}-${index}`} className="url-record">
+                        <div className="kv url-record-grid">
+                          {renderFieldRow(
+                            "URL",
+                            <a
+                              href={record.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="url-primary-link"
+                            >
+                              {record.url}
+                            </a>,
+                            record.urlArtifact,
+                          )}
+                          {renderFieldRow(
+                            "Domain",
+                            record.domain ? (
+                              <a
+                                href={`https://${record.domain}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="url-domain-link"
+                              >
+                                {record.domain}
+                              </a>
+                            ) : (
+                              "unknown"
+                            ),
+                            record.domainArtifact,
+                          )}
+                          {renderFieldRow(
+                            "VirusTotal",
+                            <a
+                              href={record.virusTotalUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="url-action-link"
+                            >
+                              Open lookup
+                            </a>,
+                          )}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           ) : null}
 
