@@ -315,15 +315,7 @@ def _assign_campaign(
     report: Report,
     principal: Principal,
 ) -> int | None:
-    clustering = CampaignClusteringService(db)
-    result = clustering.auto_assign_report(
-        report,
-        actor_snapshot=principal.actor,
-        actor_user_id=principal.user_id,
-        actor_api_key_id=principal.api_key_id,
-        allow_reassign=False,
-    )
-    return result.campaign_id
+    return None
 
 
 @router.post("/report", response_model=ReportResult, status_code=status.HTTP_201_CREATED)

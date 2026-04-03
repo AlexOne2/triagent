@@ -2,13 +2,12 @@
 
 AI-assisted, on-prem phishing triage for regulated environments.
 
-Triagent helps SOC teams prioritize the right cases instead of reviewing every reported email in isolation. It groups similar emails into campaigns, surfaces the highest-risk cases first, keeps analysts in the loop for resolution, and generates evidence-first reports with a complete audit trail.
+Triagent helps SOC teams prioritize the right cases instead of reviewing every reported email in isolation. It surfaces the highest-risk cases first, keeps analysts in the loop for resolution, and generates evidence-first reports with a complete audit trail.
 
 Core workflow:
 - Ingest reported emails from manual uploads or the Outlook add-in
 - Normalize headers, URLs, attachments, and message metadata
-- Cluster similar emails into campaigns using local similarity signals
-- Let analysts resolve campaigns and reports with full context
+- Let analysts review and resolve reported emails with full context
 - Export evidence reports and compliance-friendly audit history
 
 ![Triagent dashboard](./Dashboard.png)
@@ -16,7 +15,7 @@ Core workflow:
 ## Repo Structure
 
 - `backend/`: FastAPI API + SQLAlchemy + Alembic
-- `frontend/`: Next.js analyst workspace (uploads, in-tray, campaigns, dashboard, admin)
+- `frontend/`: Next.js analyst workspace (uploads, in-tray, dashboard, admin)
 - `outlook-addin/`: Office.js taskpane add-in
 - `infra/`: Docker Compose + env templates
 
@@ -72,11 +71,11 @@ These are demo defaults only. Change them before any shared, persistent, or exte
 
 ## Product Positioning
 
-Triagent is designed around a campaign-first phishing triage workflow:
+Triagent is designed around analyst-centered phishing triage:
 
-- AI-assisted scoring to prioritize suspicious campaigns
-- Campaign clustering to reduce duplicate analyst work
-- Analyst-in-the-loop resolution and correction workflows
+- AI-assisted scoring to prioritize suspicious emails
+- Rich email inspection across details, authentication, URLs, attachments, transmission, and raw headers
+- Analyst-in-the-loop resolution workflows
 - Automated evidence reports with artifacts, rationale, and audit history
 - On-prem deployment for regulated and sensitive environments
 
@@ -84,18 +83,16 @@ The goal is not blind automation. The goal is faster, more consistent analyst de
 
 ## Public Demo Scope
 
-This public repository is intended as a working validation demo for campaign-first phishing triage.
+This public repository is intended as a working validation demo for phishing triage.
 
 Implemented in the public demo:
 - `.eml` and `.msg` ingestion
-- campaign clustering with analyst correction workflows
-- report and campaign evidence export
+- report evidence export
 - analyst resolution workflow
 - RBAC and tamper-evident audit logging
 - Docker-based local deployment
 
 Still demo-grade / not production-complete:
-- clustering thresholds and model quality need more real-world tuning
 - deployment is Compose-first, not enterprise packaging
 - secrets management is local-config based
 - external integrations and enterprise SSO are not the focus of this repo
@@ -111,7 +108,6 @@ Still demo-grade / not production-complete:
 ### Core permissions
 
 - `reports.read`, `reports.ingest`, `reports.resolve`, `reports.reopen`, `reports.admin_override`
-- `campaigns.read`, `campaigns.write`, `campaigns.run`
 - `resolutions.read`, `dashboard.read`
 - `admin.users.read`, `admin.users.write`, `admin.roles.read`, `admin.api_keys.manage`
 - `audit.read`, `audit.export`, `audit.verify`, `audit.archive.manage`
@@ -154,12 +150,10 @@ npx office-addin-dev-certs install
 
 1) Login in the UI.
 2) Upload one or more `.eml` or `.msg` files from Uploads, or ingest through the add-in.
-3) Review automatically detected campaigns in Campaigns.
-4) Open a report, inspect details, authentication, URLs, attachments, transmission, and raw source.
-5) Resolve or reopen with analyst notes, classification, flagged artifacts, and audit history.
-6) Apply campaign corrections with merge, split, reassign, lock, and unlock actions.
-7) Export case or campaign evidence as Markdown or PDF.
-8) Review dashboard metrics and admin/audit pages.
+3) Open a report, inspect details, authentication, URLs, attachments, transmission, and raw source.
+4) Resolve or reopen with analyst notes, classification, flagged artifacts, and audit history.
+5) Export report evidence as Markdown or PDF.
+6) Review dashboard metrics and admin/audit pages.
 
 ## API (Backend)
 
@@ -201,18 +195,6 @@ npx office-addin-dev-certs install
 - `POST /api/reports/{report_id}/resolve`
 - `POST /api/reports/{report_id}/reopen`
 - `GET /api/reports/{report_id}/resolutions`
-- `POST /api/reports/{report_id}/campaign/reassign`
-- `GET /api/campaigns`
-- `GET /api/campaigns/{campaign_id}`
-- `GET /api/campaigns/{campaign_id}/reports`
-- `GET /api/campaigns/{campaign_id}/events`
-- `POST /api/campaigns/recluster`
-- `POST /api/campaigns/merge`
-- `POST /api/campaigns/split`
-- `POST /api/campaigns/{campaign_id}/lock`
-- `POST /api/campaigns/{campaign_id}/unlock`
-- `GET /api/campaigns/{campaign_id}/evidence.md`
-- `GET /api/campaigns/{campaign_id}/evidence.pdf`
 - `GET /api/dashboard/overview?start=<ISO>&end=<ISO>&tz=<IANA>`
 - `GET /api/reports/stats`
 - `GET /health`
@@ -221,10 +203,7 @@ npx office-addin-dev-certs install
 
 - Reporter identity is hashed with `REPORTER_HASH_SALT`.
 - `.msg` uploads extract attachments, compute SHA-256, and store blobs in MinIO with metadata in `attachments`.
-- Campaign clustering is enabled for newly ingested reports using local hybrid similarity signals (no external APIs).
-- Campaign corrections (merge/split/reassign/lock/unlock) are available to authorized analysts.
 - Case evidence export is available per report in Markdown and PDF, including artifacts, rationale, resolution history, and case-scoped audit trail.
-- Campaign evidence export is available per campaign in Markdown and PDF, including shared indicators, member reports, resolution history, and campaign-scoped audit trail.
 - Audit events are append-only and hash-chained (`prev_hash`, `event_hash`) for tamper evidence.
 - Audit metadata is redacted and size-bounded (`AUDIT_MAX_METADATA_BYTES`) to avoid logging secrets.
 
@@ -248,39 +227,9 @@ make audit-export START=2026-02-01T00:00:00Z END=2026-02-20T23:59:59Z
 make audit-prune
 ```
 
-## Campaign Operations
+## Maintenance
 
-- Backfill campaign clustering:
-
-```bash
-make campaign-backfill
-```
-
-- Recluster in a specific window:
-
-```bash
-make campaign-recluster START=2026-02-01T00:00:00Z END=2026-02-20T23:59:59Z
-```
-
-- Print campaign metrics snapshot:
-
-```bash
-make campaign-metrics
-```
-
-- Evaluate clustering quality against the 50-email demo manifest:
-
-```bash
-make campaign-eval
-```
-
-- Evaluate against a custom manifest path (relative to repo root):
-
-```bash
-make campaign-eval MANIFEST=test_data/demo-dataset-50/manifest.json
-```
-
-- Clear only ingested mail/campaign data (keeps users/RBAC/audit tables):
+- Clear only ingested mail data (keeps users/RBAC/audit tables):
 
 ```bash
 make reset-data

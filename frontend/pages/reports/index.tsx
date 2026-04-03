@@ -194,7 +194,6 @@ export default function ReportList() {
                 <th>From</th>
                 <th>To</th>
                 <th>Subject</th>
-                <th>Campaign</th>
                 <th>Status</th>
                 <th>Date uploaded</th>
               </tr>
@@ -208,9 +207,6 @@ export default function ReportList() {
                     <Link href={`/reports/${report.id}`}>
                       {report.subject || "(no subject)"}
                     </Link>
-                  </td>
-                  <td>
-                    {report.campaign_id ? <Link href={`/campaigns/${report.campaign_id}`}>#{report.campaign_id}</Link> : "-"}
                   </td>
                   <td>
                     <span className={statusClass(report.status)}>{report.status}</span>

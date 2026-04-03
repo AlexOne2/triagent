@@ -4,14 +4,11 @@ import { useRouter } from "next/router";
 import {
   Attachment,
   AuthStatus,
-  Campaign,
   Report,
   downloadReportEvidenceMarkdown,
   downloadReportEvidencePdf,
-  fetchCampaigns,
   fetchReport,
   fetchReportAttachments,
-  reassignReportCampaign,
   reopenReport,
 } from "../../lib/api";
 import ResolveDrawer from "../../components/ResolveDrawer";
@@ -55,7 +52,6 @@ export default function ReportDetailPage() {
   const canRead = hasPermission("reports.read");
   const canResolve = hasPermission("reports.resolve");
   const canReopen = hasPermission("reports.reopen");
-  const canCampaignWrite = hasPermission("campaigns.write");
   const router = useRouter();
   const { id } = router.query;
   const [report, setReport] = useState<Report | null>(null);
@@ -68,9 +64,6 @@ export default function ReportDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [campaignTargetId, setCampaignTargetId] = useState("");
-  const [campaignActionBusy, setCampaignActionBusy] = useState(false);
 
   useEffect(() => {
     if (!canRead) {
@@ -127,26 +120,6 @@ export default function ReportDetailPage() {
       active = false;
     };
   }, [canRead, report?.id]);
-
-  useEffect(() => {
-    if (!canCampaignWrite) {
-      setCampaigns([]);
-      return;
-    }
-    let active = true;
-    fetchCampaigns({ limit: 200 })
-      .then((data) => {
-        if (!active) return;
-        setCampaigns(data);
-      })
-      .catch(() => {
-        if (!active) return;
-        setCampaigns([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [canCampaignWrite, report?.id]);
 
   const urls = useMemo(() => {
     if (!report) return [];
@@ -267,80 +240,6 @@ export default function ReportDetailPage() {
         </div>
       </header>
       {exportError ? <p className="report-detail-error">{exportError}</p> : null}
-      {report.campaign_id ? (
-        <p className="report-detail-error" style={{ color: "#0f172a", paddingBottom: 4 }}>
-          Campaign:{" "}
-          <Link href={`/campaigns/${report.campaign_id}`} style={{ textDecoration: "underline" }}>
-            #{report.campaign_id}
-          </Link>
-          {report.campaign_assignment_method ? ` (${report.campaign_assignment_method})` : ""}
-          {typeof report.campaign_assignment_score === "number"
-            ? ` score=${report.campaign_assignment_score.toFixed(3)}`
-            : ""}
-        </p>
-      ) : null}
-      {canCampaignWrite ? (
-        <div style={{ padding: "0 24px 10px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <select
-            className="select"
-            value={campaignTargetId}
-            onChange={(event) => setCampaignTargetId(event.target.value)}
-            disabled={campaignActionBusy}
-          >
-            <option value="">Select target campaign</option>
-            {campaigns.map((campaign) => (
-              <option key={campaign.id} value={String(campaign.id)}>
-                #{campaign.id} {campaign.name ? `- ${campaign.name}` : ""}
-              </option>
-            ))}
-          </select>
-          <button
-            className="tab"
-            type="button"
-            disabled={campaignActionBusy || !campaignTargetId}
-            onClick={async () => {
-              if (!report || !campaignTargetId) return;
-              setCampaignActionBusy(true);
-              try {
-                const updated = await reassignReportCampaign(report.id, {
-                  target_campaign_id: Number(campaignTargetId),
-                  create_new: false,
-                });
-                setReport(updated);
-                setError(null);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to reassign campaign.");
-              } finally {
-                setCampaignActionBusy(false);
-              }
-            }}
-          >
-            Move To Campaign
-          </button>
-          <button
-            className="tab"
-            type="button"
-            disabled={campaignActionBusy}
-            onClick={async () => {
-              if (!report) return;
-              setCampaignActionBusy(true);
-              try {
-                const updated = await reassignReportCampaign(report.id, {
-                  create_new: true,
-                });
-                setReport(updated);
-                setError(null);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Failed to create new campaign.");
-              } finally {
-                setCampaignActionBusy(false);
-              }
-            }}
-          >
-            Move To New Campaign
-          </button>
-        </div>
-      ) : null}
 
       <section className="split report-detail-split">
         <div className="panel report-detail-panel">
