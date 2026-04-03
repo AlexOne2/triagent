@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -99,6 +99,82 @@ class ReportCreate(BaseModel):
         return _validate_classification(value)
 
 
+AuthStatus = Literal["pass", "fail", "softfail", "neutral", "temperror", "permerror", "none", "unknown"]
+
+
+class AuthOverviewOut(BaseModel):
+    spf: AuthStatus = "unknown"
+    dkim: AuthStatus = "unknown"
+    dmarc: AuthStatus = "unknown"
+    arc: AuthStatus = "unknown"
+
+
+class AuthSpfOut(BaseModel):
+    result: AuthStatus = "unknown"
+    source_header: Optional[str] = None
+    authserv_id: Optional[str] = None
+    receiver: Optional[str] = None
+    smtp_mailfrom: Optional[str] = None
+    smtp_helo: Optional[str] = None
+    return_path_domain: Optional[str] = None
+    originating_ip: Optional[str] = None
+    originating_rdns: Optional[str] = None
+    raw: Optional[str] = None
+
+
+class AuthDkimSignatureOut(BaseModel):
+    result: AuthStatus = "unknown"
+    signing_domain: Optional[str] = None
+    identity: Optional[str] = None
+    selector: Optional[str] = None
+    algorithm: Optional[str] = None
+    canonicalization: Optional[str] = None
+    raw: Optional[str] = None
+
+
+class AuthDkimOut(BaseModel):
+    result: AuthStatus = "unknown"
+    signature_count: int = 0
+    signatures: List[AuthDkimSignatureOut] = Field(default_factory=list)
+
+
+class AuthDmarcOut(BaseModel):
+    result: AuthStatus = "unknown"
+    header_from: Optional[str] = None
+    aligned_from_domain: Optional[str] = None
+    aligned_mailfrom_domain: Optional[str] = None
+    policy: Optional[str] = None
+    raw: Optional[str] = None
+
+
+class AuthArcOut(BaseModel):
+    result: AuthStatus = "unknown"
+    instance: Optional[str] = None
+    seal_result: AuthStatus = "unknown"
+    message_signature_result: AuthStatus = "unknown"
+    auth_results: Optional[str] = None
+    seal: Optional[str] = None
+    message_signature: Optional[str] = None
+    raw: Optional[str] = None
+
+
+class AuthRawHeadersOut(BaseModel):
+    authentication_results: Optional[str] = None
+    received_spf: Optional[str] = None
+    arc_authentication_results: Optional[str] = None
+    arc_seal: Optional[str] = None
+    arc_message_signature: Optional[str] = None
+
+
+class ReportAuthSummaryOut(BaseModel):
+    overview: AuthOverviewOut = Field(default_factory=AuthOverviewOut)
+    spf: AuthSpfOut = Field(default_factory=AuthSpfOut)
+    dkim: AuthDkimOut = Field(default_factory=AuthDkimOut)
+    dmarc: AuthDmarcOut = Field(default_factory=AuthDmarcOut)
+    arc: AuthArcOut = Field(default_factory=AuthArcOut)
+    raw_headers: AuthRawHeadersOut = Field(default_factory=AuthRawHeadersOut)
+
+
 class ReportOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -136,6 +212,7 @@ class ReportOut(BaseModel):
     campaign_assignment_method: Optional[CampaignAssignmentMethod]
     campaign_assignment_score: Optional[float]
     campaign_assignment_explanation_json: Optional[Dict[str, Any]]
+    auth_summary: Optional[ReportAuthSummaryOut] = None
     created_at: datetime
 
 

@@ -52,6 +52,7 @@ from app.schemas import (
     ResolveReportRequest,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
+from app.services.auth_summary import build_auth_summary
 from app.services.campaign_clustering import CampaignClusteringService
 from app.services.campaign_service import CampaignService, CampaignServiceError
 from app.services.auth import create_security_audit_event
@@ -248,6 +249,11 @@ def _serialize_resolution(event: ReportResolution) -> ReportResolutionOut:
         actor_api_key_id=event.actor_api_key_id,
         created_at=event.created_at,
     )
+
+
+def _serialize_report(report: Report) -> ReportOut:
+    payload = ReportOut.model_validate(report)
+    return payload.model_copy(update={"auth_summary": build_auth_summary(report)})
 
 
 def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> tuple[Report, int]:
@@ -978,7 +984,7 @@ def reassign_report_campaign(
     )
     db.commit()
     db.refresh(report)
-    return report
+    return _serialize_report(report)
 
 
 @router.post("/campaigns/{campaign_id}/lock", response_model=CampaignOut)
@@ -1183,7 +1189,7 @@ def get_report(
     report = db.get(Report, report_id)
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
-    return report
+    return _serialize_report(report)
 
 
 @router.get("/reports/{report_id}/evidence.md")
@@ -1409,7 +1415,7 @@ def resolve_report(
 
     db.commit()
     db.refresh(report)
-    return report
+    return _serialize_report(report)
 
 
 @router.post("/reports/{report_id}/reopen", response_model=ReportOut)
@@ -1461,7 +1467,7 @@ def reopen_report(
 
     db.commit()
     db.refresh(report)
-    return report
+    return _serialize_report(report)
 
 
 @router.get("/reports/{report_id}/resolutions", response_model=list[ReportResolutionOut])
@@ -1524,4 +1530,4 @@ def update_report(
 
     db.commit()
     db.refresh(report)
-    return report
+    return _serialize_report(report)

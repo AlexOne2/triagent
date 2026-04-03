@@ -27,6 +27,15 @@ export const CLASSIFICATION_CODES = [
 
 export type ClassificationCode = (typeof CLASSIFICATION_CODES)[number];
 export type ResolutionDisposition = "MALICIOUS" | "SAFE";
+export type AuthStatus =
+  | "pass"
+  | "fail"
+  | "softfail"
+  | "neutral"
+  | "temperror"
+  | "permerror"
+  | "none"
+  | "unknown";
 export type ArtifactKind =
   | "FROM_ADDR"
   | "FROM_DOMAIN"
@@ -177,6 +186,67 @@ export type ReportResolutionEvent = {
   created_at: string;
 };
 
+export type ReportAuthDkimSignature = {
+  result: AuthStatus;
+  signing_domain?: string | null;
+  identity?: string | null;
+  selector?: string | null;
+  algorithm?: string | null;
+  canonicalization?: string | null;
+  raw?: string | null;
+};
+
+export type ReportAuthSummary = {
+  overview: {
+    spf: AuthStatus;
+    dkim: AuthStatus;
+    dmarc: AuthStatus;
+    arc: AuthStatus;
+  };
+  spf: {
+    result: AuthStatus;
+    source_header?: string | null;
+    authserv_id?: string | null;
+    receiver?: string | null;
+    smtp_mailfrom?: string | null;
+    smtp_helo?: string | null;
+    return_path_domain?: string | null;
+    originating_ip?: string | null;
+    originating_rdns?: string | null;
+    raw?: string | null;
+  };
+  dkim: {
+    result: AuthStatus;
+    signature_count: number;
+    signatures: ReportAuthDkimSignature[];
+  };
+  dmarc: {
+    result: AuthStatus;
+    header_from?: string | null;
+    aligned_from_domain?: string | null;
+    aligned_mailfrom_domain?: string | null;
+    policy?: string | null;
+    raw?: string | null;
+  };
+  arc: {
+    result: AuthStatus;
+    instance?: string | null;
+    seal_result: AuthStatus;
+    message_signature_result: AuthStatus;
+    auth_results?: string | null;
+    seal?: string | null;
+    message_signature?: string | null;
+    raw?: string | null;
+  };
+  raw_headers: {
+    authentication_results?: string | null;
+    received_spf?: string | null;
+    arc_authentication_results?: string | null;
+    arc_seal?: string | null;
+    arc_message_signature?: string | null;
+  };
+};
+
 export type CampaignAssignmentMethod = "AUTO" | "MANUAL";
 
 export type Report = {
@@ -214,6 +284,7 @@ export type Report = {
   campaign_assignment_method?: CampaignAssignmentMethod | null;
   campaign_assignment_score?: number | null;
   campaign_assignment_explanation_json?: Record<string, unknown> | null;
+  auth_summary?: ReportAuthSummary | null;
   created_at: string;
 };
 
