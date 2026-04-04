@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -6,10 +6,12 @@ import {
   AuthStatus,
   FlaggedArtifact,
   Report,
+  ReportResolutionEvent,
   downloadReportEvidenceMarkdown,
   downloadReportEvidencePdf,
   fetchReport,
   fetchReportAttachments,
+  fetchReportResolutions,
   reopenReport,
 } from "../../lib/api";
 import ResolveDrawer from "../../components/ResolveDrawer";
@@ -202,6 +204,13 @@ export default function ReportDetailPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [stagedArtifactKeys, setStagedArtifactKeys] = useState<string[]>([]);
   const [xHeaderQuery, setXHeaderQuery] = useState("");
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [auditLogOpen, setAuditLogOpen] = useState(false);
+  const [resolutionEvents, setResolutionEvents] = useState<ReportResolutionEvent[]>([]);
+  const [resolutionsLoading, setResolutionsLoading] = useState(false);
+  const [resolutionsError, setResolutionsError] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!canRead) {
@@ -326,6 +335,34 @@ export default function ReportDetailPage() {
     setStagedArtifactKeys((report.flagged_artifacts_json || []).map((artifact) => artifactKey(artifact)));
   }, [report]);
 
+  useEffect(() => {
+    if (!actionsMenuOpen) {
+      setDownloadMenuOpen(false);
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!actionsMenuRef.current?.contains(event.target as Node)) {
+        setActionsMenuOpen(false);
+        setDownloadMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActionsMenuOpen(false);
+        setDownloadMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [actionsMenuOpen]);
+
   const findArtifact = (kind: FlaggedArtifact["kind"], value?: string | null) => {
     if (!hasValue(value)) return undefined;
     return availableArtifacts.find((artifact) => artifact.kind === kind && artifact.value === value!.trim());
@@ -421,6 +458,21 @@ export default function ReportDetailPage() {
     }
   };
 
+  const handleOpenAuditLog = async () => {
+    setAuditLogOpen((current) => !current);
+    if (!report || resolutionEvents.length > 0 || resolutionsLoading) return;
+    setResolutionsLoading(true);
+    setResolutionsError(null);
+    try {
+      const events = await fetchReportResolutions(report.id);
+      setResolutionEvents(events);
+    } catch (err) {
+      setResolutionsError(err instanceof Error ? err.message : "Failed to load audit log.");
+    } finally {
+      setResolutionsLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <main>
@@ -456,22 +508,6 @@ export default function ReportDetailPage() {
           <p>Report #{report.id}</p>
         </div>
         <div className="report-detail-actions">
-          <button
-            className="tab export-action"
-            type="button"
-            onClick={() => void handleEvidenceExport("md")}
-            disabled={!!exportingFormat}
-          >
-            {exportingFormat === "md" ? "Exporting .md..." : "Export .md"}
-          </button>
-          <button
-            className="tab export-action"
-            type="button"
-            onClick={() => void handleEvidenceExport("pdf")}
-            disabled={!!exportingFormat}
-          >
-            {exportingFormat === "pdf" ? "Exporting .pdf..." : "Export .pdf"}
-          </button>
           {report.status === "OPEN" && canResolve ? (
             <button className="resolve-button" type="button" onClick={() => setDrawerOpen(true)} disabled={updating}>
               Resolve
@@ -485,6 +521,96 @@ export default function ReportDetailPage() {
               {updating ? "Reopening..." : "Reopen"}
             </button>
           ) : null}
+          <div className="report-actions-menu" ref={actionsMenuRef}>
+            <button
+              className="kebab-button"
+              type="button"
+              aria-label="Open report actions"
+              aria-expanded={actionsMenuOpen}
+              onClick={() => setActionsMenuOpen((current) => !current)}
+            >
+              •••
+            </button>
+            {actionsMenuOpen ? (
+              <div className="report-actions-dropdown" role="menu">
+                <button className="report-action-item disabled" type="button" disabled>
+                  ↻ Reanalyse
+                </button>
+                <button className="report-action-item" type="button" onClick={() => void handleOpenAuditLog()}>
+                  Audit log
+                </button>
+                <div
+                  className="report-action-submenu"
+                  onMouseEnter={() => setDownloadMenuOpen(true)}
+                  onMouseLeave={() => setDownloadMenuOpen(false)}
+                >
+                  <button
+                    className="report-action-item submenu-trigger"
+                    type="button"
+                    onClick={() => setDownloadMenuOpen((current) => !current)}
+                  >
+                    Download
+                    <span aria-hidden="true">▸</span>
+                  </button>
+                  {downloadMenuOpen ? (
+                    <div className="report-action-submenu-popout" role="menu">
+                      <button
+                        className="report-action-item"
+                        type="button"
+                        onClick={() => void handleEvidenceExport("pdf")}
+                        disabled={!!exportingFormat}
+                      >
+                        {exportingFormat === "pdf" ? "Exporting PDF..." : "PDF"}
+                      </button>
+                      <button
+                        className="report-action-item"
+                        type="button"
+                        onClick={() => void handleEvidenceExport("md")}
+                        disabled={!!exportingFormat}
+                      >
+                        {exportingFormat === "md" ? "Exporting Markdown..." : "Markdown"}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+                <button className="report-action-item disabled" type="button" disabled>
+                  Delete
+                </button>
+              </div>
+            ) : null}
+            {auditLogOpen ? (
+              <div className="report-audit-popover">
+                <div className="report-audit-header">
+                  <strong>Audit log</strong>
+                  <button type="button" className="report-audit-close" onClick={() => setAuditLogOpen(false)}>
+                    ×
+                  </button>
+                </div>
+                {resolutionsLoading ? <p className="report-audit-empty">Loading…</p> : null}
+                {resolutionsError ? <p className="report-audit-empty">{resolutionsError}</p> : null}
+                {!resolutionsLoading && !resolutionsError && resolutionEvents.length === 0 ? (
+                  <p className="report-audit-empty">No audit events yet.</p>
+                ) : null}
+                {!resolutionsLoading && !resolutionsError && resolutionEvents.length > 0 ? (
+                  <ul className="report-audit-list">
+                    {resolutionEvents.map((event) => (
+                      <li key={event.id}>
+                        <div>
+                          <strong>{event.action}</strong>
+                          <span>{new Date(event.created_at).toLocaleString()}</span>
+                        </div>
+                        <div>{event.actor}</div>
+                        <div>
+                          {event.disposition || event.status_after}
+                          {event.classification_code ? ` · ${event.classification_code}` : ""}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
       {exportError ? <p className="report-detail-error">{exportError}</p> : null}

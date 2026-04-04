@@ -959,6 +959,136 @@ p {
   justify-content: flex-end;
 }
 
+.report-actions-menu {
+  position: relative;
+}
+
+.kebab-button {
+  border: 0;
+  background: transparent;
+  color: #2f5db4;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.report-actions-dropdown,
+.report-action-submenu-popout,
+.report-audit-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  z-index: 40;
+}
+
+.report-actions-dropdown {
+  overflow: visible;
+}
+
+.report-action-item {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  color: #111827;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.report-action-item + .report-action-item,
+.report-action-submenu + .report-action-item {
+  border-top: 1px solid #ece9e2;
+}
+
+.report-action-item:hover:not(:disabled),
+.submenu-trigger:hover {
+  background: #f8fafc;
+}
+
+.report-action-item.disabled {
+  color: #667085;
+  cursor: not-allowed;
+}
+
+.report-action-submenu {
+  position: relative;
+  border-top: 1px solid #ece9e2;
+}
+
+.submenu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.report-action-submenu-popout {
+  right: calc(100% + 8px);
+  top: -1px;
+}
+
+.report-audit-popover {
+  width: min(320px, 78vw);
+  padding: 0;
+}
+
+.report-audit-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #ece9e2;
+}
+
+.report-audit-close {
+  border: 0;
+  background: transparent;
+  color: #667085;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.report-audit-empty {
+  margin: 0;
+  padding: 14px;
+  font-size: 14px;
+  color: #667085;
+}
+
+.report-audit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.report-audit-list li {
+  padding: 12px 14px;
+  border-top: 1px solid #ece9e2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.report-audit-list li div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .export-action {
   min-width: 112px;
   text-align: center;

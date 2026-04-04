@@ -152,6 +152,7 @@ def _extract_url_domain(value: str | None) -> str | None:
 
 
 def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
+    auth_summary = build_auth_summary(report)
     available: dict[ArtifactKind, set[str]] = {
         ArtifactKind.FROM_ADDR: set(),
         ArtifactKind.FROM_DOMAIN: set(),
@@ -183,6 +184,20 @@ def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
     if report.originating_ip:
         available[ArtifactKind.ORIGINATING_IP].add(
             _normalize_artifact_value(ArtifactKind.ORIGINATING_IP, report.originating_ip)
+        )
+    auth_spf = auth_summary.get("spf") or {}
+    auth_dmarc = auth_summary.get("dmarc") or {}
+    if auth_spf.get("originating_ip"):
+        available[ArtifactKind.ORIGINATING_IP].add(
+            _normalize_artifact_value(ArtifactKind.ORIGINATING_IP, auth_spf["originating_ip"])
+        )
+    if auth_spf.get("return_path_domain"):
+        available[ArtifactKind.RETURN_PATH_DOMAIN].add(
+            _normalize_artifact_value(ArtifactKind.RETURN_PATH_DOMAIN, auth_spf["return_path_domain"])
+        )
+    if auth_dmarc.get("header_from"):
+        available[ArtifactKind.FROM_DOMAIN].add(
+            _normalize_artifact_value(ArtifactKind.FROM_DOMAIN, auth_dmarc["header_from"])
         )
     if report.urls_json:
         for item in report.urls_json:
