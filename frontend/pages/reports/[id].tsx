@@ -7,6 +7,7 @@ import {
   FlaggedArtifact,
   Report,
   ReportResolutionEvent,
+  deleteReport,
   downloadReportEvidenceMarkdown,
   downloadReportEvidencePdf,
   fetchReport,
@@ -190,6 +191,7 @@ export default function ReportDetailPage() {
   const canRead = hasPermission("reports.read");
   const canResolve = hasPermission("reports.resolve");
   const canReopen = hasPermission("reports.reopen");
+  const canDelete = hasPermission("reports.admin_override");
   const router = useRouter();
   const { id } = router.query;
   const [report, setReport] = useState<Report | null>(null);
@@ -200,6 +202,7 @@ export default function ReportDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [stagedArtifactKeys, setStagedArtifactKeys] = useState<string[]>([]);
@@ -473,6 +476,27 @@ export default function ReportDetailPage() {
     }
   };
 
+  const handleDeleteReport = async () => {
+    if (!report || deleting) return;
+    const confirmed = window.confirm(
+      `Delete report #${report.id}? This will remove the upload, its attachments, and resolution history.`,
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    setError(null);
+    setActionsMenuOpen(false);
+    setDownloadMenuOpen(false);
+    setAuditLogOpen(false);
+    try {
+      await deleteReport(report.id);
+      await router.replace("/reports");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete report.");
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <main>
@@ -509,7 +533,7 @@ export default function ReportDetailPage() {
         </div>
         <div className="report-detail-actions">
           {report.status === "OPEN" && canResolve ? (
-            <button className="resolve-button" type="button" onClick={() => setDrawerOpen(true)} disabled={updating}>
+            <button className="resolve-button" type="button" onClick={() => setDrawerOpen(true)} disabled={updating || deleting}>
               Resolve
             </button>
           ) : null}
@@ -517,7 +541,7 @@ export default function ReportDetailPage() {
             <span className={report.status === "PHISHING" ? "badge phishing" : "badge"}>{report.status}</span>
           ) : null}
           {report.status !== "OPEN" && canReopen ? (
-            <button className="resolve-button secondary" type="button" onClick={handleReopen} disabled={updating}>
+            <button className="resolve-button secondary" type="button" onClick={handleReopen} disabled={updating || deleting}>
               {updating ? "Reopening..." : "Reopen"}
             </button>
           ) : null}
@@ -558,7 +582,7 @@ export default function ReportDetailPage() {
                         className="report-action-item"
                         type="button"
                         onClick={() => void handleEvidenceExport("pdf")}
-                        disabled={!!exportingFormat}
+                        disabled={!!exportingFormat || deleting}
                       >
                         {exportingFormat === "pdf" ? "Exporting PDF..." : "PDF"}
                       </button>
@@ -566,15 +590,20 @@ export default function ReportDetailPage() {
                         className="report-action-item"
                         type="button"
                         onClick={() => void handleEvidenceExport("md")}
-                        disabled={!!exportingFormat}
+                        disabled={!!exportingFormat || deleting}
                       >
                         {exportingFormat === "md" ? "Exporting Markdown..." : "Markdown"}
                       </button>
                     </div>
                   ) : null}
                 </div>
-                <button className="report-action-item disabled" type="button" disabled>
-                  Delete
+                <button
+                  className={`report-action-item ${canDelete ? "destructive" : "disabled"}`}
+                  type="button"
+                  disabled={!canDelete || deleting}
+                  onClick={() => void handleDeleteReport()}
+                >
+                  {deleting ? "Deleting..." : "Delete"}
                 </button>
               </div>
             ) : null}

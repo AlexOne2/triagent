@@ -523,6 +523,12 @@ export async function reopenReport(id: number): Promise<Report> {
   });
 }
 
+export async function deleteReport(id: number): Promise<void> {
+  return request<void>(`/api/reports/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function fetchReportResolutions(id: number): Promise<ReportResolutionEvent[]> {
   return request<ReportResolutionEvent[]>(`/api/reports/${id}/resolutions`);
 }

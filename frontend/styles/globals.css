@@ -1015,6 +1015,14 @@ p {
   background: #f8fafc;
 }
 
+.report-action-item.destructive {
+  color: #b42318;
+}
+
+.report-action-item.destructive:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
 .report-action-item.disabled {
   color: #667085;
   cursor: not-allowed;

@@ -95,3 +95,12 @@ class ObjectStorageService:
             "sha256": sha256,
             "size_bytes": len(data),
         }
+
+    def delete_attachment(self, object_name: str | None) -> None:
+        if not object_name:
+            return
+        self._ensure_bucket()
+        try:
+            self.client.remove_object(self.bucket, object_name)
+        except Exception as exc:
+            raise ObjectStorageError("Attachment storage is unavailable") from exc

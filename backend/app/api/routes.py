@@ -1477,6 +1477,45 @@ def reopen_report(
     return _serialize_report(report)
 
 
+@router.delete("/reports/{report_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_report(
+    request: Request,
+    report_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.admin_override")),
+):
+    report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    attachment_count = len(report.attachments or [])
+    storage = ObjectStorageService(get_settings())
+    try:
+        for attachment in report.attachments or []:
+            if attachment.s3_key:
+                storage.delete_attachment(attachment.s3_key)
+    except ObjectStorageError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    db.delete(report)
+    create_security_audit_event(
+        db,
+        action="REPORT_DELETED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report_id),
+        metadata={
+            "attachment_count": attachment_count,
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get("/reports/{report_id}/resolutions", response_model=list[ReportResolutionOut])
 def list_report_resolutions(
     report_id: int,
