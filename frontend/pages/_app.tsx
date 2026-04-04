@@ -35,10 +35,10 @@ function AppContent({ Component, pageProps }: AppProps) {
   }
 
   return (
-    <>
+    <div className="app-shell">
       {!isLoginPage ? <AppHeader /> : null}
       <Component {...pageProps} />
-    </>
+    </div>
   );
 }
 
