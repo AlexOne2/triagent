@@ -113,6 +113,32 @@ def _ranked_counts(counter: Counter[str], limit: int = 10) -> list[DashboardAddr
     return [DashboardAddressPoint(rank=index + 1, email=email, count=count) for index, (email, count) in enumerate(ranked)]
 
 
+def _store_report_attachments(
+    *,
+    db: Session,
+    report_id: int,
+    parsed_attachments: list[object],
+    storage: ObjectStorageService,
+) -> None:
+    for parsed_attachment in parsed_attachments:
+        stored = storage.put_attachment(
+            report_id=report_id,
+            filename=parsed_attachment.filename,
+            content_type=parsed_attachment.content_type,
+            data=parsed_attachment.data,
+        )
+        db.add(
+            Attachment(
+                report_id=report_id,
+                filename=parsed_attachment.filename,
+                content_type=parsed_attachment.content_type,
+                size_bytes=stored["size_bytes"],
+                sha256=stored["sha256"],
+                s3_key=stored["s3_key"],
+            )
+        )
+
+
 def _normalize_artifact_value(kind: ArtifactKind, value: str) -> str:
     cleaned = value.strip()
     if kind in {
@@ -122,6 +148,7 @@ def _normalize_artifact_value(kind: ArtifactKind, value: str) -> str:
         ArtifactKind.RETURN_PATH,
         ArtifactKind.RETURN_PATH_DOMAIN,
         ArtifactKind.URL_DOMAIN,
+        ArtifactKind.ATTACHMENT_SHA256,
     }:
         return cleaned.lower()
     return cleaned
@@ -162,6 +189,8 @@ def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
         ArtifactKind.ORIGINATING_IP: set(),
         ArtifactKind.URL: set(),
         ArtifactKind.URL_DOMAIN: set(),
+        ArtifactKind.ATTACHMENT_NAME: set(),
+        ArtifactKind.ATTACHMENT_SHA256: set(),
     }
 
     if report.from_addr:
@@ -206,6 +235,16 @@ def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
             if url_domain:
                 available[ArtifactKind.URL_DOMAIN].add(
                     _normalize_artifact_value(ArtifactKind.URL_DOMAIN, url_domain)
+                )
+    if report.attachments:
+        for attachment in report.attachments:
+            if attachment.filename:
+                available[ArtifactKind.ATTACHMENT_NAME].add(
+                    _normalize_artifact_value(ArtifactKind.ATTACHMENT_NAME, attachment.filename)
+                )
+            if attachment.sha256:
+                available[ArtifactKind.ATTACHMENT_SHA256].add(
+                    _normalize_artifact_value(ArtifactKind.ATTACHMENT_SHA256, attachment.sha256)
                 )
     return available
 
@@ -421,23 +460,12 @@ async def create_report_from_msg(
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
 
         storage = ObjectStorageService()
-        for parsed_attachment in parsed_attachments:
-            stored = storage.put_attachment(
-                report_id=report.id,
-                filename=parsed_attachment.filename,
-                content_type=parsed_attachment.content_type,
-                data=parsed_attachment.data,
-            )
-            db.add(
-                Attachment(
-                    report_id=report.id,
-                    filename=parsed_attachment.filename,
-                    content_type=parsed_attachment.content_type,
-                    size_bytes=stored["size_bytes"],
-                    sha256=stored["sha256"],
-                    s3_key=stored["s3_key"],
-                )
-            )
+        _store_report_attachments(
+            db=db,
+            report_id=report.id,
+            parsed_attachments=parsed_attachments,
+            storage=storage,
+        )
 
         campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
@@ -484,9 +512,16 @@ def _ingest_uploaded_bytes(
 ) -> ReportResult:
     lowered_name = file_name.lower()
     if lowered_name.endswith(".eml"):
-        parsed = parse_eml(raw_bytes)
-        payload = ReportCreate(**parsed)
+        parsed_report, parsed_attachments = parse_eml(raw_bytes)
+        payload = ReportCreate(**parsed_report)
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        storage = ObjectStorageService()
+        _store_report_attachments(
+            db=db,
+            report_id=report.id,
+            parsed_attachments=parsed_attachments,
+            storage=storage,
+        )
         campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
             db,
@@ -498,6 +533,7 @@ def _ingest_uploaded_bytes(
                 "ingest_source": IngestSource.UPLOAD.value,
                 "risk_score": risk_score,
                 "file_type": "eml",
+                "attachment_count": len(parsed_attachments),
                 "campaign_id": campaign_id,
             },
             actor_user_id=principal.user_id,
@@ -512,23 +548,12 @@ def _ingest_uploaded_bytes(
         payload = ReportCreate(**parsed_report)
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
         storage = ObjectStorageService()
-        for parsed_attachment in parsed_attachments:
-            stored = storage.put_attachment(
-                report_id=report.id,
-                filename=parsed_attachment.filename,
-                content_type=parsed_attachment.content_type,
-                data=parsed_attachment.data,
-            )
-            db.add(
-                Attachment(
-                    report_id=report.id,
-                    filename=parsed_attachment.filename,
-                    content_type=parsed_attachment.content_type,
-                    size_bytes=stored["size_bytes"],
-                    sha256=stored["sha256"],
-                    s3_key=stored["s3_key"],
-                )
-            )
+        _store_report_attachments(
+            db=db,
+            report_id=report.id,
+            parsed_attachments=parsed_attachments,
+            storage=storage,
+        )
 
         campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(

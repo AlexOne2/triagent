@@ -111,16 +111,32 @@ function stripAngleBrackets(value?: string | null): string | null {
   return value!.trim().replace(/^<|>$/g, "");
 }
 
-function toVirusTotalUrlId(url: string): string {
-  if (typeof window === "undefined") {
-    return Buffer.from(url, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-  }
-  const bytes = new TextEncoder().encode(url);
-  let binary = "";
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+function formatAttachmentSize(sizeBytes?: number | null): string {
+  if (sizeBytes == null || Number.isNaN(sizeBytes)) return "unknown";
+  if (sizeBytes < 1024) return `${sizeBytes} B`;
+  const kb = sizeBytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(2)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(2)} MB`;
+}
+
+function attachmentTypeLabel(attachment: Attachment): string {
+  const filename = attachment.filename?.toLowerCase() || "";
+  if (filename.endsWith(".pkpass") || filename.endsWith(".zip")) return "ZIP";
+  if (filename.endsWith(".ics")) return "ICS";
+  if (filename.endsWith(".pdf")) return "PDF";
+  if (filename.endsWith(".docx")) return "DOCX";
+  if (filename.endsWith(".xlsx")) return "XLSX";
+  if (filename.endsWith(".pptx")) return "PPTX";
+
+  const contentType = attachment.content_type?.toLowerCase() || "";
+  if (contentType === "text/calendar") return "ICS";
+  if (contentType.includes("zip")) return "ZIP";
+  if (contentType === "application/pdf") return "PDF";
+
+  const extension = attachment.filename?.split(".").pop()?.trim();
+  if (extension) return extension.toUpperCase();
+  return attachment.content_type || "unknown";
 }
 
 type TransmissionHop = {
@@ -324,8 +340,8 @@ export default function ReportDetailPage() {
   }, [xHeaderEntries, xHeaderQuery]);
   const availableArtifacts = useMemo(() => {
     if (!report) return [];
-    return buildReportArtifacts(report);
-  }, [report]);
+    return buildReportArtifacts(report, attachments);
+  }, [report, attachments]);
 
   const [leftTab, setLeftTab] = useState("Details");
   const [rightTab, setRightTab] = useState("Rendered");
@@ -380,7 +396,6 @@ export default function ReportDetailPage() {
           domain,
           urlArtifact: findArtifact("URL", url),
           domainArtifact: domain ? findArtifact("URL_DOMAIN", domain) : undefined,
-          virusTotalUrl: `https://www.virustotal.com/gui/url/${toVirusTotalUrlId(url)}`,
         };
       }),
     [urls, availableArtifacts],
@@ -872,17 +887,6 @@ export default function ReportDetailPage() {
                             ),
                             record.domainArtifact,
                           )}
-                          {renderFieldRow(
-                            "VirusTotal",
-                            <a
-                              href={record.virusTotalUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="url-action-link"
-                            >
-                              Open lookup
-                            </a>,
-                          )}
                         </div>
                       </section>
                     ))}
@@ -893,35 +897,46 @@ export default function ReportDetailPage() {
           ) : null}
 
           {leftTab === "Attachments" ? (
-            <div className="detail-section">
+            <div className="detail-section attachment-tab">
               {attachmentsLoading ? <p>Loading attachments...</p> : null}
               {attachmentsError ? <p>{attachmentsError}</p> : null}
               {!attachmentsLoading && !attachmentsError && attachments.length === 0 ? (
                 <p>No attachments captured.</p>
               ) : null}
               {attachments.length > 0 ? (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Filename</th>
-                      <th>Type</th>
-                      <th>Size</th>
-                      <th>SHA-256</th>
-                      <th>Storage key</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attachments.map((attachment) => (
-                      <tr key={attachment.id}>
-                        <td>{attachment.filename || "-"}</td>
-                        <td>{attachment.content_type || "-"}</td>
-                        <td>{attachment.size_bytes ?? "-"}</td>
-                        <td>{attachment.sha256 || "-"}</td>
-                        <td>{attachment.s3_key || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="attachment-record-list">
+                  {attachments.map((attachment, index) => (
+                    <section key={attachment.id} className="attachment-record">
+                      <div className="attachment-record-header">
+                        <div className="attachment-record-title">
+                          <span className="attachment-record-icon" aria-hidden="true">
+                            📎
+                          </span>
+                          <h3>
+                            ({index + 1}) {attachment.filename || "Unnamed attachment"}
+                          </h3>
+                        </div>
+                        <button type="button" className="attachment-record-menu" aria-label="Attachment options" disabled>
+                          •••
+                        </button>
+                      </div>
+                      <div className="kv attachment-record-grid">
+                        {renderFieldRow(
+                          "File name",
+                          displayFieldValue(attachment.filename),
+                          findArtifact("ATTACHMENT_NAME", attachment.filename),
+                        )}
+                        {renderFieldRow("File size", formatAttachmentSize(attachment.size_bytes))}
+                        {renderFieldRow("File type", attachmentTypeLabel(attachment))}
+                        {renderFieldRow(
+                          "SHA-256",
+                          displayFieldValue(attachment.sha256),
+                          findArtifact("ATTACHMENT_SHA256", attachment.sha256),
+                        )}
+                      </div>
+                    </section>
+                  ))}
+                </div>
               ) : null}
             </div>
           ) : null}
@@ -1065,6 +1080,7 @@ export default function ReportDetailPage() {
       <ResolveDrawer
         open={drawerOpen && canResolve}
         report={report}
+        attachments={attachments}
         preselectedArtifactKeys={stagedArtifactKeys}
         onClose={() => setDrawerOpen(false)}
         onResolved={(updatedReport) => {

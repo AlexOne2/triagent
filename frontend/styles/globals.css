@@ -369,6 +369,72 @@ p {
   font-weight: 700;
 }
 
+.attachment-tab {
+  display: flex;
+  flex-direction: column;
+}
+
+.attachment-record-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.attachment-record {
+  border-top: 1px solid var(--border);
+  padding: 0 2px 10px;
+}
+
+.attachment-record:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.attachment-record-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0 8px;
+}
+
+.attachment-record-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.attachment-record-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.attachment-record-title h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.attachment-record-menu {
+  border: 0;
+  background: transparent;
+  color: #667085;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: not-allowed;
+  padding: 4px 6px;
+}
+
+.attachment-record-grid {
+  grid-template-columns: 110px minmax(0, 1fr);
+}
+
+.attachment-record-grid label {
+  font-weight: 700;
+}
+
 .url-primary-link,
 .url-domain-link,
 .url-action-link {

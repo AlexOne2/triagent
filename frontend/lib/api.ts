@@ -44,7 +44,9 @@ export type ArtifactKind =
   | "RETURN_PATH_DOMAIN"
   | "ORIGINATING_IP"
   | "URL"
-  | "URL_DOMAIN";
+  | "URL_DOMAIN"
+  | "ATTACHMENT_NAME"
+  | "ATTACHMENT_SHA256";
 
 export type FlaggedArtifact = {
   kind: ArtifactKind;

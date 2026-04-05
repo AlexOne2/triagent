@@ -1,4 +1,4 @@
-import { FlaggedArtifact, Report } from "./api";
+import { Attachment, FlaggedArtifact, Report } from "./api";
 
 function domainFromAddress(value?: string | null): string | null {
   if (!value) return null;
@@ -19,7 +19,7 @@ export function artifactKey(artifact: Pick<FlaggedArtifact, "kind" | "value">): 
   return `${artifact.kind}::${artifact.value}`;
 }
 
-export function buildReportArtifacts(report: Report): FlaggedArtifact[] {
+export function buildReportArtifacts(report: Report, attachments: Attachment[] = []): FlaggedArtifact[] {
   const items: FlaggedArtifact[] = [];
   const authSummary = report.auth_summary;
   const push = (artifact: FlaggedArtifact) => {
@@ -114,6 +114,23 @@ export function buildReportArtifacts(report: Report): FlaggedArtifact[] {
         kind: "URL_DOMAIN",
         value: urlDomain,
         label: `Message URL domain - ${urlDomain}`,
+      });
+    }
+  }
+
+  for (const attachment of attachments) {
+    if (attachment.filename) {
+      push({
+        kind: "ATTACHMENT_NAME",
+        value: attachment.filename,
+        label: `Attachment file name - ${attachment.filename}`,
+      });
+    }
+    if (attachment.sha256) {
+      push({
+        kind: "ATTACHMENT_SHA256",
+        value: attachment.sha256.toLowerCase(),
+        label: `Attachment SHA-256 - ${attachment.sha256.toLowerCase()}`,
       });
     }
   }

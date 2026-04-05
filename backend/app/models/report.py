@@ -32,6 +32,8 @@ class ArtifactKind(str, enum.Enum):
     ORIGINATING_IP = "ORIGINATING_IP"
     URL = "URL"
     URL_DOMAIN = "URL_DOMAIN"
+    ATTACHMENT_NAME = "ATTACHMENT_NAME"
+    ATTACHMENT_SHA256 = "ATTACHMENT_SHA256"
 
 
 class IngestSource(str, enum.Enum):

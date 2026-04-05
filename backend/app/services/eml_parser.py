@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from email import policy
 from email.parser import BytesParser
 import re
@@ -17,6 +18,13 @@ def _extract_addresses(header_value: Optional[str]) -> List[str]:
     if not header_value:
         return []
     return [addr for _, addr in getaddresses([header_value]) if addr]
+
+
+@dataclass
+class ParsedEmlAttachment:
+    filename: str
+    content_type: str | None
+    data: bytes
 
 
 def _get_body_parts(msg) -> tuple[str | None, str | None]:
@@ -55,6 +63,35 @@ def _get_body_parts(msg) -> tuple[str | None, str | None]:
     return body_text, body_html
 
 
+def _extract_attachments(msg) -> list[ParsedEmlAttachment]:
+    attachments: list[ParsedEmlAttachment] = []
+
+    if not msg.is_multipart():
+        return attachments
+
+    attachment_index = 0
+    for part in msg.walk():
+        disposition = part.get_content_disposition()
+        filename = part.get_filename()
+        if disposition != "attachment" and not filename:
+            continue
+
+        payload = part.get_payload(decode=True)
+        if payload is None:
+            continue
+
+        attachment_index += 1
+        attachments.append(
+            ParsedEmlAttachment(
+                filename=filename or f"attachment-{attachment_index}.bin",
+                content_type=part.get_content_type(),
+                data=payload,
+            )
+        )
+
+    return attachments
+
+
 def _serialize_headers(msg) -> Dict[str, Any]:
     headers: Dict[str, Any] = {}
     seen: set[str] = set()
@@ -76,7 +113,7 @@ def _serialize_headers(msg) -> Dict[str, Any]:
     return headers
 
 
-def parse_eml(raw_bytes: bytes) -> Dict[str, Any]:
+def parse_eml(raw_bytes: bytes) -> tuple[Dict[str, Any], list[ParsedEmlAttachment]]:
     msg = BytesParser(policy=policy.default).parsebytes(raw_bytes)
 
     subject = _decode_header(msg.get("subject"))
@@ -106,31 +143,35 @@ def parse_eml(raw_bytes: bytes) -> Dict[str, Any]:
     message_id = msg.get("message-id")
 
     body_text, body_html = _get_body_parts(msg)
+    attachments = _extract_attachments(msg)
 
     received_headers = msg.get_all("received", [])
     headers = _serialize_headers(msg)
     originating_ip = _extract_originating_ip(received_headers)
     originating_rdns = _extract_originating_rdns(received_headers)
 
-    return {
-        "message_id": message_id,
-        "subject": subject,
-        "from_addr": from_addr,
-        "from_display_name": from_display_name,
-        "sender": sender_header,
-        "to_addrs": to_addrs,
-        "cc_addrs": cc_addrs,
-        "reply_to": reply_to_addrs,
-        "in_reply_to": in_reply_to_header,
-        "return_path": return_path_header,
-        "date": date,
-        "body_text": body_text,
-        "body_html": body_html,
-        "headers_json": headers,
-        "raw_source": raw_bytes.decode("utf-8", errors="replace"),
-        "originating_ip": originating_ip,
-        "originating_rdns": originating_rdns,
-    }
+    return (
+        {
+            "message_id": message_id,
+            "subject": subject,
+            "from_addr": from_addr,
+            "from_display_name": from_display_name,
+            "sender": sender_header,
+            "to_addrs": to_addrs,
+            "cc_addrs": cc_addrs,
+            "reply_to": reply_to_addrs,
+            "in_reply_to": in_reply_to_header,
+            "return_path": return_path_header,
+            "date": date,
+            "body_text": body_text,
+            "body_html": body_html,
+            "headers_json": headers,
+            "raw_source": raw_bytes.decode("utf-8", errors="replace"),
+            "originating_ip": originating_ip,
+            "originating_rdns": originating_rdns,
+        },
+        attachments,
+    )
 
 
 def _extract_originating_ip(received_headers: list[str]) -> str | None:

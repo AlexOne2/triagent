@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  Attachment,
   CLASSIFICATION_CODES,
   ClassificationCode,
   fetchReportResolutions,
@@ -15,6 +16,7 @@ import { artifactKey, buildReportArtifacts } from "../lib/report-artifacts";
 type ResolveDrawerProps = {
   open: boolean;
   report: Report;
+  attachments?: Attachment[];
   onClose: () => void;
   onResolved: (report: Report) => void;
   preselectedArtifactKeys?: string[];
@@ -23,6 +25,7 @@ type ResolveDrawerProps = {
 export default function ResolveDrawer({
   open,
   report,
+  attachments = [],
   onClose,
   onResolved,
   preselectedArtifactKeys = [],
@@ -36,7 +39,7 @@ export default function ResolveDrawer({
   const [history, setHistory] = useState<ReportResolutionEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const availableArtifacts = useMemo(() => buildReportArtifacts(report), [report]);
+  const availableArtifacts = useMemo(() => buildReportArtifacts(report, attachments), [report, attachments]);
 
   useEffect(() => {
     if (!open) return;
