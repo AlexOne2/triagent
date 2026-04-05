@@ -622,6 +622,37 @@ export async function fetchReportAttachments(reportId: number): Promise<Attachme
   return request<Attachment[]>(`/api/reports/${reportId}/attachments`);
 }
 
+export async function downloadReportAttachment(
+  reportId: number,
+  attachmentId: number,
+  filename?: string | null
+): Promise<EvidenceDownload> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/api/reports/${reportId}/attachments/${attachmentId}/download`, {
+    method: "GET",
+    headers,
+  });
+
+  if (res.status === 401 && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Attachment download failed: ${res.status}`);
+  }
+
+  return {
+    blob: await res.blob(),
+    filename: filename || "attachment.bin",
+  };
+}
+
 export async function fetchCampaigns(params?: {
   q?: string;
   source?: "UPLOAD" | "AUTO";

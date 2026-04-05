@@ -423,8 +423,51 @@ p {
   color: #667085;
   font-size: 18px;
   font-weight: 700;
-  cursor: not-allowed;
+  cursor: pointer;
   padding: 4px 6px;
+}
+
+.attachment-record-menu-wrap {
+  position: relative;
+}
+
+.attachment-actions-dropdown,
+.attachment-action-submenu-popout {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  min-width: 170px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+  z-index: 30;
+}
+
+.attachment-actions-dropdown {
+  overflow: visible;
+}
+
+.attachment-action-submenu {
+  position: relative;
+}
+
+.attachment-action-submenu-popout {
+  top: -1px;
+  right: calc(100% + 8px);
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-indicator {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  color: #475467;
 }
 
 .attachment-record-grid {

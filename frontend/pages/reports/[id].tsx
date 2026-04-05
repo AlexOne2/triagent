@@ -8,6 +8,7 @@ import {
   Report,
   ReportResolutionEvent,
   deleteReport,
+  downloadReportAttachment,
   downloadReportEvidenceMarkdown,
   downloadReportEvidencePdf,
   fetchReport,
@@ -215,6 +216,7 @@ export default function ReportDetailPage() {
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -226,10 +228,13 @@ export default function ReportDetailPage() {
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [auditLogOpen, setAuditLogOpen] = useState(false);
+  const [attachmentMenuId, setAttachmentMenuId] = useState<number | null>(null);
+  const [attachmentFlagMenuId, setAttachmentFlagMenuId] = useState<number | null>(null);
   const [resolutionEvents, setResolutionEvents] = useState<ReportResolutionEvent[]>([]);
   const [resolutionsLoading, setResolutionsLoading] = useState(false);
   const [resolutionsError, setResolutionsError] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+  const attachmentMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!canRead) {
@@ -382,6 +387,34 @@ export default function ReportDetailPage() {
     };
   }, [actionsMenuOpen]);
 
+  useEffect(() => {
+    if (attachmentMenuId == null) {
+      setAttachmentFlagMenuId(null);
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!attachmentMenuRef.current?.contains(event.target as Node)) {
+        setAttachmentMenuId(null);
+        setAttachmentFlagMenuId(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setAttachmentMenuId(null);
+        setAttachmentFlagMenuId(null);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [attachmentMenuId]);
+
   const findArtifact = (kind: FlaggedArtifact["kind"], value?: string | null) => {
     if (!hasValue(value)) return undefined;
     return availableArtifacts.find((artifact) => artifact.kind === kind && artifact.value === value!.trim());
@@ -509,6 +542,29 @@ export default function ReportDetailPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete report.");
       setDeleting(false);
+    }
+  };
+
+  const handleDownloadAttachment = async (attachment: Attachment) => {
+    if (!report || downloadingAttachmentId === attachment.id) return;
+    setDownloadingAttachmentId(attachment.id);
+    setError(null);
+    setAttachmentMenuId(null);
+    setAttachmentFlagMenuId(null);
+    try {
+      const download = await downloadReportAttachment(report.id, attachment.id, attachment.filename);
+      const url = window.URL.createObjectURL(download.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = download.filename || attachment.filename || "attachment.bin";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to download attachment.");
+    } finally {
+      setDownloadingAttachmentId(null);
     }
   };
 
@@ -907,6 +963,18 @@ export default function ReportDetailPage() {
                 <div className="attachment-record-list">
                   {attachments.map((attachment, index) => (
                     <section key={attachment.id} className="attachment-record">
+                      {(() => {
+                        const attachmentNameArtifact = findArtifact("ATTACHMENT_NAME", attachment.filename);
+                        const attachmentShaArtifact = findArtifact("ATTACHMENT_SHA256", attachment.sha256);
+                        const nameFlagged = attachmentNameArtifact
+                          ? stagedArtifactKeys.includes(artifactKey(attachmentNameArtifact))
+                          : false;
+                        const shaFlagged = attachmentShaArtifact
+                          ? stagedArtifactKeys.includes(artifactKey(attachmentShaArtifact))
+                          : false;
+
+                        return (
+                          <>
                       <div className="attachment-record-header">
                         <div className="attachment-record-title">
                           <span className="attachment-record-icon" aria-hidden="true">
@@ -916,24 +984,92 @@ export default function ReportDetailPage() {
                             ({index + 1}) {attachment.filename || "Unnamed attachment"}
                           </h3>
                         </div>
-                        <button type="button" className="attachment-record-menu" aria-label="Attachment options" disabled>
-                          •••
-                        </button>
+                        <div className="attachment-record-menu-wrap" ref={attachmentMenuId === attachment.id ? attachmentMenuRef : null}>
+                          <button
+                            type="button"
+                            className="attachment-record-menu"
+                            aria-label="Attachment options"
+                            aria-expanded={attachmentMenuId === attachment.id}
+                            onClick={() => {
+                              setAttachmentFlagMenuId(null);
+                              setAttachmentMenuId((current) => (current === attachment.id ? null : attachment.id));
+                            }}
+                          >
+                            •••
+                          </button>
+                          {attachmentMenuId === attachment.id ? (
+                            <div className="attachment-actions-dropdown" role="menu">
+                              <div
+                                className="attachment-action-submenu"
+                                onMouseEnter={() => setAttachmentFlagMenuId(attachment.id)}
+                                onMouseLeave={() => setAttachmentFlagMenuId((current) => (current === attachment.id ? null : current))}
+                              >
+                                <button
+                                  className="report-action-item submenu-trigger"
+                                  type="button"
+                                  onClick={() =>
+                                    setAttachmentFlagMenuId((current) => (current === attachment.id ? null : attachment.id))
+                                  }
+                                >
+                                  Flag as malicious
+                                  <span aria-hidden="true">▸</span>
+                                </button>
+                                {attachmentFlagMenuId === attachment.id ? (
+                                  <div className="attachment-action-submenu-popout" role="menu">
+                                    <button
+                                      className="report-action-item checkbox-item"
+                                      type="button"
+                                      disabled={!attachmentNameArtifact}
+                                      onClick={() => toggleArtifact(attachmentNameArtifact)}
+                                    >
+                                      <span className="checkbox-indicator" aria-hidden="true">
+                                        {nameFlagged ? "☑" : "☐"}
+                                      </span>
+                                      Flag File name
+                                    </button>
+                                    <button
+                                      className="report-action-item checkbox-item"
+                                      type="button"
+                                      disabled={!attachmentShaArtifact}
+                                      onClick={() => toggleArtifact(attachmentShaArtifact)}
+                                    >
+                                      <span className="checkbox-indicator" aria-hidden="true">
+                                        {shaFlagged ? "☑" : "☐"}
+                                      </span>
+                                      Flag SHA-256 hash
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                              <button
+                                className="report-action-item"
+                                type="button"
+                                disabled={downloadingAttachmentId === attachment.id}
+                                onClick={() => void handleDownloadAttachment(attachment)}
+                              >
+                                {downloadingAttachmentId === attachment.id ? "Downloading..." : "Download"}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                       <div className="kv attachment-record-grid">
                         {renderFieldRow(
                           "File name",
                           displayFieldValue(attachment.filename),
-                          findArtifact("ATTACHMENT_NAME", attachment.filename),
+                          attachmentNameArtifact,
                         )}
                         {renderFieldRow("File size", formatAttachmentSize(attachment.size_bytes))}
                         {renderFieldRow("File type", attachmentTypeLabel(attachment))}
                         {renderFieldRow(
                           "SHA-256",
                           displayFieldValue(attachment.sha256),
-                          findArtifact("ATTACHMENT_SHA256", attachment.sha256),
+                          attachmentShaArtifact,
                         )}
                       </div>
+                          </>
+                        );
+                      })()}
                     </section>
                   ))}
                 </div>

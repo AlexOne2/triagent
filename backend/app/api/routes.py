@@ -764,6 +764,34 @@ def list_report_attachments(
     )
 
 
+@router.get("/reports/{report_id}/attachments/{attachment_id}/download")
+def download_report_attachment(
+    report_id: int,
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("reports.read")),
+):
+    attachment = db.execute(
+        select(Attachment).where(Attachment.id == attachment_id, Attachment.report_id == report_id)
+    ).scalar_one_or_none()
+    if attachment is None:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    storage = ObjectStorageService()
+    try:
+        content = storage.get_attachment(attachment.s3_key)
+    except ObjectStorageError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    filename = attachment.filename or "attachment.bin"
+    media_type = attachment.content_type or "application/octet-stream"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/campaigns", response_model=list[CampaignOut])
 def list_campaigns(
     db: Session = Depends(get_db),

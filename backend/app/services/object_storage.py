@@ -104,3 +104,18 @@ class ObjectStorageService:
             self.client.remove_object(self.bucket, object_name)
         except Exception as exc:
             raise ObjectStorageError("Attachment storage is unavailable") from exc
+
+    def get_attachment(self, object_name: str | None) -> bytes:
+        if not object_name:
+            raise ObjectStorageError("Attachment is unavailable")
+        self._ensure_bucket()
+        response = None
+        try:
+            response = self.client.get_object(self.bucket, object_name)
+            return response.read()
+        except Exception as exc:
+            raise ObjectStorageError("Attachment storage is unavailable") from exc
+        finally:
+            if response is not None:
+                response.close()
+                response.release_conn()
