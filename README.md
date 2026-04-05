@@ -12,10 +12,6 @@ Core workflow:
 
 ![Triagent dashboard](./Dashboard.png)
 
-## Architecture
-
-![Triagent architecture](./Architecture.svg)
-
 ## Repo Structure
 
 - `backend/`: FastAPI API + SQLAlchemy + Alembic
