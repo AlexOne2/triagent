@@ -638,9 +638,12 @@ export default function ReportDetailPage() {
     <main className="full report-detail-page">
       <header className="report-detail-header">
         <div>
-          <Link href="/reports">&lt;- Back to uploads</Link>
+          <div className="report-breadcrumb">
+            <Link href="/reports">Uploads</Link>
+            <span aria-hidden="true">›</span>
+            <span>{report.subject || "(no subject)"}</span>
+          </div>
           <h1>{report.subject || "(no subject)"}</h1>
-          <p>Report #{report.id}</p>
         </div>
         <div className="report-detail-actions">
           {report.status === "OPEN" && canResolve ? (
