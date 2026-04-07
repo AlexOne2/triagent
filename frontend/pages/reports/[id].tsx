@@ -668,9 +668,6 @@ export default function ReportDetailPage() {
             </button>
             {actionsMenuOpen ? (
               <div className="report-actions-dropdown" role="menu">
-                <button className="report-action-item disabled" type="button" disabled>
-                  ↻ Reanalyse
-                </button>
                 <button className="report-action-item" type="button" onClick={() => void handleOpenAuditLog()}>
                   Audit log
                 </button>
