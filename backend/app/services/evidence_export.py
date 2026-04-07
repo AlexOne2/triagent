@@ -216,18 +216,87 @@ def _status_disposition(status: ReportStatus) -> str:
 
 
 def _pdf_section_title(pdf: FPDF, title: str) -> None:
+    pdf.set_x(pdf.l_margin)
     pdf.set_font("Helvetica", "B", 14)
-    pdf.multi_cell(pdf.epw, 8, _safe_pdf_text(title))
+    pdf.multi_cell(0, 8, _safe_pdf_text(title))
+    pdf.ln(1)
+
+
+def _pdf_subsection_title(pdf: FPDF, title: str) -> None:
+    pdf.set_x(pdf.l_margin)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.multi_cell(0, 6, _safe_pdf_text(title))
     pdf.ln(1)
 
 
 def _pdf_line(pdf: FPDF, text: str, *, bold: bool = False) -> None:
+    pdf.set_x(pdf.l_margin)
     pdf.set_font("Helvetica", "B" if bold else "", 10)
-    pdf.multi_cell(pdf.epw, 6, _safe_pdf_text(text))
+    pdf.multi_cell(0, 6, _safe_pdf_text(text))
 
 
 def _pdf_kv_lines(rows: Iterable[tuple[str, str]]) -> list[str]:
     return [f"{label}: {value}" for label, value in rows]
+
+
+def _pdf_kv_row(pdf: FPDF, label: str, value: str | None) -> None:
+    pdf.set_x(pdf.l_margin)
+    label_width = 50
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.multi_cell(label_width, 6, _safe_pdf_text(label), new_x="RIGHT", new_y="TOP")
+    pdf.set_font("Helvetica", "", 10)
+    pdf.multi_cell(pdf.epw - label_width, 6, _safe_pdf_text(value), new_x="LMARGIN", new_y="NEXT")
+    pdf.set_x(pdf.l_margin)
+
+
+def _pdf_bullets(pdf: FPDF, items: Iterable[str], *, empty_label: str = "-") -> None:
+    rendered = [item for item in items if item]
+    if not rendered:
+        _pdf_line(pdf, empty_label)
+        return
+    for item in rendered:
+        _pdf_line(pdf, f"- {item}")
+
+
+def _attachment_type_label(item: EvidenceAttachment) -> str:
+    filename = (item.filename or "").lower()
+    if filename.endswith(".pkpass") or filename.endswith(".zip"):
+        return "ZIP"
+    if filename.endswith(".ics"):
+        return "ICS"
+    if filename.endswith(".pdf"):
+        return "PDF"
+    if filename.endswith(".docx"):
+        return "DOCX"
+    if filename.endswith(".xlsx"):
+        return "XLSX"
+    if filename.endswith(".pptx"):
+        return "PPTX"
+    if filename.endswith(".eml"):
+        return "EML"
+    if filename.endswith(".msg"):
+        return "MSG"
+    if item.content_type == "text/calendar":
+        return "ICS"
+    if item.content_type and "zip" in item.content_type.lower():
+        return "ZIP"
+    if item.content_type == "application/pdf":
+        return "PDF"
+    if item.filename and "." in item.filename:
+        return item.filename.rsplit(".", 1)[-1].upper()
+    return item.content_type or "-"
+
+
+def _fmt_attachment_size(value: int | None) -> str:
+    if value is None:
+        return "-"
+    if value < 1024:
+        return f"{value} B"
+    kb = value / 1024
+    if kb < 1024:
+        return f"{kb:.2f} KB"
+    mb = kb / 1024
+    return f"{mb:.2f} MB"
 
 
 class EvidenceExportService:
@@ -508,116 +577,114 @@ class EvidenceExportService:
         pdf.add_page()
 
         _pdf_section_title(pdf, "Triagent Evidence Report")
-        _pdf_line(pdf, "")
 
         _pdf_section_title(pdf, "Report Identity")
-        for line in _pdf_kv_lines(
-            [
-                ("Case ID", str(bundle.report_id)),
-                ("Subject", bundle.subject or "-"),
-                ("Ingest Source", bundle.ingest_source or "-"),
-                ("Report Created (UTC)", _fmt_utc(bundle.created_at)),
-                ("Message Received (UTC)", _fmt_utc(bundle.received_at)),
-                ("Export Generated (UTC)", _fmt_utc(bundle.generated_at)),
-            ]
-        ):
-            _pdf_line(pdf, line)
+        for label, value in [
+            ("Case ID", str(bundle.report_id)),
+            ("Subject", bundle.subject),
+            ("Ingest Source", bundle.ingest_source),
+            ("Report Created (UTC)", _fmt_utc(bundle.created_at)),
+            ("Message Received (UTC)", _fmt_utc(bundle.received_at)),
+            ("Export Generated (UTC)", _fmt_utc(bundle.generated_at)),
+        ]:
+            _pdf_kv_row(pdf, label, value)
 
         pdf.ln(2)
         _pdf_section_title(pdf, "Current Verdict and Rationale")
-        for line in _pdf_kv_lines(
-            [
-                ("Status", bundle.status),
-                ("Disposition", bundle.disposition),
-                ("Classification", bundle.classification_code or "-"),
-                ("Resolution Note", bundle.rationale_note or "-"),
-                ("Resolved At (UTC)", _fmt_utc(bundle.resolved_at)),
-                ("Last Resolved By", bundle.last_resolved_by or "-"),
-            ]
-        ):
-            _pdf_line(pdf, line)
+        for label, value in [
+            ("Status", bundle.status),
+            ("Disposition", bundle.disposition),
+            ("Classification", bundle.classification_code),
+            ("Resolution Note", bundle.rationale_note),
+            ("Resolved At (UTC)", _fmt_utc(bundle.resolved_at)),
+            ("Last Resolved By", bundle.last_resolved_by),
+        ]:
+            _pdf_kv_row(pdf, label, value)
 
         pdf.ln(2)
         _pdf_section_title(pdf, "Artifacts")
-        _pdf_line(pdf, "Messaging", bold=True)
-        for line in _pdf_kv_lines(
-            [
-                ("From", bundle.from_addr or "-"),
-                ("From Domain", bundle.from_domain or "-"),
-                ("Reply-To", ", ".join(bundle.reply_to) if bundle.reply_to else "-"),
-                ("Return-Path", bundle.return_path or "-"),
-                ("Return-Path Domain", bundle.return_path_domain or "-"),
-                ("Originating IP", bundle.originating_ip or "-"),
-                ("Message-ID", bundle.message_id or "-"),
-            ]
-        ):
-            _pdf_line(pdf, line)
+        _pdf_subsection_title(pdf, "Messaging")
+        for label, value in [
+            ("From", bundle.from_addr),
+            ("From Domain", bundle.from_domain),
+            ("Reply-To", ", ".join(bundle.reply_to) if bundle.reply_to else "-"),
+            ("Return-Path", bundle.return_path),
+            ("Return-Path Domain", bundle.return_path_domain),
+            ("Originating IP", bundle.originating_ip),
+            ("Message-ID", bundle.message_id),
+        ]:
+            _pdf_kv_row(pdf, label, value)
 
-        _pdf_line(pdf, "URLs", bold=True)
-        if bundle.urls:
-            for item in bundle.urls:
-                _pdf_line(pdf, f"- {item}")
-        else:
-            _pdf_line(pdf, "-")
+        pdf.ln(1)
+        _pdf_subsection_title(pdf, "URLs")
+        _pdf_bullets(pdf, bundle.urls)
 
-        _pdf_line(pdf, "URL Domains", bold=True)
-        if bundle.url_domains:
-            for item in bundle.url_domains:
-                _pdf_line(pdf, f"- {item}")
-        else:
-            _pdf_line(pdf, "-")
+        pdf.ln(1)
+        _pdf_subsection_title(pdf, "URL Domains")
+        _pdf_bullets(pdf, bundle.url_domains)
 
-        _pdf_line(pdf, "Attachments", bold=True)
+        pdf.ln(1)
+        _pdf_subsection_title(pdf, "Attachments")
         if bundle.attachments:
-            for item in bundle.attachments:
-                _pdf_line(
-                    pdf,
-                    (
-                        f"- filename={item.filename or '-'}; type={item.content_type or '-'}; "
-                        f"size={item.size_bytes if item.size_bytes is not None else '-'}; "
-                        f"sha256={item.sha256 or '-'}; key={item.s3_key or '-'}"
-                    ),
-                )
+            for index, item in enumerate(bundle.attachments, start=1):
+                _pdf_subsection_title(pdf, f"Attachment {index}")
+                for label, value in [
+                    ("File name", item.filename),
+                    ("File type", _attachment_type_label(item)),
+                    ("File size", _fmt_attachment_size(item.size_bytes)),
+                    ("SHA-256", item.sha256),
+                    ("Stored At (UTC)", _fmt_utc(item.created_at)),
+                ]:
+                    _pdf_kv_row(pdf, label, value)
+                pdf.ln(1)
         else:
             _pdf_line(pdf, "-")
 
-        _pdf_line(pdf, "Flagged Artifacts", bold=True)
+        _pdf_subsection_title(pdf, "Flagged Artifacts")
         if bundle.flagged_artifacts:
             for item in bundle.flagged_artifacts:
-                _pdf_line(
-                    pdf,
-                    f"- {item.get('kind') or '-'}: {item.get('value') or '-'} ({item.get('label') or '-'})",
-                )
+                _pdf_line(pdf, f"- {item.get('label') or item.get('kind') or 'Artifact'}")
+                _pdf_kv_row(pdf, "Kind", str(item.get("kind") or "-"))
+                _pdf_kv_row(pdf, "Value", str(item.get("value") or "-"))
+                pdf.ln(1)
         else:
             _pdf_line(pdf, "-")
 
         pdf.ln(2)
         _pdf_section_title(pdf, "Resolution History")
         if bundle.resolution_history:
-            for item in bundle.resolution_history:
-                _pdf_line(
-                    pdf,
-                    (
-                        f"- {_fmt_utc(item.created_at)} | action={item.action} | disposition={item.disposition or '-'} | "
-                        f"status={item.status_after} | classification={item.classification_code or '-'} | "
-                        f"actor={item.actor} | note={item.note or '-'}"
-                    ),
-                )
+            for index, item in enumerate(bundle.resolution_history, start=1):
+                _pdf_subsection_title(pdf, f"Event {index}")
+                for label, value in [
+                    ("Timestamp (UTC)", _fmt_utc(item.created_at)),
+                    ("Action", item.action),
+                    ("Disposition", item.disposition),
+                    ("Status After", item.status_after),
+                    ("Classification", item.classification_code),
+                    ("Actor", item.actor),
+                    ("Note", item.note),
+                ]:
+                    _pdf_kv_row(pdf, label, value)
+                pdf.ln(1)
         else:
             _pdf_line(pdf, "-")
 
         pdf.ln(2)
         _pdf_section_title(pdf, "Case Audit Trail")
         if bundle.audit_trail:
-            for item in bundle.audit_trail:
-                _pdf_line(
-                    pdf,
-                    (
-                        f"- {_fmt_utc(item.created_at)} | action={item.action} | outcome={item.outcome} | "
-                        f"actor={item.actor} | request_id={item.request_id or '-'} | "
-                        f"event_uuid={item.event_uuid} | hash={item.event_hash}"
-                    ),
-                )
+            for index, item in enumerate(bundle.audit_trail, start=1):
+                _pdf_subsection_title(pdf, f"Audit Event {index}")
+                for label, value in [
+                    ("Timestamp (UTC)", _fmt_utc(item.created_at)),
+                    ("Action", item.action),
+                    ("Outcome", item.outcome),
+                    ("Actor", item.actor),
+                    ("Request ID", item.request_id),
+                    ("Event UUID", item.event_uuid),
+                    ("Event Hash", item.event_hash),
+                ]:
+                    _pdf_kv_row(pdf, label, value)
+                pdf.ln(1)
         else:
             _pdf_line(pdf, "-")
 
