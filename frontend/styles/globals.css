@@ -279,8 +279,9 @@ p {
 }
 
 .badge.open {
-  background: var(--warning-soft);
-  color: var(--warning);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
 }
 
 .input {
