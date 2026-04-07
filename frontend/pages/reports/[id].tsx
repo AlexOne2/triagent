@@ -233,8 +233,10 @@ export default function ReportDetailPage() {
   const [resolutionEvents, setResolutionEvents] = useState<ReportResolutionEvent[]>([]);
   const [resolutionsLoading, setResolutionsLoading] = useState(false);
   const [resolutionsError, setResolutionsError] = useState<string | null>(null);
+  const [copiedValue, setCopiedValue] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const attachmentMenuRef = useRef<HTMLDivElement | null>(null);
+  const copyResetTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!canRead) {
@@ -415,6 +417,14 @@ export default function ReportDetailPage() {
     };
   }, [attachmentMenuId]);
 
+  useEffect(() => {
+    return () => {
+      if (copyResetTimerRef.current != null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+    };
+  }, []);
+
   const findArtifact = (kind: FlaggedArtifact["kind"], value?: string | null) => {
     if (!hasValue(value)) return undefined;
     return availableArtifacts.find((artifact) => artifact.kind === kind && artifact.value === value!.trim());
@@ -458,6 +468,36 @@ export default function ReportDetailPage() {
         onClick={() => toggleArtifact(artifact)}
       >
         ⚑
+      </button>
+    );
+  };
+
+  const handleCopyValue = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedValue(value);
+      if (copyResetTimerRef.current != null) {
+        window.clearTimeout(copyResetTimerRef.current);
+      }
+      copyResetTimerRef.current = window.setTimeout(() => setCopiedValue(null), 1600);
+    } catch {
+      setError("Failed to copy to clipboard.");
+    }
+  };
+
+  const renderCopyButton = (value?: string | null) => {
+    if (!hasValue(value)) return null;
+    const cleanValue = value!.trim();
+    const copied = copiedValue === cleanValue;
+    return (
+      <button
+        type="button"
+        className={`copy-inline-button ${copied ? "copied" : ""}`}
+        onClick={() => void handleCopyValue(cleanValue)}
+        aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
+        title={copied ? "Copied" : "Copy to clipboard"}
+      >
+        {copied ? "Copied" : "Copy"}
       </button>
     );
   };
@@ -917,27 +957,33 @@ export default function ReportDetailPage() {
                         <div className="kv url-record-grid">
                           {renderFieldRow(
                             "URL",
-                            <a
-                              href={record.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="url-primary-link"
-                            >
-                              {record.url}
-                            </a>,
+                            <div className="url-field-content">
+                              <a
+                                href={record.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="url-primary-link"
+                              >
+                                {record.url}
+                              </a>
+                              {renderCopyButton(record.url)}
+                            </div>,
                             record.urlArtifact,
                           )}
                           {renderFieldRow(
                             "Domain",
                             record.domain ? (
-                              <a
-                                href={`https://${record.domain}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="url-domain-link"
-                              >
-                                {record.domain}
-                              </a>
+                              <div className="url-field-content">
+                                <a
+                                  href={`https://${record.domain}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="url-domain-link"
+                                >
+                                  {record.domain}
+                                </a>
+                                {renderCopyButton(record.domain)}
+                              </div>
                             ) : (
                               "unknown"
                             ),

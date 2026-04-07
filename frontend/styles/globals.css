@@ -369,6 +369,38 @@ p {
   font-weight: 700;
 }
 
+.url-field-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.url-field-content > a {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.copy-inline-button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #475467;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.copy-inline-button.copied {
+  border-color: #a7f3d0;
+  background: #ecfdf3;
+  color: #027a48;
+}
+
 .attachment-tab {
   display: flex;
   flex-direction: column;
