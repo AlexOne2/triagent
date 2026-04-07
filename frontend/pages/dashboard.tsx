@@ -112,8 +112,8 @@ export default function Dashboard() {
 
   const donutData = useMemo(
     () => [
-      { name: "Malicious", value: data?.malicious_safe.malicious || 0, color: "#ef476f" },
-      { name: "Safe", value: data?.malicious_safe.safe || 0, color: "#2a9d8f" },
+      { name: "Malicious", value: data?.malicious_safe.malicious || 0, color: "#DC2626" },
+      { name: "Safe", value: data?.malicious_safe.safe || 0, color: "#16A34A" },
     ],
     [data]
   );
@@ -203,9 +203,9 @@ export default function Dashboard() {
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="resolved_total" fill="#ef476f" name="Resolved" />
-                <Line type="monotone" dataKey="resolved_malicious" stroke="#d90429" name="Malicious" />
-                <Line type="monotone" dataKey="resolved_safe" stroke="#2a9d8f" name="Safe" />
+                <Bar dataKey="resolved_total" fill="#0F766E" name="Resolved" />
+                <Line type="monotone" dataKey="resolved_malicious" stroke="#DC2626" name="Malicious" />
+                <Line type="monotone" dataKey="resolved_safe" stroke="#16A34A" name="Safe" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -246,7 +246,7 @@ export default function Dashboard() {
                 <XAxis dataKey="code" interval={0} angle={-28} textAnchor="end" height={90} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#7b61ff" />
+                <Bar dataKey="count" fill="#2563EB" />
               </BarChart>
             </ResponsiveContainer>
           </div>
