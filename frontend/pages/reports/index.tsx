@@ -51,7 +51,7 @@ export default function ReportList() {
     }
     let active = true;
     setLoading(true);
-    fetchReports(query, "OPEN", "UPLOAD")
+    fetchReports(query, undefined, "UPLOAD")
       .then((data) => {
         if (!active) return;
         setReports(data);
@@ -178,15 +178,10 @@ export default function ReportList() {
       />
 
       <section className="card report-table">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h2>Open Uploads</h2>
-          <Link href="/reports/closed" className="tab">
-            View Closed
-          </Link>
-        </div>
+        <h2>Uploads</h2>
         {loading ? <p>Loading...</p> : null}
         {error ? <p>{error}</p> : null}
-        {!loading && reports.length === 0 ? <p>No reports yet.</p> : null}
+        {!loading && reports.length === 0 ? <p>No uploads yet.</p> : null}
         {!loading && reports.length > 0 ? (
           <table className="table">
             <thead>
