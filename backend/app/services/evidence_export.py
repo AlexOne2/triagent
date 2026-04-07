@@ -299,6 +299,12 @@ def _fmt_attachment_size(value: int | None) -> str:
     return f"{mb:.2f} MB"
 
 
+def _pdf_new_section_page(pdf: FPDF, title: str) -> None:
+    if pdf.page_no() > 0:
+        pdf.add_page()
+    _pdf_section_title(pdf, title)
+
+
 class EvidenceExportService:
     def __init__(self, db: Session):
         self.db = db
@@ -578,7 +584,7 @@ class EvidenceExportService:
 
         _pdf_section_title(pdf, "Triagent Evidence Report")
 
-        _pdf_section_title(pdf, "Report Identity")
+        _pdf_new_section_page(pdf, "Report Identity")
         for label, value in [
             ("Case ID", str(bundle.report_id)),
             ("Subject", bundle.subject),
@@ -589,8 +595,7 @@ class EvidenceExportService:
         ]:
             _pdf_kv_row(pdf, label, value)
 
-        pdf.ln(2)
-        _pdf_section_title(pdf, "Current Verdict and Rationale")
+        _pdf_new_section_page(pdf, "Current Verdict and Rationale")
         for label, value in [
             ("Status", bundle.status),
             ("Disposition", bundle.disposition),
@@ -601,8 +606,7 @@ class EvidenceExportService:
         ]:
             _pdf_kv_row(pdf, label, value)
 
-        pdf.ln(2)
-        _pdf_section_title(pdf, "Artifacts")
+        _pdf_new_section_page(pdf, "Artifacts")
         _pdf_subsection_title(pdf, "Messaging")
         for label, value in [
             ("From", bundle.from_addr),
@@ -650,8 +654,7 @@ class EvidenceExportService:
         else:
             _pdf_line(pdf, "-")
 
-        pdf.ln(2)
-        _pdf_section_title(pdf, "Resolution History")
+        _pdf_new_section_page(pdf, "Resolution History")
         if bundle.resolution_history:
             for index, item in enumerate(bundle.resolution_history, start=1):
                 _pdf_subsection_title(pdf, f"Event {index}")
@@ -669,8 +672,7 @@ class EvidenceExportService:
         else:
             _pdf_line(pdf, "-")
 
-        pdf.ln(2)
-        _pdf_section_title(pdf, "Case Audit Trail")
+        _pdf_new_section_page(pdf, "Case Audit Trail")
         if bundle.audit_trail:
             for index, item in enumerate(bundle.audit_trail, start=1):
                 _pdf_subsection_title(pdf, f"Audit Event {index}")
