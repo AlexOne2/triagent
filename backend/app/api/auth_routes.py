@@ -15,92 +15,30 @@ from app.services.auth import (
     generate_session_token,
     get_user_by_username,
     hash_secret,
+    is_ldap_user,
+    is_local_user,
     is_locked,
     record_failed_login,
+    sync_ldap_user,
     utcnow,
     verify_password,
 )
+from app.services.ldap_auth import LdapAuthenticator, LdapConfigurationError, LdapUnavailableError
 from app.services.rbac import user_permission_keys, user_role_keys
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=AuthLoginResponse)
-def login(
-    payload: AuthLoginRequest,
+def _issue_login_response(
+    *,
+    db: Session,
+    settings: Settings,
     request: Request,
-    db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-):
+    user: User,
+    now,
+    auth_source: str,
+) -> AuthLoginResponse:
     meta = request_meta(request)
-    now = utcnow()
-    user = get_user_by_username(db, payload.username)
-
-    if user is None:
-        create_security_audit_event(
-            db,
-            action="AUTH_LOGIN_FAILURE",
-            outcome="FAILURE",
-            target_type="user",
-            target_id=payload.username.strip().lower(),
-            request_meta=meta,
-        )
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-
-    if not user.is_active:
-        create_security_audit_event(
-            db,
-            action="AUTH_LOGIN_FAILURE",
-            outcome="FAILURE",
-            actor_user_id=user.id,
-            target_type="user",
-            target_id=str(user.id),
-            metadata={"reason": "inactive"},
-            request_meta=meta,
-        )
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
-
-    if is_locked(user, now):
-        create_security_audit_event(
-            db,
-            action="AUTH_LOGIN_FAILURE",
-            outcome="FAILURE",
-            actor_user_id=user.id,
-            target_type="user",
-            target_id=str(user.id),
-            metadata={"reason": "locked"},
-            request_meta=meta,
-        )
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="Account is locked")
-
-    if not verify_password(payload.password, user.password_hash):
-        lock_triggered = record_failed_login(user, settings, now)
-        create_security_audit_event(
-            db,
-            action="AUTH_LOGIN_FAILURE",
-            outcome="FAILURE",
-            actor_user_id=user.id,
-            target_type="user",
-            target_id=str(user.id),
-            metadata={"lock_triggered": lock_triggered},
-            request_meta=meta,
-        )
-        if lock_triggered:
-            create_security_audit_event(
-                db,
-                action="AUTH_LOCKOUT",
-                outcome="SUCCESS",
-                actor_user_id=user.id,
-                target_type="user",
-                target_id=str(user.id),
-                request_meta=meta,
-            )
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-
     clear_failed_logins(user)
     user.last_login_at = now
 
@@ -125,6 +63,7 @@ def login(
         outcome="SUCCESS",
         actor_user_id=user.id,
         target_type="session",
+        metadata={"auth_source": auth_source},
         request_meta=meta,
     )
 
@@ -138,6 +77,243 @@ def login(
         permissions=permissions,
         roles=roles,
     )
+
+
+@router.post("/login", response_model=AuthLoginResponse)
+def login(
+    payload: AuthLoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    meta = request_meta(request)
+    now = utcnow()
+    user = get_user_by_username(db, payload.username)
+
+    if user is not None and is_local_user(user):
+        if not user.is_active:
+            create_security_audit_event(
+                db,
+                action="AUTH_LOGIN_FAILURE",
+                outcome="FAILURE",
+                actor_user_id=user.id,
+                target_type="user",
+                target_id=str(user.id),
+                metadata={"reason": "inactive", "auth_source": "LOCAL"},
+                request_meta=meta,
+            )
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
+
+        if is_locked(user, now):
+            create_security_audit_event(
+                db,
+                action="AUTH_LOGIN_FAILURE",
+                outcome="FAILURE",
+                actor_user_id=user.id,
+                target_type="user",
+                target_id=str(user.id),
+                metadata={"reason": "locked", "auth_source": "LOCAL"},
+                request_meta=meta,
+            )
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_423_LOCKED, detail="Account is locked")
+
+        if not verify_password(payload.password, user.password_hash):
+            lock_triggered = record_failed_login(user, settings, now)
+            create_security_audit_event(
+                db,
+                action="AUTH_LOGIN_FAILURE",
+                outcome="FAILURE",
+                actor_user_id=user.id,
+                target_type="user",
+                target_id=str(user.id),
+                metadata={"lock_triggered": lock_triggered, "auth_source": "LOCAL"},
+                request_meta=meta,
+            )
+            if lock_triggered:
+                create_security_audit_event(
+                    db,
+                    action="AUTH_LOCKOUT",
+                    outcome="SUCCESS",
+                    actor_user_id=user.id,
+                    target_type="user",
+                    target_id=str(user.id),
+                    request_meta=meta,
+                )
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+        return _issue_login_response(
+            db=db,
+            settings=settings,
+            request=request,
+            user=user,
+            now=now,
+            auth_source="LOCAL",
+        )
+
+    if settings.auth_ldap_enabled:
+        try:
+            ldap_user = LdapAuthenticator(settings).authenticate(payload.username, payload.password)
+        except LdapConfigurationError as exc:
+            create_security_audit_event(
+                db,
+                action="AUTH_LOGIN_FAILURE",
+                outcome="FAILURE",
+                target_type="user",
+                target_id=payload.username.strip().lower(),
+                metadata={"reason": "ldap_config", "error": str(exc)},
+                request_meta=meta,
+            )
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LDAP is not configured correctly") from exc
+        except LdapUnavailableError as exc:
+            create_security_audit_event(
+                db,
+                action="AUTH_LOGIN_FAILURE",
+                outcome="FAILURE",
+                target_type="user",
+                target_id=payload.username.strip().lower(),
+                metadata={"reason": "ldap_unavailable"},
+                request_meta=meta,
+            )
+            db.commit()
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LDAP is unavailable") from exc
+
+        if ldap_user is not None:
+            try:
+                user, role_keys, created = sync_ldap_user(
+                    db,
+                    username=ldap_user.username,
+                    ldap_user=ldap_user,
+                    settings=settings,
+                )
+            except ValueError as exc:
+                create_security_audit_event(
+                    db,
+                    action="AUTH_LOGIN_FAILURE",
+                    outcome="FAILURE",
+                    target_type="user",
+                    target_id=payload.username.strip().lower(),
+                    metadata={"reason": "ldap_config", "error": str(exc)},
+                    request_meta=meta,
+                )
+                db.commit()
+                raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LDAP is not configured correctly") from exc
+
+            if not user.is_active:
+                create_security_audit_event(
+                    db,
+                    action="AUTH_LOGIN_FAILURE",
+                    outcome="FAILURE",
+                    actor_user_id=user.id,
+                    target_type="user",
+                    target_id=str(user.id),
+                    metadata={"reason": "inactive", "auth_source": "LDAP"},
+                    request_meta=meta,
+                )
+                db.commit()
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
+
+            if created:
+                create_security_audit_event(
+                    db,
+                    action="AUTH_LDAP_USER_PROVISIONED",
+                    outcome="SUCCESS",
+                    actor_user_id=user.id,
+                    target_type="user",
+                    target_id=str(user.id),
+                    metadata={"directory_dn": ldap_user.directory_dn},
+                    request_meta=meta,
+                )
+
+            create_security_audit_event(
+                db,
+                action="AUTH_LDAP_ROLE_SYNC",
+                outcome="SUCCESS" if role_keys else "FAILURE",
+                actor_user_id=user.id,
+                target_type="user",
+                target_id=str(user.id),
+                metadata={"role_keys": role_keys, "groups": ldap_user.groups},
+                request_meta=meta,
+            )
+
+            if not role_keys:
+                create_security_audit_event(
+                    db,
+                    action="AUTH_LOGIN_FAILURE",
+                    outcome="FAILURE",
+                    actor_user_id=user.id,
+                    target_type="user",
+                    target_id=str(user.id),
+                    metadata={"reason": "ldap_no_roles", "groups": ldap_user.groups},
+                    request_meta=meta,
+                )
+                db.commit()
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Authenticated successfully, but no Triagent role is assigned for this account",
+                )
+
+            return _issue_login_response(
+                db=db,
+                settings=settings,
+                request=request,
+                user=user,
+                now=now,
+                auth_source="LDAP",
+            )
+
+        if user is not None and is_ldap_user(user):
+            create_security_audit_event(
+                db,
+                action="AUTH_LOGIN_FAILURE",
+                outcome="FAILURE",
+                actor_user_id=user.id,
+                target_type="user",
+                target_id=str(user.id),
+                metadata={"reason": "ldap_invalid", "auth_source": "LDAP"},
+                request_meta=meta,
+            )
+        else:
+            create_security_audit_event(
+                db,
+                action="AUTH_LOGIN_FAILURE",
+                outcome="FAILURE",
+                target_type="user",
+                target_id=payload.username.strip().lower(),
+                metadata={"reason": "ldap_invalid", "auth_source": "LDAP"},
+                request_meta=meta,
+            )
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    if user is not None and is_ldap_user(user):
+        create_security_audit_event(
+            db,
+            action="AUTH_LOGIN_FAILURE",
+            outcome="FAILURE",
+            actor_user_id=user.id,
+            target_type="user",
+            target_id=str(user.id),
+            metadata={"reason": "ldap_disabled"},
+            request_meta=meta,
+        )
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="LDAP login is disabled")
+
+    create_security_audit_event(
+        db,
+        action="AUTH_LOGIN_FAILURE",
+        outcome="FAILURE",
+        target_type="user",
+        target_id=payload.username.strip().lower(),
+        metadata={"reason": "invalid_credentials"},
+        request_meta=meta,
+    )
+    db.commit()
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

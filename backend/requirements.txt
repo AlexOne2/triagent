@@ -12,3 +12,4 @@ minio==7.2.15
 extract-msg==0.55.0
 fpdf2==2.8.2
 dnspython==2.7.0
+ldap3==2.9.1

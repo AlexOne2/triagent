@@ -12,8 +12,11 @@ from app.core.config import Settings
 from app.models.security_audit import AuditActorType
 from app.models.user import Role, User, UserRole
 from app.services.audit import AuditRequestMeta, AuditService
+from app.services.ldap_auth import LdapAuthenticatedUser, ldap_fallback_password, map_ldap_groups_to_roles
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+AUTH_SOURCE_LOCAL = "LOCAL"
+AUTH_SOURCE_LDAP = "LDAP"
 
 
 def utcnow() -> datetime:
@@ -91,6 +94,69 @@ def get_user_by_username(db: Session, username: str) -> User | None:
     return db.execute(select(User).where(User.username == normalized)).scalar_one_or_none()
 
 
+def is_local_user(user: User | None) -> bool:
+    if user is None:
+        return False
+    return (user.auth_source or AUTH_SOURCE_LOCAL).upper() == AUTH_SOURCE_LOCAL
+
+
+def is_ldap_user(user: User | None) -> bool:
+    if user is None:
+        return False
+    return (user.auth_source or AUTH_SOURCE_LOCAL).upper() == AUTH_SOURCE_LDAP
+
+
+def load_roles_by_keys(db: Session, role_keys: list[str]) -> list[Role]:
+    normalized = sorted({key.strip().upper() for key in role_keys if key and key.strip()})
+    if not normalized:
+        return []
+    roles = db.execute(select(Role).where(Role.key.in_(normalized))).scalars().all()
+    role_map = {role.key: role for role in roles}
+    return [role_map[key] for key in normalized if key in role_map]
+
+
+def replace_user_roles(db: Session, user: User, role_keys: list[str]) -> list[str]:
+    roles = load_roles_by_keys(db, role_keys)
+    db.query(UserRole).filter(UserRole.user_id == user.id).delete(synchronize_session=False)
+    for role in roles:
+        db.add(UserRole(user_id=user.id, role_id=role.id))
+    return [role.key for role in roles]
+
+
+def sync_ldap_user(
+    db: Session,
+    *,
+    username: str,
+    ldap_user: LdapAuthenticatedUser,
+    settings: Settings,
+) -> tuple[User, list[str], bool]:
+    user = get_user_by_username(db, username)
+    created = False
+
+    if user is None:
+        created = True
+        user = User(
+            username=username,
+            email=ldap_user.email,
+            auth_source=AUTH_SOURCE_LDAP,
+            external_dn=ldap_user.directory_dn,
+            password_hash=hash_password(ldap_fallback_password()),
+            is_active=True,
+            must_change_password=False,
+        )
+        db.add(user)
+        db.flush()
+    else:
+        user.auth_source = AUTH_SOURCE_LDAP
+        user.external_dn = ldap_user.directory_dn
+        if ldap_user.email:
+            user.email = ldap_user.email
+
+    role_keys = map_ldap_groups_to_roles(ldap_user.groups, settings.ldap_group_role_map_dict())
+    applied_role_keys = replace_user_roles(db, user, role_keys)
+    return user, applied_role_keys, created
+
+
 def create_security_audit_event(
     db: Session,
     *,
@@ -140,6 +206,7 @@ def bootstrap_admin_user(db: Session, settings: Settings) -> bool:
     user = User(
         username=username,
         email=None,
+        auth_source=AUTH_SOURCE_LOCAL,
         password_hash=hash_password(password),
         is_active=True,
         must_change_password=must_change_password,

@@ -10,6 +10,8 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     username: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
     email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    auth_source: Mapped[str] = mapped_column(String(32), nullable=False, server_default="LOCAL")
+    external_dn: Mapped[str | None] = mapped_column(String(1024), nullable=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
