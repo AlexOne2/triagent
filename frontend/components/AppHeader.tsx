@@ -10,7 +10,7 @@ export default function AppHeader() {
   const isDashboard = path.startsWith("/dashboard");
   const isInTray = path.startsWith("/in-tray");
   const isUploads = path === "/" || path.startsWith("/reports");
-  const isAdmin = path.startsWith("/admin");
+  const isSettings = path.startsWith("/settings") || path.startsWith("/admin");
 
   const canReadReports = hasPermission("reports.read");
   const canReadDashboard = hasPermission("dashboard.read");
@@ -37,8 +37,8 @@ export default function AppHeader() {
           </Link>
         ) : null}
         {canAdminUsers ? (
-          <Link href="/admin/users" className={`nav-button ${isAdmin ? "active" : ""}`.trim()}>
-            Admin
+          <Link href="/settings" className={`nav-button ${isSettings ? "active" : ""}`.trim()}>
+            Settings
           </Link>
         ) : null}
         <button className="nav-button" type="button" onClick={() => void logout()}>

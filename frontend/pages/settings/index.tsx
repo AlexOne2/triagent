@@ -7,6 +7,6 @@ export const getServerSideProps: GetServerSideProps = async () => ({
   },
 });
 
-export default function AdminUsersRedirect() {
+export default function SettingsRedirectPage() {
   return null;
 }
