@@ -88,6 +88,7 @@ class Report(Base):
     body_html: Mapped[str | None] = mapped_column(Text, nullable=True)
     headers_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     urls_json: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
+    url_analysis_json: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True)
     reporter_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     mailbox_domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
     raw_source: Mapped[str | None] = mapped_column(Text, nullable=True)

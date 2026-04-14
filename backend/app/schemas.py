@@ -80,6 +80,7 @@ class ReportCreate(BaseModel):
     body_html: Optional[str] = None
     headers_json: Optional[Dict[str, Any]] = None
     urls_json: Optional[List[str]] = None
+    url_analysis_json: Optional[List[Dict[str, Any]]] = None
     reporter_hash: Optional[str] = None
     reporter_email: Optional[str] = None
     mailbox_domain: Optional[str] = None
@@ -100,6 +101,16 @@ class ReportCreate(BaseModel):
 
 
 AuthStatus = Literal["pass", "fail", "softfail", "neutral", "temperror", "permerror", "none", "unknown"]
+UrlResolutionStatus = Literal[
+    "resolved",
+    "no_redirect",
+    "max_hops_exceeded",
+    "loop_detected",
+    "error",
+    "disabled",
+    "unsupported_scheme",
+    "skipped_limit",
+]
 
 
 class AuthOverviewOut(BaseModel):
@@ -177,6 +188,30 @@ class ReportAuthSummaryOut(BaseModel):
     raw_headers: AuthRawHeadersOut = Field(default_factory=AuthRawHeadersOut)
 
 
+class UrlRedirectHopOut(BaseModel):
+    index: int
+    url: str
+    domain: Optional[str] = None
+    status_code: Optional[int] = None
+    location: Optional[str] = None
+
+
+class UrlAnalysisOut(BaseModel):
+    original_url: str
+    normalized_url: str
+    initial_domain: Optional[str] = None
+    final_url: Optional[str] = None
+    final_domain: Optional[str] = None
+    redirect_count: int = 0
+    is_shortener: bool = False
+    used_redirector: bool = False
+    domain_changed: bool = False
+    suspicious_redirect: bool = False
+    resolution_status: UrlResolutionStatus = "disabled"
+    resolution_error: Optional[str] = None
+    redirect_chain: List[UrlRedirectHopOut] = Field(default_factory=list)
+
+
 class ReportOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -193,6 +228,7 @@ class ReportOut(BaseModel):
     body_html: Optional[str]
     headers_json: Optional[Dict[str, Any]]
     urls_json: Optional[List[str]]
+    url_analysis_json: Optional[List[UrlAnalysisOut]]
     reporter_hash: Optional[str]
     mailbox_domain: Optional[str]
     raw_source: Optional[str]

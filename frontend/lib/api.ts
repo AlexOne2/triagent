@@ -252,6 +252,39 @@ export type ReportAuthSummary = {
 };
 
 export type CampaignAssignmentMethod = "AUTO" | "MANUAL";
+export type UrlResolutionStatus =
+  | "resolved"
+  | "no_redirect"
+  | "max_hops_exceeded"
+  | "loop_detected"
+  | "error"
+  | "disabled"
+  | "unsupported_scheme"
+  | "skipped_limit";
+
+export type UrlRedirectHop = {
+  index: number;
+  url: string;
+  domain?: string | null;
+  status_code?: number | null;
+  location?: string | null;
+};
+
+export type UrlAnalysis = {
+  original_url: string;
+  normalized_url: string;
+  initial_domain?: string | null;
+  final_url?: string | null;
+  final_domain?: string | null;
+  redirect_count: number;
+  is_shortener: boolean;
+  used_redirector: boolean;
+  domain_changed: boolean;
+  suspicious_redirect: boolean;
+  resolution_status: UrlResolutionStatus;
+  resolution_error?: string | null;
+  redirect_chain: UrlRedirectHop[];
+};
 
 export type Report = {
   id: number;
@@ -267,6 +300,7 @@ export type Report = {
   body_html?: string | null;
   headers_json?: Record<string, unknown> | null;
   urls_json?: string[] | null;
+  url_analysis_json?: UrlAnalysis[] | null;
   reporter_hash?: string | null;
   mailbox_domain?: string | null;
   raw_source?: string | null;

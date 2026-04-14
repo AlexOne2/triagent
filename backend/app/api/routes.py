@@ -1,7 +1,6 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from email.utils import parseaddr
-from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
@@ -60,6 +59,7 @@ from app.services.eml_parser import parse_eml
 from app.services.evidence_export import EvidenceExportService
 from app.services.msg_parser import MsgParseError, parse_msg
 from app.services.object_storage import ObjectStorageError, ObjectStorageService
+from app.services.url_resolution import build_static_url_analysis, build_url_analysis, extract_url_domain, resolved_urls_for_scoring
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -166,16 +166,7 @@ def _extract_email_domain(value: str | None) -> str | None:
 
 
 def _extract_url_domain(value: str | None) -> str | None:
-    if not value:
-        return None
-    cleaned = value.strip()
-    if not cleaned:
-        return None
-    parsed = urlsplit(cleaned if "://" in cleaned else f"//{cleaned}", scheme="http")
-    hostname = parsed.hostname
-    if not hostname:
-        return None
-    return hostname.lower()
+    return extract_url_domain(value)
 
 
 def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
@@ -236,6 +227,15 @@ def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
                 available[ArtifactKind.URL_DOMAIN].add(
                     _normalize_artifact_value(ArtifactKind.URL_DOMAIN, url_domain)
                 )
+    for item in report.url_analysis_json or []:
+        final_url = item.get("final_url")
+        if final_url:
+            available[ArtifactKind.URL].add(_normalize_artifact_value(ArtifactKind.URL, final_url))
+        final_domain = item.get("final_domain")
+        if final_domain:
+            available[ArtifactKind.URL_DOMAIN].add(
+                _normalize_artifact_value(ArtifactKind.URL_DOMAIN, final_domain)
+            )
     if report.attachments:
         for attachment in report.attachments:
             if attachment.filename:
@@ -307,7 +307,8 @@ def _serialize_resolution(event: ReportResolution) -> ReportResolutionOut:
 
 def _serialize_report(report: Report) -> ReportOut:
     payload = ReportOut.model_validate(report)
-    return payload.model_copy(update={"auth_summary": build_auth_summary(report)})
+    url_analysis = report.url_analysis_json or build_static_url_analysis(report.urls_json or [])
+    return payload.model_copy(update={"auth_summary": build_auth_summary(report), "url_analysis_json": url_analysis})
 
 
 def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> tuple[Report, int]:
@@ -315,6 +316,7 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
     now = datetime.now(timezone.utc)
 
     urls = payload.urls_json or extract_urls(payload.body_text, payload.body_html)
+    url_analysis = payload.url_analysis_json or build_url_analysis(urls, settings=settings)
     event_time = payload.date or payload.received_at or now
 
     mailbox_domain = payload.mailbox_domain
@@ -329,6 +331,7 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
         from_addr=payload.from_addr,
         mailbox_domain=mailbox_domain,
         urls=urls,
+        resolved_urls=resolved_urls_for_scoring(urls, url_analysis),
         from_display_name=payload.from_display_name,
     )
 
@@ -345,6 +348,7 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
         body_html=payload.body_html,
         headers_json=payload.headers_json,
         urls_json=urls,
+        url_analysis_json=url_analysis or None,
         reporter_hash=reporter_hash,
         mailbox_domain=mailbox_domain,
         raw_source=payload.raw_source,
@@ -729,7 +733,7 @@ def list_reports(
     source: IngestSource | None = Query(default=None),
     _: Principal = Depends(require_permission("reports.read")),
 ):
-    query = select(Report).order_by(Report.received_at.desc().nullslast(), Report.created_at.desc())
+    query = select(Report).order_by(Report.created_at.desc(), Report.id.desc())
     if q:
         like = f"%{q.lower()}%"
         query = query.where(

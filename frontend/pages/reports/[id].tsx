@@ -7,6 +7,8 @@ import {
   FlaggedArtifact,
   Report,
   ReportResolutionEvent,
+  UrlAnalysis,
+  UrlResolutionStatus,
   deleteReport,
   downloadReportAttachment,
   downloadReportEvidenceMarkdown,
@@ -153,6 +155,53 @@ type HeaderEntry = {
   key: string;
   value: string;
 };
+
+type UrlRecord = {
+  originalUrl: string;
+  initialDomain: string | null;
+  finalUrl: string | null;
+  finalDomain: string | null;
+  redirectCount: number;
+  isShortener: boolean;
+  domainChanged: boolean;
+  suspiciousRedirect: boolean;
+  resolutionStatus: UrlResolutionStatus;
+  resolutionError?: string | null;
+  redirectChain: UrlAnalysis["redirect_chain"];
+  originalUrlArtifact?: FlaggedArtifact;
+  initialDomainArtifact?: FlaggedArtifact;
+  finalUrlArtifact?: FlaggedArtifact;
+  finalDomainArtifact?: FlaggedArtifact;
+};
+
+function urlResolutionLabel(status?: UrlResolutionStatus | null): string {
+  switch (status) {
+    case "resolved":
+      return "Resolved";
+    case "no_redirect":
+      return "No redirect";
+    case "max_hops_exceeded":
+      return "Max hops";
+    case "loop_detected":
+      return "Loop detected";
+    case "unsupported_scheme":
+      return "Unsupported";
+    case "skipped_limit":
+      return "Skipped";
+    case "error":
+      return "Error";
+    case "disabled":
+    default:
+      return "Not resolved";
+  }
+}
+
+function urlResolutionTone(status?: UrlResolutionStatus | null): "good" | "warn" | "bad" | "neutral" {
+  if (status === "resolved" || status === "no_redirect") return "good";
+  if (status === "max_hops_exceeded" || status === "loop_detected") return "warn";
+  if (status === "error") return "bad";
+  return "neutral";
+}
 
 function normalizeHeaderValues(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -431,20 +480,60 @@ export default function ReportDetailPage() {
   };
 
   const urlRecords = useMemo(
-    () =>
-      urls.map((url) => {
-        const domain = domainFromUrl(url);
+    (): UrlRecord[] => {
+      const source =
+        report?.url_analysis_json && report.url_analysis_json.length > 0
+          ? report.url_analysis_json
+          : urls.map(
+              (url): UrlAnalysis => ({
+                original_url: url,
+                normalized_url: url,
+                initial_domain: domainFromUrl(url),
+                final_url: url,
+                final_domain: domainFromUrl(url),
+                redirect_count: 0,
+                is_shortener: false,
+                used_redirector: false,
+                domain_changed: false,
+                suspicious_redirect: false,
+                resolution_status: "disabled",
+                resolution_error: null,
+                redirect_chain: [],
+              }),
+            );
+
+      return source.map((entry) => {
+        const originalUrl = entry.original_url;
+        const initialDomain = entry.initial_domain || domainFromUrl(originalUrl);
+        const finalUrl = entry.final_url || originalUrl;
+        const finalDomain = entry.final_domain || domainFromUrl(finalUrl || "");
         return {
-          url,
-          domain,
-          urlArtifact: findArtifact("URL", url),
-          domainArtifact: domain ? findArtifact("URL_DOMAIN", domain) : undefined,
+          originalUrl,
+          initialDomain,
+          finalUrl,
+          finalDomain,
+          redirectCount: entry.redirect_count || 0,
+          isShortener: !!entry.is_shortener,
+          domainChanged: !!entry.domain_changed,
+          suspiciousRedirect: !!entry.suspicious_redirect,
+          resolutionStatus: entry.resolution_status,
+          resolutionError: entry.resolution_error,
+          redirectChain: entry.redirect_chain || [],
+          originalUrlArtifact: findArtifact("URL", originalUrl),
+          initialDomainArtifact: initialDomain ? findArtifact("URL_DOMAIN", initialDomain) : undefined,
+          finalUrlArtifact: finalUrl ? findArtifact("URL", finalUrl) : undefined,
+          finalDomainArtifact: finalDomain ? findArtifact("URL_DOMAIN", finalDomain) : undefined,
         };
-      }),
-    [urls, availableArtifacts],
+      });
+    },
+    [report, urls, availableArtifacts],
   );
   const uniqueUrlDomains = useMemo(
-    () => new Set(urlRecords.map((record) => record.domain).filter(Boolean)).size,
+    () => new Set(urlRecords.map((record) => record.finalDomain || record.initialDomain).filter(Boolean)).size,
+    [urlRecords],
+  );
+  const redirectedUrlCount = useMemo(
+    () => urlRecords.filter((record) => record.redirectCount > 0 || record.domainChanged).length,
     [urlRecords],
   );
 
@@ -950,46 +1039,130 @@ export default function ReportDetailPage() {
                     <span className="url-summary-stat">
                       <strong>{uniqueUrlDomains}</strong> domains
                     </span>
+                    <span className="url-summary-stat">
+                      <strong>{redirectedUrlCount}</strong> redirected
+                    </span>
                   </div>
                   <div className="url-record-list">
                     {urlRecords.map((record, index) => (
-                      <section key={`${record.url}-${index}`} className="url-record">
+                      <section key={`${record.originalUrl}-${index}`} className="url-record">
+                        <div className="url-record-header">
+                          <h3>URL {index + 1}</h3>
+                          <div className="url-record-badges">
+                            <span className={`url-badge url-badge-${urlResolutionTone(record.resolutionStatus)}`}>
+                              {urlResolutionLabel(record.resolutionStatus)}
+                            </span>
+                            {record.isShortener ? <span className="url-badge url-badge-neutral">Shortener</span> : null}
+                            {record.domainChanged ? <span className="url-badge url-badge-warn">Domain changed</span> : null}
+                            {record.suspiciousRedirect ? (
+                              <span className="url-badge url-badge-bad">Suspicious redirect</span>
+                            ) : null}
+                          </div>
+                        </div>
                         <div className="kv url-record-grid">
                           {renderFieldRow(
-                            "URL",
+                            "Original URL",
                             <div className="url-field-content">
                               <a
-                                href={record.url}
+                                href={record.originalUrl}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="url-primary-link"
                               >
-                                {record.url}
+                                {record.originalUrl}
                               </a>
-                              {renderCopyButton(record.url)}
+                              {renderCopyButton(record.originalUrl)}
                             </div>,
-                            record.urlArtifact,
+                            record.originalUrlArtifact,
                           )}
                           {renderFieldRow(
-                            "Domain",
-                            record.domain ? (
+                            "Initial Domain",
+                            record.initialDomain ? (
                               <div className="url-field-content">
                                 <a
-                                  href={`https://${record.domain}`}
+                                  href={`https://${record.initialDomain}`}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="url-domain-link"
                                 >
-                                  {record.domain}
+                                  {record.initialDomain}
                                 </a>
-                                {renderCopyButton(record.domain)}
+                                {renderCopyButton(record.initialDomain)}
                               </div>
                             ) : (
                               "unknown"
                             ),
-                            record.domainArtifact,
+                            record.initialDomainArtifact,
                           )}
+                          {renderFieldRow(
+                            "Final URL",
+                            record.finalUrl ? (
+                              <div className="url-field-content">
+                                <a
+                                  href={record.finalUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="url-primary-link"
+                                >
+                                  {record.finalUrl}
+                                </a>
+                                {renderCopyButton(record.finalUrl)}
+                              </div>
+                            ) : (
+                              "unknown"
+                            ),
+                            record.finalUrlArtifact,
+                          )}
+                          {renderFieldRow(
+                            "Final Domain",
+                            record.finalDomain ? (
+                              <div className="url-field-content">
+                                <a
+                                  href={`https://${record.finalDomain}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="url-domain-link"
+                                >
+                                  {record.finalDomain}
+                                </a>
+                                {renderCopyButton(record.finalDomain)}
+                              </div>
+                            ) : (
+                              "unknown"
+                            ),
+                            record.finalDomainArtifact,
+                          )}
+                          {renderFieldRow("Redirect Count", String(record.redirectCount))}
+                          {renderFieldRow("Resolution Status", urlResolutionLabel(record.resolutionStatus))}
+                          {record.resolutionError ? renderFieldRow("Resolution Error", record.resolutionError) : null}
                         </div>
+                        {record.redirectChain.length > 0 ? (
+                          <details className="url-chain-block">
+                            <summary>Redirect chain</summary>
+                            <div className="url-chain-list">
+                              {record.redirectChain.map((hop) => (
+                                <div key={`${hop.index}-${hop.url}`} className="url-chain-item">
+                                  <span className="url-chain-status">{hop.status_code ?? "ERR"}</span>
+                                  <div className="url-chain-content">
+                                    <div>{hop.url}</div>
+                                    {hop.location ? <div className="url-chain-next">Next: {hop.location}</div> : null}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        ) : null}
+                        {record.redirectChain.length === 0 && record.resolutionStatus === "disabled" ? (
+                          <p className="url-chain-empty">Resolution was not run for this URL.</p>
+                        ) : null}
+                        {record.redirectChain.length === 0 &&
+                        record.resolutionStatus !== "disabled" &&
+                        record.resolutionStatus !== "no_redirect" ? (
+                          <p className="url-chain-empty">No redirect hops were captured.</p>
+                        ) : null}
+                        {record.resolutionStatus === "no_redirect" ? (
+                          <p className="url-chain-empty">No redirect observed.</p>
+                        ) : null}
                       </section>
                     ))}
                   </div>

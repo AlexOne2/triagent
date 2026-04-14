@@ -107,6 +107,7 @@ def calculate_risk(
     from_addr: Optional[str],
     mailbox_domain: Optional[str],
     urls: Sequence[str],
+    resolved_urls: Sequence[str] | None = None,
     from_display_name: Optional[str] = None,
 ) -> int:
     score = 0
@@ -117,12 +118,12 @@ def calculate_risk(
     if sender_domain and mailbox_domain and sender_domain != mailbox_domain.lower():
         score += 20
 
-    url_domains = {extract_domain(url) for url in urls}
+    url_domains = {extract_domain(url) for url in [*urls, *(resolved_urls or [])]}
     if any(domain and domain.split(".")[-1] in SUSPICIOUS_TLDS for domain in url_domains):
         score += 15
 
     if urls:
-        score += min(len(urls) * 5, 30)
+        score += min(len(set(urls)) * 5, 30)
 
     if any(domain in URL_SHORTENERS for domain in url_domains):
         score += 15

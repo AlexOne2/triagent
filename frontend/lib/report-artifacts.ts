@@ -118,6 +118,23 @@ export function buildReportArtifacts(report: Report, attachments: Attachment[] =
     }
   }
 
+  for (const analysis of report.url_analysis_json || []) {
+    if (analysis.final_url && analysis.final_url !== analysis.original_url) {
+      push({
+        kind: "URL",
+        value: analysis.final_url,
+        label: `Resolved URL - ${analysis.final_url}`,
+      });
+    }
+    if (analysis.final_domain) {
+      push({
+        kind: "URL_DOMAIN",
+        value: analysis.final_domain.toLowerCase(),
+        label: `Resolved URL domain - ${analysis.final_domain.toLowerCase()}`,
+      });
+    }
+  }
+
   for (const attachment of attachments) {
     if (attachment.filename) {
       push({

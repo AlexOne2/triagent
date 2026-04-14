@@ -4,7 +4,6 @@ from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Iterable
-from urllib.parse import urlsplit
 
 from fpdf import FPDF
 from sqlalchemy import and_, or_, select
@@ -17,6 +16,7 @@ from app.models.report import Report, ReportStatus, ResolutionAction
 from app.models.report_resolution import ReportResolution
 from app.models.security_audit import AuditActorType, SecurityAuditEvent
 from app.models.user import User
+from app.services.url_resolution import build_static_url_analysis, extract_url_domain as resolve_url_domain
 
 
 @dataclass
@@ -27,6 +27,32 @@ class EvidenceAttachment:
     sha256: str | None
     s3_key: str | None
     created_at: datetime | None
+
+
+@dataclass
+class EvidenceUrlHop:
+    index: int
+    url: str
+    domain: str | None
+    status_code: int | None
+    location: str | None
+
+
+@dataclass
+class EvidenceUrl:
+    original_url: str
+    normalized_url: str
+    initial_domain: str | None
+    final_url: str | None
+    final_domain: str | None
+    redirect_count: int
+    is_shortener: bool
+    used_redirector: bool
+    domain_changed: bool
+    suspicious_redirect: bool
+    resolution_status: str
+    resolution_error: str | None
+    redirect_chain: list[EvidenceUrlHop]
 
 
 @dataclass
@@ -74,6 +100,7 @@ class EvidenceBundle:
     message_id: str | None
     urls: list[str]
     url_domains: list[str]
+    url_analysis: list[EvidenceUrl]
     flagged_artifacts: list[dict]
     attachments: list[EvidenceAttachment]
     resolution_history: list[EvidenceResolution]
@@ -166,15 +193,7 @@ def extract_email_domain(value: str | None) -> str | None:
 
 
 def extract_url_domain(value: str | None) -> str | None:
-    if not value:
-        return None
-    cleaned = value.strip()
-    if not cleaned:
-        return None
-    parsed = urlsplit(cleaned if "://" in cleaned else f"//{cleaned}", scheme="http")
-    if not parsed.hostname:
-        return None
-    return parsed.hostname.lower()
+    return resolve_url_domain(value)
 
 
 def build_actor_label(
@@ -404,7 +423,44 @@ class EvidenceExportService:
         ]
 
         urls = [item for item in (report.urls_json or []) if item]
-        url_domains = sorted({domain for domain in (extract_url_domain(item) for item in urls) if domain})
+        url_analysis_source = report.url_analysis_json or build_static_url_analysis(urls)
+        url_analysis = [
+            EvidenceUrl(
+                original_url=str(item.get("original_url") or ""),
+                normalized_url=str(item.get("normalized_url") or item.get("original_url") or ""),
+                initial_domain=item.get("initial_domain"),
+                final_url=item.get("final_url"),
+                final_domain=item.get("final_domain"),
+                redirect_count=int(item.get("redirect_count") or 0),
+                is_shortener=bool(item.get("is_shortener")),
+                used_redirector=bool(item.get("used_redirector")),
+                domain_changed=bool(item.get("domain_changed")),
+                suspicious_redirect=bool(item.get("suspicious_redirect")),
+                resolution_status=str(item.get("resolution_status") or "disabled"),
+                resolution_error=item.get("resolution_error"),
+                redirect_chain=[
+                    EvidenceUrlHop(
+                        index=int(hop.get("index") or 0),
+                        url=str(hop.get("url") or ""),
+                        domain=hop.get("domain"),
+                        status_code=int(hop["status_code"]) if hop.get("status_code") is not None else None,
+                        location=hop.get("location"),
+                    )
+                    for hop in (item.get("redirect_chain") or [])
+                ],
+            )
+            for item in url_analysis_source
+        ]
+        url_domains = sorted(
+            {
+                domain
+                for domain in {
+                    *(extract_url_domain(item) for item in urls),
+                    *(item.final_domain for item in url_analysis if item.final_domain),
+                }
+                if domain
+            }
+        )
 
         return EvidenceBundle(
             report_id=report.id,
@@ -428,6 +484,7 @@ class EvidenceExportService:
             message_id=report.message_id,
             urls=urls,
             url_domains=url_domains,
+            url_analysis=url_analysis,
             flagged_artifacts=list(report.flagged_artifacts_json or []),
             attachments=[
                 EvidenceAttachment(
@@ -494,6 +551,35 @@ class EvidenceExportService:
         else:
             lines.append("- -")
         lines.append("")
+        lines.append("### URL Resolution")
+        lines.append("")
+        if bundle.url_analysis:
+            for index, item in enumerate(bundle.url_analysis, start=1):
+                lines.append(f"#### URL {index}")
+                lines.append("")
+                lines.append(f"- Original URL: {_md_escape(item.original_url)}")
+                lines.append(f"- Final URL: {_md_escape(item.final_url)}")
+                lines.append(f"- Initial Domain: {_md_escape(item.initial_domain)}")
+                lines.append(f"- Final Domain: {_md_escape(item.final_domain)}")
+                lines.append(f"- Redirect Count: `{item.redirect_count}`")
+                lines.append(f"- Resolution Status: `{_md_escape(item.resolution_status)}`")
+                lines.append(f"- Shortener: `{'yes' if item.is_shortener else 'no'}`")
+                lines.append(f"- Domain Changed: `{'yes' if item.domain_changed else 'no'}`")
+                lines.append(f"- Suspicious Redirect: `{'yes' if item.suspicious_redirect else 'no'}`")
+                if item.resolution_error:
+                    lines.append(f"- Resolution Error: {_md_escape(item.resolution_error)}")
+                if item.redirect_chain:
+                    lines.append("- Redirect Chain:")
+                    for hop in item.redirect_chain:
+                        status_label = hop.status_code if hop.status_code is not None else "error"
+                        target = f" -> {_md_escape(hop.location)}" if hop.location else ""
+                        lines.append(
+                            f"  - [{hop.index}] `{status_label}` {_md_escape(hop.url)}{target}"
+                        )
+                lines.append("")
+        else:
+            lines.append("- -")
+            lines.append("")
         lines.append("### Attachments")
         lines.append("")
         lines.append("| Filename | Content Type | Size (bytes) | SHA-256 | Storage Key |")
@@ -626,6 +712,34 @@ class EvidenceExportService:
         pdf.ln(1)
         _pdf_subsection_title(pdf, "URL Domains")
         _pdf_bullets(pdf, bundle.url_domains)
+
+        pdf.ln(1)
+        _pdf_subsection_title(pdf, "URL Resolution")
+        if bundle.url_analysis:
+            for index, item in enumerate(bundle.url_analysis, start=1):
+                _pdf_subsection_title(pdf, f"URL {index}")
+                for label, value in [
+                    ("Original URL", item.original_url),
+                    ("Final URL", item.final_url),
+                    ("Initial Domain", item.initial_domain),
+                    ("Final Domain", item.final_domain),
+                    ("Redirect Count", str(item.redirect_count)),
+                    ("Resolution Status", item.resolution_status),
+                    ("Shortener", "yes" if item.is_shortener else "no"),
+                    ("Domain Changed", "yes" if item.domain_changed else "no"),
+                    ("Suspicious Redirect", "yes" if item.suspicious_redirect else "no"),
+                    ("Resolution Error", item.resolution_error),
+                ]:
+                    _pdf_kv_row(pdf, label, value)
+                if item.redirect_chain:
+                    _pdf_line(pdf, "Redirect Chain")
+                    for hop in item.redirect_chain:
+                        target = f" -> {hop.location}" if hop.location else ""
+                        status_label = hop.status_code if hop.status_code is not None else "error"
+                        _pdf_line(pdf, f"- [{hop.index}] {status_label} {hop.url}{target}")
+                pdf.ln(1)
+        else:
+            _pdf_line(pdf, "-")
 
         pdf.ln(1)
         _pdf_subsection_title(pdf, "Attachments")
