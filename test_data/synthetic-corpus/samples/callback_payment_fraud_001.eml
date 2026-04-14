@@ -1,0 +1,39 @@
+Subject: Payment profile suspended - call immediately
+From: Vendor Payment Desk <collections@vendor-voice.example>
+To: alex@contoso.example
+Reply-To: case-manager@vendor-voice.example
+Return-Path: <collections@vendor-voice.example>
+Message-ID: <callback_payment_fraud_001@triagent.example>
+Date: Sun, 15 Mar 2026 15:05:00 +0000
+Received: from vendor-voice.example (vendor-voice.example [198.51.100.111]) by
+ mx.contoso.example with ESMTPS id 1009 for <alex@contoso.example>; Sun, 15
+ Mar 2026 15:05:00 +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=vendor-voice.example; dkim=pass header.d=vendor-voice.example
+ header.i=@vendor-voice.example; dmarc=pass header.from=vendor-voice.example
+Received-SPF: pass (mx.contoso.example: domain of vendor-voice.example
+ designates 198.51.100.111 as permitted sender) client-ip=198.51.100.111;
+ envelope-from=collections@vendor-voice.example; helo=vendor-voice.example
+DKIM-Signature: v=1; a=rsa-sha256; d=vendor-voice.example; s=mail;
+ c=relaxed/relaxed; bh=eee555; b=fff666;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============8376644308306445053=="
+
+--===============8376644308306445053==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Your payment profile has been suspended. Call the payment desk at +1-555-0100=
+ immediately to prevent settlement delays.
+
+--===============8376644308306445053==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Your payment profile has been suspended.</p><p>Call the paymen=
+t desk at +1-555-0100 immediately to prevent settlement delays.</p></body></h=
+tml>
+
+--===============8376644308306445053==--

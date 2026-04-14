@@ -1,0 +1,42 @@
+Subject: Re: March contract review
+From: Jordan Lee <legal-notices@shared-workspace.example>
+To: alex@contoso.example
+Return-Path: <legal-notices@shared-workspace.example>
+Message-ID: <thread_hijack_link_followup_001@triagent.example>
+In-Reply-To: <previous-thread-1337@contoso.example>
+Date: Wed, 18 Mar 2026 12:15:00 +0000
+Received: from workspace.shared-workspace.example
+ (workspace.shared-workspace.example [198.51.100.123]) by mx.contoso.example
+ with ESMTPS id 1010 for <alex@contoso.example>; Wed, 18 Mar 2026 12:15:00
+ +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=shared-workspace.example; dkim=pass
+ header.d=shared-workspace.example header.i=@shared-workspace.example;
+ dmarc=pass header.from=shared-workspace.example
+Received-SPF: pass (mx.contoso.example: domain of shared-workspace.example
+ designates 198.51.100.123 as permitted sender) client-ip=198.51.100.123;
+ envelope-from=legal-notices@shared-workspace.example;
+ helo=workspace.shared-workspace.example
+DKIM-Signature: v=1; a=rsa-sha256; d=shared-workspace.example; s=mail;
+ c=relaxed/relaxed; bh=ggg777; b=hhh888;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============2352808832078524659=="
+
+--===============2352808832078524659==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Circling back on the contract changes. Continue the review here: https://file=
+share-updates.example/review/continue
+
+--===============2352808832078524659==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Circling back on the contract changes.</p><p>Continue the revi=
+ew <a href=3D"https://fileshare-updates.example/review/continue">here</a>.</p=
+></body></html>
+
+--===============2352808832078524659==--

@@ -1,0 +1,30 @@
+{
+  "expectations": {
+    "classification_code": "MAL_URL",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [
+      "mobile-access-qr.png"
+    ],
+    "expected_attack_techniques": [
+      "T1566.002"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_url_domains": {
+      "observed": [
+        "contoso-files.example"
+      ],
+      "resolved": [
+        "review-docs.example"
+      ]
+    },
+    "notes": "Current pipeline does not OCR; include a visible fallback URL to keep the sample useful.",
+    "risk_min": 30
+  },
+  "family_id": "qr_mfa_bypass",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "qr_login_lure_001"
+}

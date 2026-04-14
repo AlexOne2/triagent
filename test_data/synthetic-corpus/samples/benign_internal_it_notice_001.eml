@@ -1,0 +1,37 @@
+Subject: Planned VPN maintenance window
+From: Contoso IT Operations <it-ops@contoso.example>
+To: alex@contoso.example
+Return-Path: <it-ops@contoso.example>
+Message-ID: <benign_internal_it_notice_001@triagent.example>
+Date: Sun, 22 Mar 2026 05:30:00 +0000
+Received: from itmail.contoso.example (itmail.contoso.example
+ [198.51.100.150]) by mx.contoso.example with ESMTPS id 1012 for
+ <alex@contoso.example>; Sun, 22 Mar 2026 05:30:00 +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=contoso.example; dkim=pass header.d=contoso.example
+ header.i=@contoso.example; dmarc=pass header.from=contoso.example
+Received-SPF: pass (mx.contoso.example: domain of contoso.example designates
+ 198.51.100.150 as permitted sender) client-ip=198.51.100.150;
+ envelope-from=it-ops@contoso.example; helo=itmail.contoso.example
+DKIM-Signature: v=1; a=rsa-sha256; d=contoso.example; s=mail;
+ c=relaxed/relaxed; bh=kkk111; b=lll222;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============0940615582091411895=="
+
+--===============0940615582091411895==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+VPN maintenance will take place tonight from 22:00 to 23:00 UTC. No action is=
+ required.
+
+--===============0940615582091411895==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>VPN maintenance will take place tonight from 22:00 to 23:00 UT=
+C. No action is required.</p></body></html>
+
+--===============0940615582091411895==--

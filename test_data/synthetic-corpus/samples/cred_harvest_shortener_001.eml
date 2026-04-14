@@ -1,0 +1,39 @@
+Subject: Urgent: Your Microsoft 365 password expires today
+From: Microsoft 365 Security <security-notice@contoso-mail.example>
+To: alex@contoso.example
+Reply-To: helpdesk@contoso-mail.example
+Return-Path: <bounce@contoso-mail.example>
+Message-ID: <cred_harvest_shortener_001@triagent.example>
+Date: Mon, 02 Mar 2026 08:30:00 +0000
+Received: from relay.contoso-mail.example (relay.contoso-mail.example
+ [198.51.100.24]) by mx.contoso.example with ESMTPS id 1001 for
+ <alex@contoso.example>; Mon, 2 Mar 2026 08:30:00 +0000
+Authentication-Results: mx.contoso.example; spf=fail
+ smtp.mailfrom=contoso-mail.example; dkim=fail header.d=contoso-mail.example
+ header.i=@contoso-mail.example; dmarc=fail header.from=contoso-mail.example
+Received-SPF: fail (mx.contoso.example: domain of contoso-mail.example does
+ not designate 198.51.100.24 as permitted sender) client-ip=198.51.100.24;
+ envelope-from=bounce@contoso-mail.example; helo=relay.contoso-mail.example
+DKIM-Signature: v=1; a=rsa-sha256; d=contoso-mail.example; s=mail;
+ c=relaxed/relaxed; bh=abc123; b=xyz456;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============0498696376686729588=="
+
+--===============0498696376686729588==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Your mailbox was placed into restricted mode. Reset your password immediately=
+ at http://bit.ly/contoso-reset to avoid service interruption.
+
+--===============0498696376686729588==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Your mailbox was placed into restricted mode.</p><p><a href=3D=
+"http://bit.ly/contoso-reset">Reset your password immediately</a> to avoid se=
+rvice interruption.</p></body></html>
+
+--===============0498696376686729588==--

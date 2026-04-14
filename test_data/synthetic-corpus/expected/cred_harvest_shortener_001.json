@@ -1,0 +1,28 @@
+{
+  "expectations": {
+    "classification_code": "CRED_HARV",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1598.003"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_url_domains": {
+      "observed": [
+        "bit.ly"
+      ],
+      "resolved": [
+        "login-help.example"
+      ]
+    },
+    "notes": "Shortened URL resolves to a credential collection page.",
+    "risk_min": 55
+  },
+  "family_id": "m365_identity_harvest",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "cred_harvest_shortener_001"
+}

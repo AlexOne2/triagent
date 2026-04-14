@@ -1,0 +1,28 @@
+{
+  "expectations": {
+    "classification_code": "MAL_URL",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1566.002"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "softfail"
+    },
+    "expected_url_domains": {
+      "observed": [
+        "contoso-files.example"
+      ],
+      "resolved": [
+        "review-docs.example"
+      ]
+    },
+    "notes": "Direct link still redirects into a credential-oriented review flow.",
+    "risk_min": 45
+  },
+  "family_id": "m365_identity_harvest",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "cred_harvest_direct_link_001"
+}

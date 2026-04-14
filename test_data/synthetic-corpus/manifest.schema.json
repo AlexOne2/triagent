@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://triagent.local/schemas/synthetic-corpus-manifest.schema.json",
+  "title": "Triagent Synthetic Corpus Manifest",
+  "type": "object",
+  "required": [
+    "dataset_name",
+    "dataset_version",
+    "generated_at",
+    "generator_version",
+    "sample_count",
+    "samples"
+  ],
+  "properties": {
+    "dataset_name": {
+      "type": "string"
+    },
+    "dataset_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generator_version": {
+      "type": "string"
+    },
+    "sample_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "sample_id",
+          "family_id",
+          "split",
+          "scenario",
+          "message_format",
+          "file_name",
+          "relative_path",
+          "sha256",
+          "disposition",
+          "classification_code",
+          "expected_auth",
+          "expected_attack_techniques"
+        ],
+        "properties": {
+          "sample_id": {
+            "type": "string"
+          },
+          "family_id": {
+            "type": "string"
+          },
+          "split": {
+            "type": "string"
+          },
+          "scenario": {
+            "type": "string"
+          },
+          "message_format": {
+            "type": "string",
+            "enum": ["eml", "msg"]
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "relative_path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "mailbox_domain": {
+            "type": "string"
+          },
+          "disposition": {
+            "type": "string",
+            "enum": ["MALICIOUS", "SAFE"]
+          },
+          "classification_code": {
+            "type": ["string", "null"]
+          },
+          "expected_auth": {
+            "type": "object",
+            "required": ["spf", "dkim", "dmarc"],
+            "properties": {
+              "spf": {"type": "string"},
+              "dkim": {"type": "string"},
+              "dmarc": {"type": "string"}
+            }
+          },
+          "expected_attack_techniques": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "expected_attachment_names": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "expected_url_domains": {
+            "type": "object",
+            "properties": {
+              "observed": {
+                "type": "array",
+                "items": {"type": "string"}
+              },
+              "resolved": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            }
+          },
+          "risk_min": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

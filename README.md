@@ -81,6 +81,35 @@ Triagent is designed around analyst-centered phishing triage:
 
 The goal is not blind automation. The goal is faster, more consistent analyst decisions with full traceability.
 
+## Docs
+
+The public demo now includes a small operational and security documentation set:
+
+- [Threat model](./docs/security/threat-model.md)
+- [Deployment hardening guide](./docs/operations/hardening.md)
+- [Rollback runbook](./docs/operations/runbook-rollback.md)
+- [Sample investigation scenarios](./docs/evaluation/sample-investigations.md)
+- [Synthetic corpus scaffold](./test_data/synthetic-corpus/README.md)
+
+These documents are intentionally grounded in the current public demo. They describe the controls that exist today, the risks that remain, and the operating assumptions for a Compose-based deployment.
+
+## Evaluation Fixtures
+
+The repository now includes a scaffolded synthetic corpus under
+`test_data/synthetic-corpus/` for stable phishing-triage regression coverage.
+
+Generate or refresh the sample set:
+
+```bash
+python3 backend/scripts/generate_synthetic_corpus.py
+```
+
+Validate the generated samples against their manifest:
+
+```bash
+python3 backend/scripts/validate_synthetic_corpus.py
+```
+
 ## Public Demo Scope
 
 This public repository is intended as a working validation demo for phishing triage.

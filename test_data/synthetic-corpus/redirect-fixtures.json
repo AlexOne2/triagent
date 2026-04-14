@@ -1,0 +1,71 @@
+{
+  "fixtures": {
+    "bitly_contoso_reset": [
+      {
+        "url": "http://bit.ly/contoso-reset",
+        "status_code": 302,
+        "location": "https://login-help.example/auth/contoso"
+      },
+      {
+        "url": "https://login-help.example/auth/contoso",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "sharepoint_shortlink_review": [
+      {
+        "url": "https://contoso-files.example/review",
+        "status_code": 302,
+        "location": "https://review-docs.example/approval/quarterly-review"
+      },
+      {
+        "url": "https://review-docs.example/approval/quarterly-review",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "payroll_portal_redirect": [
+      {
+        "url": "https://payrol1-updates.example/secure/payroll",
+        "status_code": 302,
+        "location": "https://signin-payroll.example/session/start"
+      },
+      {
+        "url": "https://signin-payroll.example/session/start",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "vendor_invoice_redirect": [
+      {
+        "url": "https://billing-vendor.example/invoice/4481",
+        "status_code": 302,
+        "location": "https://documents-vendor.example/invoice/4481/review"
+      },
+      {
+        "url": "https://documents-vendor.example/invoice/4481/review",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "thread_hijack_followup": [
+      {
+        "url": "https://fileshare-updates.example/review/continue",
+        "status_code": 302,
+        "location": "https://file-access.example/continue/review"
+      },
+      {
+        "url": "https://file-access.example/continue/review",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "benign_vendor_portal": [
+      {
+        "url": "https://portal.vendor.example/notices/april",
+        "status_code": 200,
+        "location": null
+      }
+    ]
+  }
+}

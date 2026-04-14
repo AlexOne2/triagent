@@ -1,0 +1,22 @@
+{
+  "expectations": {
+    "classification_code": null,
+    "disposition": "SAFE",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "pass",
+      "spf": "pass"
+    },
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "Internal control sample with clean authentication and no suspicious artifacts.",
+    "risk_min": 0
+  },
+  "family_id": "benign_internal_control",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "benign_internal_it_notice_001"
+}

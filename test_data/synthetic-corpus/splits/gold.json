@@ -1,0 +1,17 @@
+{
+  "sample_ids": [
+    "benign_internal_it_notice_001",
+    "benign_vendor_portal_notice_001",
+    "callback_payment_fraud_001",
+    "compromised_vendor_invoice_001",
+    "cred_harvest_direct_link_001",
+    "cred_harvest_shortener_001",
+    "display_name_bec_replyto_001",
+    "lookalike_domain_payroll_001",
+    "malicious_attachment_docm_001",
+    "malicious_attachment_zip_001",
+    "qr_login_lure_001",
+    "thread_hijack_link_followup_001"
+  ],
+  "split": "gold"
+}

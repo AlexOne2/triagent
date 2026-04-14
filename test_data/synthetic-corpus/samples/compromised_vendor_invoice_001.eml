@@ -1,0 +1,39 @@
+Subject: Updated invoice package for March
+From: Northwind Billing <ap@billing-vendor.example>
+To: alex@contoso.example
+Return-Path: <ap@billing-vendor.example>
+Message-ID: <compromised_vendor_invoice_001@triagent.example>
+Date: Tue, 10 Mar 2026 10:20:00 +0000
+Received: from gateway.billing-vendor.example (gateway.billing-vendor.example
+ [198.51.100.75]) by mx.contoso.example with ESMTPS id 1005 for
+ <alex@contoso.example>; Tue, 10 Mar 2026 10:20:00 +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=billing-vendor.example; dkim=pass
+ header.d=billing-vendor.example header.i=@billing-vendor.example; dmarc=pass
+ header.from=billing-vendor.example
+Received-SPF: pass (mx.contoso.example: domain of billing-vendor.example
+ designates 198.51.100.75 as permitted sender) client-ip=198.51.100.75;
+ envelope-from=ap@billing-vendor.example; helo=gateway.billing-vendor.example
+DKIM-Signature: v=1; a=rsa-sha256; d=billing-vendor.example; s=mail;
+ c=relaxed/relaxed; bh=ccc333; b=ddd444;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============4264326215061748341=="
+
+--===============4264326215061748341==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Please review the revised invoice package at https://billing-vendor.example/i=
+nvoice/4481 before the payment window closes.
+
+--===============4264326215061748341==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Please review the revised invoice package at <a href=3D"https:=
+//billing-vendor.example/invoice/4481">the vendor portal</a> before the payme=
+nt window closes.</p></body></html>
+
+--===============4264326215061748341==--

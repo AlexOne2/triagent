@@ -1,0 +1,375 @@
+{
+  "dataset_name": "triagent-synthetic-corpus",
+  "dataset_version": "0.1.0",
+  "generated_at": "2026-04-14T14:56:41.553144+00:00",
+  "generator_version": "1",
+  "sample_count": 12,
+  "samples": [
+    {
+      "classification_code": "CRED_HARV",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1598.003"
+      ],
+      "expected_auth": {
+        "dkim": "fail",
+        "dmarc": "fail",
+        "spf": "fail"
+      },
+      "expected_url_domains": {
+        "observed": [
+          "bit.ly"
+        ],
+        "resolved": [
+          "login-help.example"
+        ]
+      },
+      "family_id": "m365_identity_harvest",
+      "file_name": "cred_harvest_shortener_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Shortened URL resolves to a credential collection page.",
+      "relative_path": "samples/cred_harvest_shortener_001.eml",
+      "risk_min": 55,
+      "sample_id": "cred_harvest_shortener_001",
+      "scenario": "credential_harvest_shortener",
+      "sha256": "9015b2b5a3544aefbac874aaa812c9178883f11f68165c647673ba256f207685",
+      "split": "gold"
+    },
+    {
+      "classification_code": "MAL_URL",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1566.002"
+      ],
+      "expected_auth": {
+        "dkim": "fail",
+        "dmarc": "fail",
+        "spf": "softfail"
+      },
+      "expected_url_domains": {
+        "observed": [
+          "contoso-files.example"
+        ],
+        "resolved": [
+          "review-docs.example"
+        ]
+      },
+      "family_id": "m365_identity_harvest",
+      "file_name": "cred_harvest_direct_link_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Direct link still redirects into a credential-oriented review flow.",
+      "relative_path": "samples/cred_harvest_direct_link_001.eml",
+      "risk_min": 45,
+      "sample_id": "cred_harvest_direct_link_001",
+      "scenario": "credential_harvest_direct_link",
+      "sha256": "a34e944d485b6d020e0f97aee23febe33591643c35f1504b07d57c2a227a28e1",
+      "split": "gold"
+    },
+    {
+      "classification_code": "SPOOF",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1566.002",
+        "T1672"
+      ],
+      "expected_auth": {
+        "dkim": "fail",
+        "dmarc": "fail",
+        "spf": "fail"
+      },
+      "expected_url_domains": {
+        "observed": [
+          "payrol1-updates.example"
+        ],
+        "resolved": [
+          "signin-payroll.example"
+        ]
+      },
+      "family_id": "payroll_spoofing",
+      "file_name": "lookalike_domain_payroll_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Observed sender domain intentionally uses a lookalike label.",
+      "relative_path": "samples/lookalike_domain_payroll_001.eml",
+      "risk_min": 20,
+      "sample_id": "lookalike_domain_payroll_001",
+      "scenario": "lookalike_domain_payroll",
+      "sha256": "f3196a741d05f1a0d03087c388af965ad5b4ee0cb440a2e3771ca3dd8cdc6c80",
+      "split": "gold"
+    },
+    {
+      "classification_code": "SPOOF",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1672"
+      ],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "fail",
+        "spf": "pass"
+      },
+      "expected_url_domains": {
+        "observed": [],
+        "resolved": []
+      },
+      "family_id": "bec_reply_mismatch",
+      "file_name": "display_name_bec_replyto_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "No link is required; the reply-to mismatch drives the analyst workflow.",
+      "relative_path": "samples/display_name_bec_replyto_001.eml",
+      "risk_min": 25,
+      "sample_id": "display_name_bec_replyto_001",
+      "scenario": "display_name_bec_replyto_mismatch",
+      "sha256": "872049ae08a4ce4314f42213872bfcaf238f3ea8149c566fe63cd5b716b7f412",
+      "split": "gold"
+    },
+    {
+      "classification_code": "COMPRO_SEND",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1566.002",
+        "T1586.002"
+      ],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_url_domains": {
+        "observed": [
+          "billing-vendor.example"
+        ],
+        "resolved": [
+          "documents-vendor.example"
+        ]
+      },
+      "family_id": "vendor_mailbox_takeover",
+      "file_name": "compromised_vendor_invoice_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Sender authenticates cleanly to mimic a compromised vendor mailbox.",
+      "relative_path": "samples/compromised_vendor_invoice_001.eml",
+      "risk_min": 35,
+      "sample_id": "compromised_vendor_invoice_001",
+      "scenario": "compromised_vendor_invoice",
+      "sha256": "20d3793f5b1443f6a47a7fbde9439234add028cd240cae7531ecb7dc4e0b7795",
+      "split": "gold"
+    },
+    {
+      "classification_code": "MAL_ATTACH",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [
+        "invoice-4481.zip"
+      ],
+      "expected_attack_techniques": [
+        "T1566.001"
+      ],
+      "expected_auth": {
+        "dkim": "none",
+        "dmarc": "fail",
+        "spf": "fail"
+      },
+      "expected_url_domains": {
+        "observed": [],
+        "resolved": []
+      },
+      "family_id": "invoice_attachment_delivery",
+      "file_name": "malicious_attachment_zip_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Attachment-only malware delivery analogue with inert archive content.",
+      "relative_path": "samples/malicious_attachment_zip_001.eml",
+      "risk_min": 25,
+      "sample_id": "malicious_attachment_zip_001",
+      "scenario": "malicious_attachment_zip",
+      "sha256": "fb6d8e5a534268e9a08c627002a840ff3882bace3a896c482ad847f5ea7494bd",
+      "split": "gold"
+    },
+    {
+      "classification_code": "MAL_ATTACH",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [
+        "remittance-statement.docm"
+      ],
+      "expected_attack_techniques": [
+        "T1566.001"
+      ],
+      "expected_auth": {
+        "dkim": "none",
+        "dmarc": "fail",
+        "spf": "neutral"
+      },
+      "expected_url_domains": {
+        "observed": [],
+        "resolved": []
+      },
+      "family_id": "invoice_attachment_delivery",
+      "file_name": "malicious_attachment_docm_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Macro-enabled Office lure represented by a safe OOXML-like placeholder.",
+      "relative_path": "samples/malicious_attachment_docm_001.eml",
+      "risk_min": 20,
+      "sample_id": "malicious_attachment_docm_001",
+      "scenario": "malicious_attachment_docm",
+      "sha256": "ce67e800c0ed025c8e4435b2e7e2e01fd473903dbed9107e28a3ea40f48b5752",
+      "split": "gold"
+    },
+    {
+      "classification_code": "MAL_URL",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [
+        "mobile-access-qr.png"
+      ],
+      "expected_attack_techniques": [
+        "T1566.002"
+      ],
+      "expected_auth": {
+        "dkim": "fail",
+        "dmarc": "fail",
+        "spf": "fail"
+      },
+      "expected_url_domains": {
+        "observed": [
+          "contoso-files.example"
+        ],
+        "resolved": [
+          "review-docs.example"
+        ]
+      },
+      "family_id": "qr_mfa_bypass",
+      "file_name": "qr_login_lure_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Current pipeline does not OCR; include a visible fallback URL to keep the sample useful.",
+      "relative_path": "samples/qr_login_lure_001.eml",
+      "risk_min": 30,
+      "sample_id": "qr_login_lure_001",
+      "scenario": "qr_login_lure",
+      "sha256": "1dc191d7eaf026308c33e07e21fa133b7064b0cbae421850d86fd8b257173486",
+      "split": "gold"
+    },
+    {
+      "classification_code": "FIN_FRAUD",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_url_domains": {
+        "observed": [],
+        "resolved": []
+      },
+      "family_id": "voice_callback_fraud",
+      "file_name": "callback_payment_fraud_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Fraud objective sample with no link or attachment payload.",
+      "relative_path": "samples/callback_payment_fraud_001.eml",
+      "risk_min": 20,
+      "sample_id": "callback_payment_fraud_001",
+      "scenario": "callback_payment_fraud",
+      "sha256": "81f74d4823f699fb2351ac98a3312b3eed908ccac647f126f345f17fdc943a9c",
+      "split": "gold"
+    },
+    {
+      "classification_code": "THREAD_HIJACK",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1566.002"
+      ],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_url_domains": {
+        "observed": [
+          "fileshare-updates.example"
+        ],
+        "resolved": [
+          "file-access.example"
+        ]
+      },
+      "family_id": "thread_hijack_followup",
+      "file_name": "thread_hijack_link_followup_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Thread marker is preserved through In-Reply-To plus a new malicious follow-up link.",
+      "relative_path": "samples/thread_hijack_link_followup_001.eml",
+      "risk_min": 35,
+      "sample_id": "thread_hijack_link_followup_001",
+      "scenario": "thread_hijack_link_followup",
+      "sha256": "a177fd161ff1a53f49fb23aed7f7361ae81fca0445893967c025d1a17617decc",
+      "split": "gold"
+    },
+    {
+      "classification_code": null,
+      "disposition": "SAFE",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_url_domains": {
+        "observed": [
+          "portal.vendor.example"
+        ],
+        "resolved": [
+          "portal.vendor.example"
+        ]
+      },
+      "family_id": "benign_vendor_control",
+      "file_name": "benign_vendor_portal_notice_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Benign control with a stable portal URL and aligned auth.",
+      "relative_path": "samples/benign_vendor_portal_notice_001.eml",
+      "risk_min": 0,
+      "sample_id": "benign_vendor_portal_notice_001",
+      "scenario": "benign_vendor_portal_notice",
+      "sha256": "23379d234e54449a1f5b3010fab95dd46337283abc14529ec2ec2243e2bb7b84",
+      "split": "gold"
+    },
+    {
+      "classification_code": null,
+      "disposition": "SAFE",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_url_domains": {
+        "observed": [],
+        "resolved": []
+      },
+      "family_id": "benign_internal_control",
+      "file_name": "benign_internal_it_notice_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Internal control sample with clean authentication and no suspicious artifacts.",
+      "relative_path": "samples/benign_internal_it_notice_001.eml",
+      "risk_min": 0,
+      "sample_id": "benign_internal_it_notice_001",
+      "scenario": "benign_internal_it_notice",
+      "sha256": "162b3b6ca53d4769c91bbf677f456a90813e25ba11d496ede1b6e2912089c692",
+      "split": "gold"
+    }
+  ]
+}

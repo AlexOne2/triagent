@@ -1,0 +1,29 @@
+{
+  "expectations": {
+    "classification_code": "COMPRO_SEND",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1566.002",
+      "T1586.002"
+    ],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "pass",
+      "spf": "pass"
+    },
+    "expected_url_domains": {
+      "observed": [
+        "billing-vendor.example"
+      ],
+      "resolved": [
+        "documents-vendor.example"
+      ]
+    },
+    "notes": "Sender authenticates cleanly to mimic a compromised vendor mailbox.",
+    "risk_min": 35
+  },
+  "family_id": "vendor_mailbox_takeover",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "compromised_vendor_invoice_001"
+}

@@ -1,0 +1,37 @@
+Subject: Action required: review the new secure document portal
+From: Contoso Secure Docs <no-reply@contoso-docs.example>
+To: alex@contoso.example
+Return-Path: <mailer@contoso-docs.example>
+Message-ID: <cred_harvest_direct_link_001@triagent.example>
+Date: Mon, 02 Mar 2026 09:05:00 +0000
+Received: from mail.contoso-docs.example (mail.contoso-docs.example
+ [198.51.100.31]) by mx.contoso.example with ESMTPS id 1002 for
+ <alex@contoso.example>; Mon, 2 Mar 2026 09:05:00 +0000
+Authentication-Results: mx.contoso.example; spf=softfail
+ smtp.mailfrom=contoso-docs.example; dkim=fail header.d=contoso-docs.example
+ header.i=@contoso-docs.example; dmarc=fail header.from=contoso-docs.example
+Received-SPF: softfail (mx.contoso.example: transitioning domain of
+ contoso-docs.example does not designate 198.51.100.31 as permitted sender)
+ client-ip=198.51.100.31; envelope-from=mailer@contoso-docs.example;
+ helo=mail.contoso-docs.example
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============6191291050172965834=="
+
+--===============6191291050172965834==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Review the secure portal update at https://contoso-files.example/review and k=
+eep your access active.
+
+--===============6191291050172965834==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Review the secure portal update at <a href=3D"https://contoso-=
+files.example/review">the secure portal</a> and keep your access active.</p><=
+/body></html>
+
+--===============6191291050172965834==--

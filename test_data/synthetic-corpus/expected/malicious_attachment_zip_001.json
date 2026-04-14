@@ -1,0 +1,26 @@
+{
+  "expectations": {
+    "classification_code": "MAL_ATTACH",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [
+      "invoice-4481.zip"
+    ],
+    "expected_attack_techniques": [
+      "T1566.001"
+    ],
+    "expected_auth": {
+      "dkim": "none",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "Attachment-only malware delivery analogue with inert archive content.",
+    "risk_min": 25
+  },
+  "family_id": "invoice_attachment_delivery",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "malicious_attachment_zip_001"
+}

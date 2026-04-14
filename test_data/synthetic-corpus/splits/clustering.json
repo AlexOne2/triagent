@@ -1,0 +1,13 @@
+{
+  "sample_ids": [
+    "compromised_vendor_invoice_001",
+    "cred_harvest_direct_link_001",
+    "cred_harvest_shortener_001",
+    "lookalike_domain_payroll_001",
+    "malicious_attachment_docm_001",
+    "malicious_attachment_zip_001",
+    "qr_login_lure_001",
+    "thread_hijack_link_followup_001"
+  ],
+  "split": "clustering"
+}

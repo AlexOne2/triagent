@@ -1,0 +1,28 @@
+{
+  "expectations": {
+    "classification_code": "THREAD_HIJACK",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1566.002"
+    ],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "pass",
+      "spf": "pass"
+    },
+    "expected_url_domains": {
+      "observed": [
+        "fileshare-updates.example"
+      ],
+      "resolved": [
+        "file-access.example"
+      ]
+    },
+    "notes": "Thread marker is preserved through In-Reply-To plus a new malicious follow-up link.",
+    "risk_min": 35
+  },
+  "family_id": "thread_hijack_followup",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "thread_hijack_link_followup_001"
+}

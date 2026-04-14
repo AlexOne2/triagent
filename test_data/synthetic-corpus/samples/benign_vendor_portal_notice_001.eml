@@ -1,0 +1,37 @@
+Subject: Monthly portal notice for April
+From: Vendor Notifications <notifications@vendor.example>
+To: alex@contoso.example
+Return-Path: <notifications@vendor.example>
+Message-ID: <benign_vendor_portal_notice_001@triagent.example>
+Date: Fri, 20 Mar 2026 09:00:00 +0000
+Received: from mail.vendor.example (mail.vendor.example [198.51.100.140]) by
+ mx.contoso.example with ESMTPS id 1011 for <alex@contoso.example>; Fri, 20
+ Mar 2026 09:00:00 +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=vendor.example; dkim=pass header.d=vendor.example
+ header.i=@vendor.example; dmarc=pass header.from=vendor.example
+Received-SPF: pass (mx.contoso.example: domain of vendor.example designates
+ 198.51.100.140 as permitted sender) client-ip=198.51.100.140;
+ envelope-from=notifications@vendor.example; helo=mail.vendor.example
+DKIM-Signature: v=1; a=rsa-sha256; d=vendor.example; s=mail;
+ c=relaxed/relaxed; bh=iii999; b=jjj000;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============3871669648750627652=="
+
+--===============3871669648750627652==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Your monthly vendor notice is ready at https://portal.vendor.example/notices/=
+april.
+
+--===============3871669648750627652==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Your monthly vendor notice is ready at <a href=3D"https://port=
+al.vendor.example/notices/april">the vendor portal</a>.</p></body></html>
+
+--===============3871669648750627652==--

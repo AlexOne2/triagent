@@ -1,0 +1,41 @@
+Subject: Need you to handle this wire today
+From: "Maya Jensen, CFO" <assistant@external-advisory.example>
+To: alex@contoso.example
+Reply-To: maya-jensen@payments-review.example
+Return-Path: <assistant@external-advisory.example>
+Message-ID: <display_name_bec_replyto_001@triagent.example>
+Date: Sun, 08 Mar 2026 14:45:00 +0000
+Received: from outbound.external-advisory.example
+ (outbound.external-advisory.example [198.51.100.62]) by mx.contoso.example
+ with ESMTPS id 1004 for <alex@contoso.example>; Sun, 8 Mar 2026 14:45:00
+ +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=external-advisory.example; dkim=pass
+ header.d=external-advisory.example header.i=@external-advisory.example;
+ dmarc=fail header.from=external-advisory.example
+Received-SPF: pass (mx.contoso.example: domain of external-advisory.example
+ designates 198.51.100.62 as permitted sender) client-ip=198.51.100.62;
+ envelope-from=assistant@external-advisory.example;
+ helo=outbound.external-advisory.example
+DKIM-Signature: v=1; a=rsa-sha256; d=external-advisory.example; s=mail;
+ c=relaxed/relaxed; bh=aaa111; b=bbb222;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============9145338591139534156=="
+
+--===============9145338591139534156==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Are you available? I need you to handle a confidential wire transfer today. R=
+eply once you are at your desk.
+
+--===============9145338591139534156==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Are you available?</p><p>I need you to handle a confidential w=
+ire transfer today. Reply once you are at your desk.</p></body></html>
+
+--===============9145338591139534156==--

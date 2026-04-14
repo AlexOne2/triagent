@@ -1,0 +1,24 @@
+{
+  "expectations": {
+    "classification_code": "SPOOF",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1672"
+    ],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "fail",
+      "spf": "pass"
+    },
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "No link is required; the reply-to mismatch drives the analyst workflow.",
+    "risk_min": 25
+  },
+  "family_id": "bec_reply_mismatch",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "display_name_bec_replyto_001"
+}

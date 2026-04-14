@@ -1,0 +1,26 @@
+{
+  "expectations": {
+    "classification_code": "MAL_ATTACH",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [
+      "remittance-statement.docm"
+    ],
+    "expected_attack_techniques": [
+      "T1566.001"
+    ],
+    "expected_auth": {
+      "dkim": "none",
+      "dmarc": "fail",
+      "spf": "neutral"
+    },
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "Macro-enabled Office lure represented by a safe OOXML-like placeholder.",
+    "risk_min": 20
+  },
+  "family_id": "invoice_attachment_delivery",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "malicious_attachment_docm_001"
+}

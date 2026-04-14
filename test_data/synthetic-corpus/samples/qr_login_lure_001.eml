@@ -1,0 +1,35 @@
+Subject: Scan to restore your mobile access
+From: Mobile Access Team <mobile-access@webmail-auth.example>
+To: alex@contoso.example
+Return-Path: <mobile-access@webmail-auth.example>
+Message-ID: <qr_login_lure_001@triagent.example>
+Date: Sat, 14 Mar 2026 06:40:00 +0000
+Received: from webmail-auth.example (webmail-auth.example [198.51.100.97]) by
+ mx.contoso.example with ESMTPS id 1008 for <alex@contoso.example>; Sat, 14
+ Mar 2026 06:40:00 +0000
+Authentication-Results: mx.contoso.example; spf=fail
+ smtp.mailfrom=webmail-auth.example; dkim=fail header.d=webmail-auth.example
+ header.i=@webmail-auth.example; dmarc=fail header.from=webmail-auth.example
+Received-SPF: fail (mx.contoso.example: domain of webmail-auth.example does
+ not designate 198.51.100.97 as permitted sender) client-ip=198.51.100.97;
+ envelope-from=mobile-access@webmail-auth.example; helo=webmail-auth.example
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============0641159922428710105=="
+
+--===============0641159922428710105==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Scan the attached code to restore mobile access, or use the fallback link htt=
+ps://contoso-files.example/review if the code does not load.
+
+--===============0641159922428710105==
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="mobile-access-qr.png"
+MIME-Version: 1.0
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlH0r8A
+AAAASUVORK5CYII=
+
+--===============0641159922428710105==--

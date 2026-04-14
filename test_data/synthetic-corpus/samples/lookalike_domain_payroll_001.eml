@@ -1,0 +1,38 @@
+Subject: Payroll notice: updated tax form ready
+From: Contoso Payroll <payroll@payrol1-updates.example>
+To: alex@contoso.example
+Reply-To: support@payrol1-updates.example
+Return-Path: <bounce@payrol1-updates.example>
+Message-ID: <lookalike_domain_payroll_001@triagent.example>
+Date: Wed, 04 Mar 2026 11:10:00 +0000
+Received: from payrol1-updates.example (payrol1-updates.example
+ [198.51.100.48]) by mx.contoso.example with ESMTPS id 1003 for
+ <alex@contoso.example>; Wed, 4 Mar 2026 11:10:00 +0000
+Authentication-Results: mx.contoso.example; spf=fail
+ smtp.mailfrom=payrol1-updates.example; dkim=fail
+ header.d=payrol1-updates.example header.i=@payrol1-updates.example;
+ dmarc=fail header.from=payrol1-updates.example
+Received-SPF: fail (mx.contoso.example: domain of payrol1-updates.example does
+ not designate 198.51.100.48 as permitted sender) client-ip=198.51.100.48;
+ envelope-from=bounce@payrol1-updates.example; helo=payrol1-updates.example
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============3753488807086487035=="
+
+--===============3753488807086487035==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+A payroll tax form needs review. Use https://payrol1-updates.example/secure/p=
+ayroll before payroll closes today.
+
+--===============3753488807086487035==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>A payroll tax form needs review.</p><p><a href=3D"https://payr=
+ol1-updates.example/secure/payroll">Open payroll portal</a> before payroll cl=
+oses today.</p></body></html>
+
+--===============3753488807086487035==--

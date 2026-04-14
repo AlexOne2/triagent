@@ -1,0 +1,29 @@
+{
+  "expectations": {
+    "classification_code": "SPOOF",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1566.002",
+      "T1672"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_url_domains": {
+      "observed": [
+        "payrol1-updates.example"
+      ],
+      "resolved": [
+        "signin-payroll.example"
+      ]
+    },
+    "notes": "Observed sender domain intentionally uses a lookalike label.",
+    "risk_min": 20
+  },
+  "family_id": "payroll_spoofing",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "lookalike_domain_payroll_001"
+}

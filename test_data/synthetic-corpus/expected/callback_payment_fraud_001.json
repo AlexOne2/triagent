@@ -1,0 +1,22 @@
+{
+  "expectations": {
+    "classification_code": "FIN_FRAUD",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "pass",
+      "spf": "pass"
+    },
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "Fraud objective sample with no link or attachment payload.",
+    "risk_min": 20
+  },
+  "family_id": "voice_callback_fraud",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "callback_payment_fraud_001"
+}
