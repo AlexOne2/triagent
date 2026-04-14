@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Iterable
+import json
+from io import StringIO
+from typing import Any, Iterable
+import csv
 
 from fpdf import FPDF
 from sqlalchemy import and_, or_, select
@@ -16,6 +19,8 @@ from app.models.report import Report, ReportStatus, ResolutionAction
 from app.models.report_resolution import ReportResolution
 from app.models.security_audit import AuditActorType, SecurityAuditEvent
 from app.models.user import User
+from app.services.attack_mapping import AttackEvidenceRef, AttackMappingInput, AttackMappingResult, build_attack_mapping
+from app.services.auth_summary import build_auth_summary
 from app.services.url_resolution import build_static_url_analysis, extract_url_domain as resolve_url_domain
 
 
@@ -87,6 +92,17 @@ class EvidenceAuditEvent:
 
 
 @dataclass
+class EvidenceIoc:
+    type: str
+    value: str
+    roles: list[str]
+    sources: list[str]
+    derived: bool
+    flagged_malicious: bool
+    flag_labels: list[str]
+
+
+@dataclass
 class EvidenceBundle:
     report_id: int
     subject: str | None
@@ -94,12 +110,16 @@ class EvidenceBundle:
     generated_at: datetime
     created_at: datetime | None
     received_at: datetime | None
+    risk_score: int | None
     status: str
     disposition: str
     classification_code: str | None
     rationale_note: str | None
     resolved_at: datetime | None
     last_resolved_by: str | None
+    campaign_id: int | None
+    campaign_assignment_method: str | None
+    campaign_assignment_score: float | None
     from_addr: str | None
     from_domain: str | None
     reply_to: list[str]
@@ -107,10 +127,13 @@ class EvidenceBundle:
     return_path_domain: str | None
     originating_ip: str | None
     message_id: str | None
+    auth_summary: dict[str, Any]
     original_message: EvidenceOriginalMessage | None
     urls: list[str]
     url_domains: list[str]
     url_analysis: list[EvidenceUrl]
+    attack_mapping: AttackMappingResult
+    iocs: list[EvidenceIoc]
     flagged_artifacts: list[dict]
     attachments: list[EvidenceAttachment]
     resolution_history: list[EvidenceResolution]
@@ -334,11 +357,160 @@ def _pdf_new_section_page(pdf: FPDF, title: str) -> None:
     _pdf_section_title(pdf, title)
 
 
+def _json_compatible(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return _fmt_utc(value)
+    if isinstance(value, list):
+        return [_json_compatible(item) for item in value]
+    if isinstance(value, tuple):
+        return [_json_compatible(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _json_compatible(item) for key, item in value.items()}
+    if hasattr(value, "__dataclass_fields__"):
+        return {
+            key: _json_compatible(getattr(value, key))
+            for key in value.__dataclass_fields__.keys()
+        }
+    return value
+
+
+def _ioc_type_for_artifact(kind: str) -> str | None:
+    mapping = {
+        "FROM_ADDR": "email",
+        "FROM_DOMAIN": "domain",
+        "REPLY_TO": "email",
+        "RETURN_PATH": "email",
+        "RETURN_PATH_DOMAIN": "domain",
+        "ORIGINATING_IP": "ip",
+        "URL": "url",
+        "URL_DOMAIN": "domain",
+        "ATTACHMENT_NAME": "file_name",
+        "ATTACHMENT_SHA256": "file_hash_sha256",
+    }
+    return mapping.get(kind)
+
+
+def _normalize_ioc_value(ioc_type: str, value: str) -> str:
+    cleaned = value.strip()
+    if ioc_type in {"email", "domain", "file_hash_sha256"}:
+        return cleaned.lower()
+    return cleaned
+
+
+def _build_iocs(bundle: EvidenceBundle) -> list[EvidenceIoc]:
+    flagged_lookup: dict[tuple[str, str], list[str]] = {}
+    for item in bundle.flagged_artifacts:
+        kind = str(item.get("kind") or "")
+        value = str(item.get("value") or "").strip()
+        ioc_type = _ioc_type_for_artifact(kind)
+        if not ioc_type or not value:
+            continue
+        key = (ioc_type, _normalize_ioc_value(ioc_type, value))
+        flagged_lookup.setdefault(key, [])
+        label = item.get("label")
+        if label:
+            label_text = str(label)
+            if label_text not in flagged_lookup[key]:
+                flagged_lookup[key].append(label_text)
+
+    items: dict[tuple[str, str], EvidenceIoc] = {}
+
+    def add_ioc(
+        *,
+        ioc_type: str,
+        value: str | None,
+        role: str,
+        source: str,
+        derived: bool = False,
+    ) -> None:
+        if not value:
+            return
+        normalized = _normalize_ioc_value(ioc_type, value)
+        key = (ioc_type, normalized)
+        flagged_labels = flagged_lookup.get(key, [])
+        existing = items.get(key)
+        if existing is None:
+            existing = EvidenceIoc(
+                type=ioc_type,
+                value=normalized,
+                roles=[],
+                sources=[],
+                derived=derived,
+                flagged_malicious=bool(flagged_labels),
+                flag_labels=list(flagged_labels),
+            )
+            items[key] = existing
+        else:
+            existing.derived = existing.derived and derived
+            if flagged_labels:
+                existing.flagged_malicious = True
+                for label in flagged_labels:
+                    if label not in existing.flag_labels:
+                        existing.flag_labels.append(label)
+
+        if role not in existing.roles:
+            existing.roles.append(role)
+        if source not in existing.sources:
+            existing.sources.append(source)
+
+    add_ioc(ioc_type="email", value=bundle.from_addr, role="from_addr", source="message.from_addr")
+    add_ioc(ioc_type="domain", value=bundle.from_domain, role="from_domain", source="message.from_addr", derived=True)
+    for reply_to in bundle.reply_to:
+        add_ioc(ioc_type="email", value=reply_to, role="reply_to", source="message.reply_to")
+        add_ioc(ioc_type="domain", value=extract_email_domain(reply_to), role="reply_to_domain", source="message.reply_to", derived=True)
+    add_ioc(ioc_type="email", value=bundle.return_path, role="return_path", source="message.return_path")
+    add_ioc(ioc_type="domain", value=bundle.return_path_domain, role="return_path_domain", source="message.return_path", derived=True)
+    add_ioc(ioc_type="ip", value=bundle.originating_ip, role="originating_ip", source="message.originating_ip")
+
+    if bundle.url_analysis:
+        for index, item in enumerate(bundle.url_analysis, start=1):
+            add_ioc(
+                ioc_type="url",
+                value=item.normalized_url or item.original_url,
+                role="message_url",
+                source=f"url_analysis[{index}]",
+            )
+            add_ioc(
+                ioc_type="domain",
+                value=item.initial_domain,
+                role="message_url_domain",
+                source=f"url_analysis[{index}]",
+                derived=True,
+            )
+            if item.final_url and item.final_url != item.normalized_url:
+                add_ioc(
+                    ioc_type="url",
+                    value=item.final_url,
+                    role="resolved_url",
+                    source=f"url_analysis[{index}]",
+                    derived=True,
+                )
+            if item.final_domain:
+                add_ioc(
+                    ioc_type="domain",
+                    value=item.final_domain,
+                    role="resolved_url_domain",
+                    source=f"url_analysis[{index}]",
+                    derived=True,
+                )
+    else:
+        for index, item in enumerate(bundle.urls, start=1):
+            add_ioc(ioc_type="url", value=item, role="message_url", source=f"urls[{index}]")
+            add_ioc(ioc_type="domain", value=extract_url_domain(item), role="message_url_domain", source=f"urls[{index}]", derived=True)
+
+    for index, item in enumerate(bundle.attachments, start=1):
+        add_ioc(ioc_type="file_name", value=item.filename, role="attachment_name", source=f"attachments[{index}]")
+        add_ioc(ioc_type="file_hash_sha256", value=item.sha256, role="attachment_sha256", source=f"attachments[{index}]")
+
+    return sorted(items.values(), key=lambda item: (item.type, item.value))
+
+
 class EvidenceExportService:
     def __init__(self, db: Session):
         self.db = db
 
     def build_bundle(self, report: Report) -> EvidenceBundle:
+        auth_summary = build_auth_summary(report)
         attachments = (
             self.db.execute(
                 select(Attachment)
@@ -471,20 +643,52 @@ class EvidenceExportService:
                 if domain
             }
         )
+        attack_mapping = build_attack_mapping(
+            AttackMappingInput(
+                classification_code=classification_code,
+                status=report.status.value,
+                from_addr=report.from_addr,
+                reply_to=list(report.reply_to or []),
+                return_path=report.return_path,
+                urls=urls,
+                url_analysis=[
+                    {
+                        "original_url": item.original_url,
+                        "normalized_url": item.normalized_url,
+                        "final_url": item.final_url,
+                        "final_domain": item.final_domain,
+                        "domain_changed": item.domain_changed,
+                        "is_shortener": item.is_shortener,
+                        "suspicious_redirect": item.suspicious_redirect,
+                    }
+                    for item in url_analysis
+                ],
+                attachment_names=[item.filename for item in attachments if item.filename],
+                auth_spf_result=str((auth_summary.get("spf") or {}).get("result") or "unknown"),
+                auth_dkim_result=str((auth_summary.get("dkim") or {}).get("result") or "unknown"),
+                auth_dmarc_result=str((auth_summary.get("dmarc") or {}).get("result") or "unknown"),
+            )
+        )
 
-        return EvidenceBundle(
+        bundle = EvidenceBundle(
             report_id=report.id,
             subject=report.subject,
             ingest_source=report.ingest_source.value if report.ingest_source else None,
             generated_at=datetime.now(timezone.utc),
             created_at=report.created_at,
             received_at=report.received_at or report.date,
+            risk_score=report.risk_score,
             status=report.status.value,
             disposition=disposition,
             classification_code=classification_code,
             rationale_note=rationale_note,
             resolved_at=report.resolved_at,
             last_resolved_by=report.last_resolved_by,
+            campaign_id=report.campaign_id,
+            campaign_assignment_method=(
+                report.campaign_assignment_method.value if report.campaign_assignment_method else None
+            ),
+            campaign_assignment_score=report.campaign_assignment_score,
             from_addr=report.from_addr,
             from_domain=extract_email_domain(report.from_addr),
             reply_to=list(report.reply_to or []),
@@ -492,6 +696,7 @@ class EvidenceExportService:
             return_path_domain=extract_email_domain(report.return_path),
             originating_ip=report.originating_ip,
             message_id=report.message_id,
+            auth_summary=auth_summary,
             original_message=(
                 EvidenceOriginalMessage(
                     filename=report.original_filename,
@@ -506,6 +711,8 @@ class EvidenceExportService:
             urls=urls,
             url_domains=url_domains,
             url_analysis=url_analysis,
+            attack_mapping=attack_mapping,
+            iocs=[],
             flagged_artifacts=list(report.flagged_artifacts_json or []),
             attachments=[
                 EvidenceAttachment(
@@ -521,6 +728,8 @@ class EvidenceExportService:
             resolution_history=resolution_history,
             audit_trail=audit_trail,
         )
+        bundle.iocs = _build_iocs(bundle)
+        return bundle
 
     def render_markdown(self, bundle: EvidenceBundle) -> str:
         lines: list[str] = []
@@ -543,6 +752,31 @@ class EvidenceExportService:
         lines.append(f"- Resolution Note: {_md_escape(bundle.rationale_note)}")
         lines.append(f"- Resolved At (UTC): {_fmt_utc(bundle.resolved_at)}")
         lines.append(f"- Last Resolved By: {_md_escape(bundle.last_resolved_by)}")
+        lines.append("")
+        lines.append("## ATT&CK Mapping")
+        lines.append("")
+        lines.append(f"- Matrix: {_md_escape(bundle.attack_mapping.matrix)}")
+        lines.append(
+            f"- Tactics: {_md_escape(', '.join(bundle.attack_mapping.tactics) if bundle.attack_mapping.tactics else None)}"
+        )
+        if bundle.attack_mapping.techniques:
+            lines.append("- Techniques:")
+            for item in bundle.attack_mapping.techniques:
+                lines.append(
+                    f"  - `{item.technique_id}` {_md_escape(item.technique_name)} (confidence: `{item.confidence}`)"
+                )
+                for rationale in item.rationales:
+                    lines.append(f"    - {_md_escape(rationale)}")
+        else:
+            lines.append("- Techniques: -")
+        if bundle.attack_mapping.context_codes:
+            lines.append(
+                f"- Context Codes: {_md_escape(', '.join(bundle.attack_mapping.context_codes))}"
+            )
+        if bundle.attack_mapping.notes:
+            lines.append("- Notes:")
+            for note in bundle.attack_mapping.notes:
+                lines.append(f"  - {_md_escape(note)}")
         lines.append("")
         lines.append("## Artifacts")
         lines.append("")
@@ -726,6 +960,28 @@ class EvidenceExportService:
         ]:
             _pdf_kv_row(pdf, label, value)
 
+        _pdf_new_section_page(pdf, "ATT&CK Mapping")
+        _pdf_kv_row(pdf, "Matrix", bundle.attack_mapping.matrix)
+        _pdf_kv_row(pdf, "Tactics", ", ".join(bundle.attack_mapping.tactics) if bundle.attack_mapping.tactics else "-")
+        if bundle.attack_mapping.techniques:
+            for item in bundle.attack_mapping.techniques:
+                _pdf_subsection_title(pdf, f"{item.technique_id} - {item.technique_name}")
+                _pdf_kv_row(pdf, "Confidence", item.confidence)
+                _pdf_kv_row(pdf, "Reference", item.reference_url)
+                if item.rationales:
+                    _pdf_line(pdf, "Rationales")
+                    for rationale in item.rationales:
+                        _pdf_line(pdf, f"- {rationale}")
+                pdf.ln(1)
+        else:
+            _pdf_line(pdf, "-")
+        if bundle.attack_mapping.context_codes:
+            _pdf_kv_row(pdf, "Context Codes", ", ".join(bundle.attack_mapping.context_codes))
+        if bundle.attack_mapping.notes:
+            _pdf_line(pdf, "Notes")
+            for note in bundle.attack_mapping.notes:
+                _pdf_line(pdf, f"- {note}")
+
         _pdf_new_section_page(pdf, "Artifacts")
         _pdf_subsection_title(pdf, "Messaging")
         for label, value in [
@@ -858,6 +1114,98 @@ class EvidenceExportService:
         if isinstance(rendered, str):
             return rendered.encode("latin-1")
         return bytes(rendered)
+
+    def build_report_json_document(self, bundle: EvidenceBundle) -> dict[str, Any]:
+        return {
+            "schema_version": "triagent.investigation_bundle.v1",
+            "generated_at": _fmt_utc(bundle.generated_at),
+            "report": {
+                "id": bundle.report_id,
+                "subject": bundle.subject,
+                "ingest_source": bundle.ingest_source,
+                "created_at": _fmt_utc(bundle.created_at),
+                "received_at": _fmt_utc(bundle.received_at),
+                "risk_score": bundle.risk_score,
+                "status": bundle.status,
+                "disposition": bundle.disposition,
+                "classification_code": bundle.classification_code,
+                "rationale_note": bundle.rationale_note,
+                "resolved_at": _fmt_utc(bundle.resolved_at),
+                "last_resolved_by": bundle.last_resolved_by,
+                "campaign_id": bundle.campaign_id,
+                "campaign_assignment_method": bundle.campaign_assignment_method,
+                "campaign_assignment_score": bundle.campaign_assignment_score,
+            },
+            "message": {
+                "from_addr": bundle.from_addr,
+                "from_domain": bundle.from_domain,
+                "reply_to": bundle.reply_to,
+                "return_path": bundle.return_path,
+                "return_path_domain": bundle.return_path_domain,
+                "originating_ip": bundle.originating_ip,
+                "message_id": bundle.message_id,
+                "original_message": _json_compatible(bundle.original_message),
+            },
+            "authentication": _json_compatible(bundle.auth_summary),
+            "attack_mapping": _json_compatible(bundle.attack_mapping),
+            "artifacts": {
+                "urls": bundle.urls,
+                "url_domains": bundle.url_domains,
+                "url_analysis": _json_compatible(bundle.url_analysis),
+                "attachments": _json_compatible(bundle.attachments),
+                "flagged_artifacts": _json_compatible(bundle.flagged_artifacts),
+            },
+            "iocs": _json_compatible(bundle.iocs),
+            "resolution_history": _json_compatible(bundle.resolution_history),
+            "audit_trail": _json_compatible(bundle.audit_trail),
+        }
+
+    def render_report_json(self, bundle: EvidenceBundle) -> bytes:
+        payload = self.build_report_json_document(bundle)
+        return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False).encode("utf-8")
+
+    def build_ioc_document(self, bundle: EvidenceBundle) -> dict[str, Any]:
+        return {
+            "schema_version": "triagent.ioc_bundle.v1",
+            "generated_at": _fmt_utc(bundle.generated_at),
+            "report_id": bundle.report_id,
+            "classification_code": bundle.classification_code,
+            "disposition": bundle.disposition,
+            "iocs": _json_compatible(bundle.iocs),
+        }
+
+    def render_ioc_json(self, bundle: EvidenceBundle) -> bytes:
+        payload = self.build_ioc_document(bundle)
+        return json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False).encode("utf-8")
+
+    def render_ioc_csv(self, bundle: EvidenceBundle) -> bytes:
+        buffer = StringIO()
+        writer = csv.DictWriter(
+            buffer,
+            fieldnames=[
+                "type",
+                "value",
+                "roles",
+                "sources",
+                "derived",
+                "flagged_malicious",
+                "flag_labels",
+            ],
+        )
+        writer.writeheader()
+        for item in bundle.iocs:
+            writer.writerow(
+                {
+                    "type": item.type,
+                    "value": item.value,
+                    "roles": ";".join(item.roles),
+                    "sources": ";".join(item.sources),
+                    "derived": "true" if item.derived else "false",
+                    "flagged_malicious": "true" if item.flagged_malicious else "false",
+                    "flag_labels": ";".join(item.flag_labels),
+                }
+            )
+        return buffer.getvalue().encode("utf-8")
 
     @staticmethod
     def _campaign_disposition(status_counts: dict[str, int]) -> str:

@@ -1303,6 +1303,195 @@ p {
   background: var(--surface-2);
 }
 
+.attack-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.attack-summary-card,
+.attack-technique-card,
+.attack-empty-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 16px;
+}
+
+.attack-summary-header,
+.attack-technique-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.attack-summary-header h3,
+.attack-technique-header h3,
+.attack-empty-card h3,
+.attack-technique-block h4 {
+  margin: 0;
+}
+
+.attack-summary-header p,
+.attack-empty-card p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.attack-matrix-link,
+.attack-technique-link {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.attack-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.attack-summary-stat {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  padding: 12px 14px;
+}
+
+.attack-summary-stat strong {
+  display: block;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.attack-summary-stat span {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.attack-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.attack-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attack-pill-strong {
+  border-color: #99f6e4;
+  background: var(--primary-soft);
+  color: #0f766e;
+}
+
+.attack-pill-muted {
+  border-color: #e2e8f0;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.attack-meta-row {
+  margin-top: 14px;
+}
+
+.attack-meta-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.attack-technique-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.attack-confidence {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attack-confidence-high {
+  color: var(--success);
+  background: var(--success-soft);
+  border-color: #86efac;
+}
+
+.attack-confidence-medium {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.attack-confidence-low,
+.attack-confidence-unknown {
+  color: var(--text-muted);
+  background: var(--surface-2);
+}
+
+.attack-technique-block {
+  margin-top: 14px;
+}
+
+.attack-technique-block h4 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.attack-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.attack-list li + li {
+  margin-top: 6px;
+}
+
+.attack-evidence-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.attack-evidence-list code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .detail-mail-panel {
   display: flex;
   flex-direction: column;
@@ -1540,6 +1729,16 @@ p {
 
   .auth-detail-grid > div {
     padding-left: 0;
+  }
+
+  .attack-summary-header,
+  .attack-technique-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .attack-summary-stats {
+    grid-template-columns: 1fr;
   }
 }
 

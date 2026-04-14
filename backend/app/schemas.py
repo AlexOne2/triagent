@@ -212,6 +212,29 @@ class UrlAnalysisOut(BaseModel):
     redirect_chain: List[UrlRedirectHopOut] = Field(default_factory=list)
 
 
+class AttackEvidenceRefOut(BaseModel):
+    kind: str
+    value: str
+
+
+class AttackTechniqueMappingOut(BaseModel):
+    technique_id: str
+    technique_name: str
+    tactics: List[str] = Field(default_factory=list)
+    reference_url: str
+    confidence: str
+    rationales: List[str] = Field(default_factory=list)
+    evidence: List[AttackEvidenceRefOut] = Field(default_factory=list)
+
+
+class AttackMappingOut(BaseModel):
+    matrix: str
+    techniques: List[AttackTechniqueMappingOut] = Field(default_factory=list)
+    tactics: List[str] = Field(default_factory=list)
+    context_codes: List[str] = Field(default_factory=list)
+    notes: List[str] = Field(default_factory=list)
+
+
 class ReportOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -256,6 +279,7 @@ class ReportOut(BaseModel):
     campaign_assignment_score: Optional[float]
     campaign_assignment_explanation_json: Optional[Dict[str, Any]]
     auth_summary: Optional[ReportAuthSummaryOut] = None
+    attack_mapping: Optional[AttackMappingOut] = None
     created_at: datetime
 
 

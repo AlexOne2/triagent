@@ -286,6 +286,29 @@ export type UrlAnalysis = {
   redirect_chain: UrlRedirectHop[];
 };
 
+export type AttackEvidenceRef = {
+  kind: string;
+  value: string;
+};
+
+export type AttackTechniqueMapping = {
+  technique_id: string;
+  technique_name: string;
+  tactics: string[];
+  reference_url: string;
+  confidence: string;
+  rationales: string[];
+  evidence: AttackEvidenceRef[];
+};
+
+export type AttackMapping = {
+  matrix: string;
+  techniques: AttackTechniqueMapping[];
+  tactics: string[];
+  context_codes: string[];
+  notes: string[];
+};
+
 export type Report = {
   id: number;
   message_id?: string | null;
@@ -328,6 +351,7 @@ export type Report = {
   campaign_assignment_score?: number | null;
   campaign_assignment_explanation_json?: Record<string, unknown> | null;
   auth_summary?: ReportAuthSummary | null;
+  attack_mapping?: AttackMapping | null;
   created_at: string;
 };
 
@@ -864,7 +888,7 @@ async function downloadEvidence(path: string): Promise<EvidenceDownload> {
   };
 }
 
-async function downloadReportEvidence(reportId: number, extension: "md" | "pdf"): Promise<EvidenceDownload> {
+async function downloadReportEvidence(reportId: number, extension: "md" | "pdf" | "json"): Promise<EvidenceDownload> {
   return downloadEvidence(`/api/reports/${reportId}/evidence.${extension}`);
 }
 
@@ -874,6 +898,18 @@ export async function downloadReportEvidenceMarkdown(reportId: number): Promise<
 
 export async function downloadReportEvidencePdf(reportId: number): Promise<EvidenceDownload> {
   return downloadReportEvidence(reportId, "pdf");
+}
+
+export async function downloadReportEvidenceJson(reportId: number): Promise<EvidenceDownload> {
+  return downloadReportEvidence(reportId, "json");
+}
+
+export async function downloadReportIocsJson(reportId: number): Promise<EvidenceDownload> {
+  return downloadEvidence(`/api/reports/${reportId}/iocs.json`);
+}
+
+export async function downloadReportIocsCsv(reportId: number): Promise<EvidenceDownload> {
+  return downloadEvidence(`/api/reports/${reportId}/iocs.csv`);
 }
 
 export async function downloadCampaignEvidenceMarkdown(campaignId: number): Promise<EvidenceDownload> {

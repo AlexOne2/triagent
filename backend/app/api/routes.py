@@ -52,6 +52,7 @@ from app.schemas import (
     ResolveReportRequest,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
+from app.services.attack_mapping import AttackMappingInput, build_attack_mapping
 from app.services.auth_summary import build_auth_summary
 from app.services.campaign_clustering import CampaignClusteringService
 from app.services.campaign_service import CampaignService, CampaignServiceError
@@ -98,6 +99,11 @@ def _evidence_filename(report_id: int, extension: str) -> str:
 def _campaign_evidence_filename(campaign_id: int, extension: str) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
     return f"campaign-{campaign_id}-evidence-{stamp}.{extension}"
+
+
+def _report_ioc_filename(report_id: int, extension: str) -> str:
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return f"report-{report_id}-iocs-{stamp}.{extension}"
 
 
 def _download_content_disposition(filename: str | None, *, default: str) -> str:
@@ -381,7 +387,40 @@ def _serialize_resolution(event: ReportResolution) -> ReportResolutionOut:
 def _serialize_report(report: Report) -> ReportOut:
     payload = ReportOut.model_validate(report)
     url_analysis = report.url_analysis_json or build_static_url_analysis(report.urls_json or [])
-    return payload.model_copy(update={"auth_summary": build_auth_summary(report), "url_analysis_json": url_analysis})
+    auth_summary = build_auth_summary(report)
+    attack_mapping = build_attack_mapping(
+        AttackMappingInput(
+            classification_code=report.classification_code,
+            status=report.status.value,
+            from_addr=report.from_addr,
+            reply_to=list(report.reply_to or []),
+            return_path=report.return_path,
+            urls=[item for item in (report.urls_json or []) if item],
+            url_analysis=[
+                {
+                    "original_url": item.get("original_url"),
+                    "normalized_url": item.get("normalized_url"),
+                    "final_url": item.get("final_url"),
+                    "final_domain": item.get("final_domain"),
+                    "domain_changed": bool(item.get("domain_changed")),
+                    "is_shortener": bool(item.get("is_shortener")),
+                    "suspicious_redirect": bool(item.get("suspicious_redirect")),
+                }
+                for item in url_analysis
+            ],
+            attachment_names=[item.filename for item in report.attachments if item.filename],
+            auth_spf_result=str((auth_summary.get("spf") or {}).get("result") or "unknown"),
+            auth_dkim_result=str((auth_summary.get("dkim") or {}).get("result") or "unknown"),
+            auth_dmarc_result=str((auth_summary.get("dmarc") or {}).get("result") or "unknown"),
+        )
+    )
+    return payload.model_copy(
+        update={
+            "auth_summary": auth_summary,
+            "url_analysis_json": url_analysis,
+            "attack_mapping": attack_mapping,
+        }
+    )
 
 
 def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> tuple[Report, int]:
@@ -1445,6 +1484,49 @@ def get_report(
     return _serialize_report(report)
 
 
+@router.get("/reports/{report_id}/evidence.json")
+def export_report_evidence_json(
+    request: Request,
+    report_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.read")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    service = EvidenceExportService(db)
+    bundle = service.build_bundle(report)
+    content = service.render_report_json(bundle)
+
+    create_security_audit_event(
+        db,
+        action="REPORT_EVIDENCE_EXPORTED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "format": "json",
+            "resolution_count": len(bundle.resolution_history),
+            "attachment_count": len(bundle.attachments),
+            "ioc_count": len(bundle.iocs),
+            "attack_technique_count": len(bundle.attack_mapping.techniques),
+            "audit_event_count": len(bundle.audit_trail),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{_evidence_filename(report.id, "json")}"'},
+    )
+
+
 @router.get("/reports/{report_id}/evidence.md")
 def export_report_evidence_markdown(
     request: Request,
@@ -1524,6 +1606,86 @@ def export_report_evidence_pdf(
         content=content,
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{_evidence_filename(report.id, "pdf")}"'},
+    )
+
+
+@router.get("/reports/{report_id}/iocs.json")
+def export_report_iocs_json(
+    request: Request,
+    report_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.read")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    service = EvidenceExportService(db)
+    bundle = service.build_bundle(report)
+    content = service.render_ioc_json(bundle)
+
+    create_security_audit_event(
+        db,
+        action="REPORT_EVIDENCE_EXPORTED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "format": "iocs_json",
+            "ioc_count": len(bundle.iocs),
+            "attack_technique_count": len(bundle.attack_mapping.techniques),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+
+    return Response(
+        content=content,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{_report_ioc_filename(report.id, "json")}"'},
+    )
+
+
+@router.get("/reports/{report_id}/iocs.csv")
+def export_report_iocs_csv(
+    request: Request,
+    report_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.read")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    service = EvidenceExportService(db)
+    bundle = service.build_bundle(report)
+    content = service.render_ioc_csv(bundle)
+
+    create_security_audit_event(
+        db,
+        action="REPORT_EVIDENCE_EXPORTED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "format": "iocs_csv",
+            "ioc_count": len(bundle.iocs),
+            "attack_technique_count": len(bundle.attack_mapping.techniques),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+
+    return Response(
+        content=content,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{_report_ioc_filename(report.id, "csv")}"'},
     )
 
 

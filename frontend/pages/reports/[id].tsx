@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
+  AttackTechniqueMapping,
   Attachment,
   AuthStatus,
   FlaggedArtifact,
@@ -11,8 +12,11 @@ import {
   UrlResolutionStatus,
   deleteReport,
   downloadReportAttachment,
+  downloadReportEvidenceJson,
   downloadReportEvidenceMarkdown,
   downloadReportEvidencePdf,
+  downloadReportIocsCsv,
+  downloadReportIocsJson,
   downloadReportOriginalMessage,
   fetchReport,
   fetchReportAttachments,
@@ -218,6 +222,77 @@ function urlResolutionTone(status?: UrlResolutionStatus | null): "good" | "warn"
   return "neutral";
 }
 
+function attackConfidenceLabel(confidence?: string | null): string {
+  if (!confidence) return "Unknown";
+  return confidence.charAt(0).toUpperCase() + confidence.slice(1);
+}
+
+function attackConfidenceClass(confidence?: string | null): string {
+  const normalized = (confidence || "unknown").toLowerCase();
+  return `attack-confidence attack-confidence-${normalized}`;
+}
+
+function formatAttackEvidenceKind(kind: string): string {
+  return kind
+    .split(/[._]/)
+    .filter(Boolean)
+    .map((part) => {
+      if (part === "spf" || part === "dkim" || part === "dmarc" || part === "url") return part.toUpperCase();
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(" ");
+}
+
+type AttackTechniqueCardProps = {
+  technique: AttackTechniqueMapping;
+};
+
+function AttackTechniqueCard({ technique }: AttackTechniqueCardProps) {
+  return (
+    <section className="attack-technique-card">
+      <div className="attack-technique-header">
+        <div>
+          <a href={technique.reference_url} target="_blank" rel="noreferrer" className="attack-technique-link">
+            {technique.technique_id}
+          </a>
+          <h3>{technique.technique_name}</h3>
+        </div>
+        <span className={attackConfidenceClass(technique.confidence)}>{attackConfidenceLabel(technique.confidence)}</span>
+      </div>
+      <div className="attack-pill-list">
+        {technique.tactics.map((tactic) => (
+          <span key={tactic} className="attack-pill">
+            {tactic}
+          </span>
+        ))}
+      </div>
+      {technique.rationales.length > 0 ? (
+        <div className="attack-technique-block">
+          <h4>Why this maps</h4>
+          <ul className="attack-list">
+            {technique.rationales.map((rationale, index) => (
+              <li key={`${technique.technique_id}-rationale-${index}`}>{rationale}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {technique.evidence.length > 0 ? (
+        <div className="attack-technique-block">
+          <h4>Evidence used</h4>
+          <ul className="attack-list attack-evidence-list">
+            {technique.evidence.map((item, index) => (
+              <li key={`${technique.technique_id}-evidence-${item.kind}-${item.value}-${index}`}>
+                <span>{formatAttackEvidenceKind(item.kind)}</span>
+                <code>{item.value}</code>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function normalizeHeaderValues(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.map((item) => String(item)).filter(Boolean);
@@ -286,7 +361,7 @@ export default function ReportDetailPage() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<"md" | "pdf" | "json" | "iocs_json" | "iocs_csv" | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [stagedArtifactKeys, setStagedArtifactKeys] = useState<string[]>([]);
   const [xHeaderQuery, setXHeaderQuery] = useState("");
@@ -367,6 +442,7 @@ export default function ReportDetailPage() {
   const latestReport = report;
   const latestHeaders = (report?.headers_json as Record<string, unknown>) || {};
   const authSummary = report?.auth_summary;
+  const attackMapping = report?.attack_mapping;
   const spfRecord = extractRecord(authSummary?.raw_headers.received_spf || authSummary?.spf.raw, "spf");
   const dkimStatuses = authSummary?.dkim.signatures.map((signature) => signature.result) || [];
   const primarySignature = authSummary?.dkim.signatures[0];
@@ -632,17 +708,33 @@ export default function ReportDetailPage() {
     }
   };
 
-  const handleEvidenceExport = async (format: "md" | "pdf") => {
+  const handleEvidenceExport = async (format: "md" | "pdf" | "json" | "iocs_json" | "iocs_csv") => {
     if (!report || exportingFormat) return;
     setExportingFormat(format);
     setExportError(null);
     try {
-      const download =
-        format === "md" ? await downloadReportEvidenceMarkdown(report.id) : await downloadReportEvidencePdf(report.id);
+      let download;
+      if (format === "md") {
+        download = await downloadReportEvidenceMarkdown(report.id);
+      } else if (format === "pdf") {
+        download = await downloadReportEvidencePdf(report.id);
+      } else if (format === "json") {
+        download = await downloadReportEvidenceJson(report.id);
+      } else if (format === "iocs_json") {
+        download = await downloadReportIocsJson(report.id);
+      } else {
+        download = await downloadReportIocsCsv(report.id);
+      }
       const url = window.URL.createObjectURL(download.blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = download.filename || `report-${report.id}-evidence.${format}`;
+      link.download =
+        download.filename ||
+        (format === "iocs_json"
+          ? `report-${report.id}-iocs.json`
+          : format === "iocs_csv"
+            ? `report-${report.id}-iocs.csv`
+            : `report-${report.id}-evidence.${format}`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -828,6 +920,14 @@ export default function ReportDetailPage() {
                       <button
                         className="report-action-item"
                         type="button"
+                        onClick={() => void handleEvidenceExport("json")}
+                        disabled={!!exportingFormat || deleting}
+                      >
+                        {exportingFormat === "json" ? "Exporting JSON..." : "JSON bundle"}
+                      </button>
+                      <button
+                        className="report-action-item"
+                        type="button"
                         onClick={() => void handleEvidenceExport("pdf")}
                         disabled={!!exportingFormat || deleting}
                       >
@@ -840,6 +940,22 @@ export default function ReportDetailPage() {
                         disabled={!!exportingFormat || deleting}
                       >
                         {exportingFormat === "md" ? "Exporting Markdown..." : "Markdown"}
+                      </button>
+                      <button
+                        className="report-action-item"
+                        type="button"
+                        onClick={() => void handleEvidenceExport("iocs_json")}
+                        disabled={!!exportingFormat || deleting}
+                      >
+                        {exportingFormat === "iocs_json" ? "Exporting IOC JSON..." : "IOC JSON"}
+                      </button>
+                      <button
+                        className="report-action-item"
+                        type="button"
+                        onClick={() => void handleEvidenceExport("iocs_csv")}
+                        disabled={!!exportingFormat || deleting}
+                      >
+                        {exportingFormat === "iocs_csv" ? "Exporting IOC CSV..." : "IOC CSV"}
                       </button>
                     </div>
                   ) : null}
@@ -894,7 +1010,7 @@ export default function ReportDetailPage() {
       <section className="split report-detail-split">
         <div className="panel report-detail-panel">
           <div className="tabs report-detail-tabs">
-            {["Details", "Authentication", "URLs", "Attachments", "Transmission", "X-Headers"].map((tab) => (
+            {["Details", "Authentication", "ATT&CK", "URLs", "Attachments", "Transmission", "X-Headers"].map((tab) => (
               <button
                 key={tab}
                 className={`tab ${leftTab === tab ? "active" : ""}`}
@@ -1070,6 +1186,88 @@ export default function ReportDetailPage() {
                     .join("\n\n") || "No authentication headers found."}
                 </div>
               </details>
+            </div>
+          ) : null}
+
+          {leftTab === "ATT&CK" ? (
+            <div className="detail-section attack-tab">
+              <section className="attack-summary-card">
+                <div className="attack-summary-header">
+                  <div>
+                    <h3>{attackMapping?.matrix || "MITRE ATT&CK Enterprise"}</h3>
+                    <p>Derived from the current classification, URLs, attachments, authentication results, and sender metadata.</p>
+                  </div>
+                  <a
+                    href="https://attack.mitre.org/matrices/enterprise/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="attack-matrix-link"
+                  >
+                    Open matrix
+                  </a>
+                </div>
+                <div className="attack-summary-stats">
+                  <div className="attack-summary-stat">
+                    <strong>{attackMapping?.techniques.length || 0}</strong>
+                    <span>techniques</span>
+                  </div>
+                  <div className="attack-summary-stat">
+                    <strong>{attackMapping?.tactics.length || 0}</strong>
+                    <span>tactics</span>
+                  </div>
+                  <div className="attack-summary-stat">
+                    <strong>{attackMapping?.context_codes.length || 0}</strong>
+                    <span>context codes</span>
+                  </div>
+                </div>
+                {attackMapping?.tactics && attackMapping.tactics.length > 0 ? (
+                  <div className="attack-pill-list">
+                    {attackMapping.tactics.map((tactic) => (
+                      <span key={tactic} className="attack-pill attack-pill-strong">
+                        {tactic}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {attackMapping?.context_codes && attackMapping.context_codes.length > 0 ? (
+                  <div className="attack-meta-row">
+                    <span className="attack-meta-label">Classification context</span>
+                    <div className="attack-pill-list">
+                      {attackMapping.context_codes.map((code) => (
+                        <span key={code} className="attack-pill attack-pill-muted">
+                          {code}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {attackMapping?.notes && attackMapping.notes.length > 0 ? (
+                  <div className="attack-technique-block">
+                    <h4>Notes</h4>
+                    <ul className="attack-list">
+                      {attackMapping.notes.map((note, index) => (
+                        <li key={`attack-note-${index}`}>{note}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </section>
+
+              {attackMapping?.techniques && attackMapping.techniques.length > 0 ? (
+                <div className="attack-technique-list">
+                  {attackMapping.techniques.map((technique) => (
+                    <AttackTechniqueCard key={technique.technique_id} technique={technique} />
+                  ))}
+                </div>
+              ) : (
+                <section className="attack-empty-card">
+                  <h3>No ATT&CK technique mapped</h3>
+                  <p>
+                    This report does not currently have enough delivery or deception evidence to assert a concrete ATT&CK
+                    technique beyond its analyst classification.
+                  </p>
+                </section>
+              )}
             </div>
           ) : null}
 

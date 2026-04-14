@@ -189,8 +189,13 @@ npx office-addin-dev-certs install
 - `GET /api/reports`
 - `GET /api/reports/{report_id}`
 - `GET /api/reports/{report_id}/attachments`
+- `GET /api/reports/{report_id}/attachments/{attachment_id}/download`
+- `GET /api/reports/{report_id}/original-message/download`
+- `GET /api/reports/{report_id}/evidence.json`
 - `GET /api/reports/{report_id}/evidence.md`
 - `GET /api/reports/{report_id}/evidence.pdf`
+- `GET /api/reports/{report_id}/iocs.json`
+- `GET /api/reports/{report_id}/iocs.csv`
 - `PATCH /api/reports/{report_id}` (admin override)
 - `POST /api/reports/{report_id}/resolve`
 - `POST /api/reports/{report_id}/reopen`
