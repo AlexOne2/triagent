@@ -13,6 +13,7 @@ import {
   downloadReportAttachment,
   downloadReportEvidenceMarkdown,
   downloadReportEvidencePdf,
+  downloadReportOriginalMessage,
   fetchReport,
   fetchReportAttachments,
   fetchReportResolutions,
@@ -142,6 +143,20 @@ function attachmentTypeLabel(attachment: Attachment): string {
   return attachment.content_type || "unknown";
 }
 
+function originalMessageTypeLabel(report: Report): string {
+  const filename = report.original_filename?.toLowerCase() || "";
+  if (filename.endsWith(".eml")) return "EML";
+  if (filename.endsWith(".msg")) return "MSG";
+
+  const contentType = report.original_content_type?.toLowerCase() || "";
+  if (contentType === "message/rfc822") return "EML";
+  if (contentType === "application/vnd.ms-outlook") return "MSG";
+
+  const extension = report.original_filename?.split(".").pop()?.trim();
+  if (extension) return extension.toUpperCase();
+  return report.original_content_type || "unknown";
+}
+
 type TransmissionHop = {
   index: number;
   raw: string;
@@ -266,6 +281,7 @@ export default function ReportDetailPage() {
   const [attachmentsError, setAttachmentsError] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<number | null>(null);
+  const [downloadingOriginalMessage, setDownloadingOriginalMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
@@ -656,7 +672,7 @@ export default function ReportDetailPage() {
   const handleDeleteReport = async () => {
     if (!report || deleting) return;
     const confirmed = window.confirm(
-      `Delete report #${report.id}? This will remove the upload, its attachments, and resolution history.`,
+      `Delete report #${report.id}? This will remove the original upload, its attachments, and resolution history.`,
     );
     if (!confirmed) return;
 
@@ -694,6 +710,29 @@ export default function ReportDetailPage() {
       setError(err instanceof Error ? err.message : "Failed to download attachment.");
     } finally {
       setDownloadingAttachmentId(null);
+    }
+  };
+
+  const handleDownloadOriginalMessage = async () => {
+    if (!report || !report.has_original_message || downloadingOriginalMessage) return;
+    setDownloadingOriginalMessage(true);
+    setError(null);
+    setActionsMenuOpen(false);
+    setDownloadMenuOpen(false);
+    try {
+      const download = await downloadReportOriginalMessage(report.id, report.original_filename);
+      const url = window.URL.createObjectURL(download.blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = download.filename || report.original_filename || "original-message.bin";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to download original message.");
+    } finally {
+      setDownloadingOriginalMessage(false);
     }
   };
 
@@ -778,6 +817,14 @@ export default function ReportDetailPage() {
                   </button>
                   {downloadMenuOpen ? (
                     <div className="report-action-submenu-popout" role="menu">
+                      <button
+                        className="report-action-item"
+                        type="button"
+                        onClick={() => void handleDownloadOriginalMessage()}
+                        disabled={!report.has_original_message || downloadingOriginalMessage || deleting}
+                      >
+                        {downloadingOriginalMessage ? "Downloading original..." : "Original sample"}
+                      </button>
                       <button
                         className="report-action-item"
                         type="button"
@@ -1425,8 +1472,47 @@ export default function ReportDetailPage() {
           ) : null}
 
           {rightTab === "Source" ? (
-            <div className="mono detail-mono detail-section">
-              {latestReport?.raw_source || "No raw source captured."}
+            <div className="detail-section source-tab">
+              <section className="source-card">
+                <div className="source-card-header">
+                  <div>
+                    <h3>Original message</h3>
+                    <p>The exact uploaded sample preserved during ingest.</p>
+                  </div>
+                  <button
+                    className="resolve-button secondary"
+                    type="button"
+                    onClick={() => void handleDownloadOriginalMessage()}
+                    disabled={!latestReport?.has_original_message || downloadingOriginalMessage}
+                  >
+                    {downloadingOriginalMessage ? "Downloading..." : "Download original sample"}
+                  </button>
+                </div>
+                <div className="kv detail-kv source-card-grid">
+                  <label>Filename</label>
+                  <div>{displayFieldValue(latestReport?.original_filename)}</div>
+                  <label>File type</label>
+                  <div>{latestReport ? originalMessageTypeLabel(latestReport) : "unknown"}</div>
+                  <label>Content type</label>
+                  <div>{displayFieldValue(latestReport?.original_content_type)}</div>
+                  <label>File size</label>
+                  <div>{formatAttachmentSize(latestReport?.original_size_bytes)}</div>
+                  <label>SHA-256</label>
+                  <div>{displayFieldValue(latestReport?.original_sha256)}</div>
+                </div>
+              </section>
+
+              <section className="source-card">
+                <div className="source-card-header">
+                  <div>
+                    <h3>Raw source</h3>
+                    <p>Decoded source content used for inline inspection.</p>
+                  </div>
+                </div>
+                <div className="mono detail-mono source-card-mono">
+                  {latestReport?.raw_source || "No raw source captured."}
+                </div>
+              </section>
             </div>
           ) : null}
         </div>

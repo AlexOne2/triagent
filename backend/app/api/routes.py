@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from email.utils import parseaddr
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
@@ -58,7 +59,7 @@ from app.services.auth import create_security_audit_event
 from app.services.eml_parser import parse_eml
 from app.services.evidence_export import EvidenceExportService
 from app.services.msg_parser import MsgParseError, parse_msg
-from app.services.object_storage import ObjectStorageError, ObjectStorageService
+from app.services.object_storage import ObjectStorageError, ObjectStorageService, normalize_filename, sanitize_filename
 from app.services.url_resolution import build_static_url_analysis, build_url_analysis, extract_url_domain, resolved_urls_for_scoring
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -99,6 +100,34 @@ def _campaign_evidence_filename(campaign_id: int, extension: str) -> str:
     return f"campaign-{campaign_id}-evidence-{stamp}.{extension}"
 
 
+def _download_content_disposition(filename: str | None, *, default: str) -> str:
+    normalized = normalize_filename(filename, default=default)
+    fallback = sanitize_filename(normalized, default=default)
+    encoded = quote(normalized, safe="")
+    return f'attachment; filename="{fallback}"; filename*=UTF-8\'\'{encoded}'
+
+
+def _default_original_message_filename(filename: str | None, *, file_type: str) -> str:
+    normalized_type = file_type.lower()
+    if normalized_type == "eml":
+        return normalize_filename(filename, default="message.eml")
+    if normalized_type == "msg":
+        return normalize_filename(filename, default="message.msg")
+    return normalize_filename(filename, default="original-message.bin")
+
+
+def _original_message_content_type(filename: str | None, content_type: str | None, *, file_type: str) -> str:
+    if content_type and content_type.strip() and content_type.strip().lower() != "application/octet-stream":
+        return content_type
+    normalized_type = file_type.lower()
+    lowered_filename = (filename or "").lower()
+    if normalized_type == "eml" or lowered_filename.endswith(".eml"):
+        return "message/rfc822"
+    if normalized_type == "msg" or lowered_filename.endswith(".msg"):
+        return "application/vnd.ms-outlook"
+    return "application/octet-stream"
+
+
 def _normalize_email(value: str | None) -> str | None:
     if not value:
         return None
@@ -119,7 +148,8 @@ def _store_report_attachments(
     report_id: int,
     parsed_attachments: list[object],
     storage: ObjectStorageService,
-) -> None:
+) -> list[str]:
+    stored_keys: list[str] = []
     for parsed_attachment in parsed_attachments:
         stored = storage.put_attachment(
             report_id=report_id,
@@ -127,6 +157,7 @@ def _store_report_attachments(
             content_type=parsed_attachment.content_type,
             data=parsed_attachment.data,
         )
+        stored_keys.append(str(stored["s3_key"]))
         db.add(
             Attachment(
                 report_id=report_id,
@@ -137,6 +168,48 @@ def _store_report_attachments(
                 s3_key=stored["s3_key"],
             )
         )
+    return stored_keys
+
+
+def _store_original_message(
+    *,
+    report: Report,
+    raw_bytes: bytes,
+    filename: str | None,
+    content_type: str | None,
+    file_type: str,
+    storage: ObjectStorageService,
+) -> str:
+    stored = storage.put_original_message(
+        report_id=report.id,
+        filename=_default_original_message_filename(filename, file_type=file_type),
+        content_type=_original_message_content_type(filename, content_type, file_type=file_type),
+        data=raw_bytes,
+    )
+    report.original_filename = str(stored["filename"])
+    report.original_content_type = str(stored["content_type"])
+    report.original_size_bytes = int(stored["size_bytes"])
+    report.original_sha256 = str(stored["sha256"])
+    report.original_s3_key = str(stored["s3_key"])
+    return report.original_s3_key
+
+
+def _cleanup_stored_artifacts(
+    *,
+    storage: ObjectStorageService,
+    original_s3_key: str | None,
+    attachment_s3_keys: list[str],
+) -> None:
+    for s3_key in attachment_s3_keys:
+        try:
+            storage.delete_attachment(s3_key)
+        except ObjectStorageError:
+            continue
+    if original_s3_key:
+        try:
+            storage.delete_original_message(original_s3_key)
+        except ObjectStorageError:
+            pass
 
 
 def _normalize_artifact_value(kind: ArtifactKind, value: str) -> str:
@@ -418,9 +491,34 @@ async def create_report_from_eml(
 ):
     raw_bytes = await file.read()
     try:
-        parsed = parse_eml(raw_bytes)
-        payload = ReportCreate(**parsed)
+        parsed_report, parsed_attachments = parse_eml(raw_bytes)
+        payload = ReportCreate(**parsed_report)
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        storage = ObjectStorageService()
+        original_s3_key = None
+        attachment_s3_keys: list[str] = []
+        try:
+            original_s3_key = _store_original_message(
+                report=report,
+                raw_bytes=raw_bytes,
+                filename=file.filename,
+                content_type=file.content_type,
+                file_type="eml",
+                storage=storage,
+            )
+            attachment_s3_keys = _store_report_attachments(
+                db=db,
+                report_id=report.id,
+                parsed_attachments=parsed_attachments,
+                storage=storage,
+            )
+        except ObjectStorageError:
+            _cleanup_stored_artifacts(
+                storage=storage,
+                original_s3_key=original_s3_key,
+                attachment_s3_keys=attachment_s3_keys,
+            )
+            raise
         campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
             db,
@@ -432,6 +530,8 @@ async def create_report_from_eml(
                 "ingest_source": IngestSource.UPLOAD.value,
                 "risk_score": risk_score,
                 "file_type": "eml",
+                "attachment_count": len(parsed_attachments),
+                "has_original_message": bool(report.original_s3_key),
                 "campaign_id": campaign_id,
             },
             actor_user_id=principal.user_id,
@@ -440,6 +540,9 @@ async def create_report_from_eml(
             request_meta=request_meta(request),
         )
         db.commit()
+    except ObjectStorageError as exc:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Artifact storage is unavailable") from exc
     except Exception:
         db.rollback()
         raise
@@ -464,12 +567,30 @@ async def create_report_from_msg(
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
 
         storage = ObjectStorageService()
-        _store_report_attachments(
-            db=db,
-            report_id=report.id,
-            parsed_attachments=parsed_attachments,
-            storage=storage,
-        )
+        original_s3_key = None
+        attachment_s3_keys: list[str] = []
+        try:
+            original_s3_key = _store_original_message(
+                report=report,
+                raw_bytes=raw_bytes,
+                filename=file.filename,
+                content_type=file.content_type,
+                file_type="msg",
+                storage=storage,
+            )
+            attachment_s3_keys = _store_report_attachments(
+                db=db,
+                report_id=report.id,
+                parsed_attachments=parsed_attachments,
+                storage=storage,
+            )
+        except ObjectStorageError:
+            _cleanup_stored_artifacts(
+                storage=storage,
+                original_s3_key=original_s3_key,
+                attachment_s3_keys=attachment_s3_keys,
+            )
+            raise
 
         campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
@@ -483,6 +604,7 @@ async def create_report_from_msg(
                 "risk_score": risk_score,
                 "file_type": "msg",
                 "attachment_count": len(parsed_attachments),
+                "has_original_message": bool(report.original_s3_key),
                 "campaign_id": campaign_id,
             },
             actor_user_id=principal.user_id,
@@ -496,7 +618,7 @@ async def create_report_from_msg(
         raise HTTPException(status_code=400, detail="Invalid or unsupported .msg file") from exc
     except ObjectStorageError as exc:
         db.rollback()
-        raise HTTPException(status_code=503, detail="Attachment storage is unavailable") from exc
+        raise HTTPException(status_code=503, detail="Artifact storage is unavailable") from exc
     except HTTPException:
         db.rollback()
         raise
@@ -509,6 +631,7 @@ async def create_report_from_msg(
 def _ingest_uploaded_bytes(
     *,
     file_name: str,
+    content_type: str | None,
     raw_bytes: bytes,
     db: Session,
     principal: Principal,
@@ -520,12 +643,30 @@ def _ingest_uploaded_bytes(
         payload = ReportCreate(**parsed_report)
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
         storage = ObjectStorageService()
-        _store_report_attachments(
-            db=db,
-            report_id=report.id,
-            parsed_attachments=parsed_attachments,
-            storage=storage,
-        )
+        original_s3_key = None
+        attachment_s3_keys: list[str] = []
+        try:
+            original_s3_key = _store_original_message(
+                report=report,
+                raw_bytes=raw_bytes,
+                filename=file_name,
+                content_type=content_type,
+                file_type="eml",
+                storage=storage,
+            )
+            attachment_s3_keys = _store_report_attachments(
+                db=db,
+                report_id=report.id,
+                parsed_attachments=parsed_attachments,
+                storage=storage,
+            )
+        except ObjectStorageError:
+            _cleanup_stored_artifacts(
+                storage=storage,
+                original_s3_key=original_s3_key,
+                attachment_s3_keys=attachment_s3_keys,
+            )
+            raise
         campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
             db,
@@ -538,6 +679,7 @@ def _ingest_uploaded_bytes(
                 "risk_score": risk_score,
                 "file_type": "eml",
                 "attachment_count": len(parsed_attachments),
+                "has_original_message": bool(report.original_s3_key),
                 "campaign_id": campaign_id,
             },
             actor_user_id=principal.user_id,
@@ -552,12 +694,30 @@ def _ingest_uploaded_bytes(
         payload = ReportCreate(**parsed_report)
         report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
         storage = ObjectStorageService()
-        _store_report_attachments(
-            db=db,
-            report_id=report.id,
-            parsed_attachments=parsed_attachments,
-            storage=storage,
-        )
+        original_s3_key = None
+        attachment_s3_keys: list[str] = []
+        try:
+            original_s3_key = _store_original_message(
+                report=report,
+                raw_bytes=raw_bytes,
+                filename=file_name,
+                content_type=content_type,
+                file_type="msg",
+                storage=storage,
+            )
+            attachment_s3_keys = _store_report_attachments(
+                db=db,
+                report_id=report.id,
+                parsed_attachments=parsed_attachments,
+                storage=storage,
+            )
+        except ObjectStorageError:
+            _cleanup_stored_artifacts(
+                storage=storage,
+                original_s3_key=original_s3_key,
+                attachment_s3_keys=attachment_s3_keys,
+            )
+            raise
 
         campaign_id = _assign_campaign(db, report, principal)
         create_security_audit_event(
@@ -571,6 +731,7 @@ def _ingest_uploaded_bytes(
                 "risk_score": risk_score,
                 "file_type": "msg",
                 "attachment_count": len(parsed_attachments),
+                "has_original_message": bool(report.original_s3_key),
                 "campaign_id": campaign_id,
             },
             actor_user_id=principal.user_id,
@@ -603,6 +764,7 @@ async def create_reports_from_files(
         try:
             result = _ingest_uploaded_bytes(
                 file_name=file_name,
+                content_type=upload.content_type,
                 raw_bytes=raw_bytes,
                 db=db,
                 principal=principal,
@@ -688,7 +850,7 @@ async def create_reports_from_files(
                     filename=file_name,
                     status="FAILED",
                     error_code="storage_unavailable",
-                    error_message="Attachment storage is unavailable",
+                    error_message="Artifact storage is unavailable",
                 )
             )
         except Exception:
@@ -792,7 +954,34 @@ def download_report_attachment(
     return Response(
         content=content,
         media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": _download_content_disposition(filename, default="attachment.bin")},
+    )
+
+
+@router.get("/reports/{report_id}/original-message/download")
+def download_report_original_message(
+    report_id: int,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission("reports.read")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if not report.original_s3_key:
+        raise HTTPException(status_code=404, detail="Original message not found")
+
+    storage = ObjectStorageService()
+    try:
+        content = storage.get_original_message(report.original_s3_key)
+    except ObjectStorageError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    filename = report.original_filename or "original-message.bin"
+    media_type = report.original_content_type or "application/octet-stream"
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": _download_content_disposition(filename, default="original-message.bin")},
     )
 
 
@@ -1546,11 +1735,14 @@ def delete_report(
         raise HTTPException(status_code=404, detail="Report not found")
 
     attachment_count = len(report.attachments or [])
+    has_original_message = bool(report.original_s3_key)
     storage = ObjectStorageService(get_settings())
     try:
         for attachment in report.attachments or []:
             if attachment.s3_key:
                 storage.delete_attachment(attachment.s3_key)
+        if report.original_s3_key:
+            storage.delete_original_message(report.original_s3_key)
     except ObjectStorageError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -1563,6 +1755,7 @@ def delete_report(
         target_id=str(report_id),
         metadata={
             "attachment_count": attachment_count,
+            "has_original_message": has_original_message,
         },
         actor_user_id=principal.user_id,
         actor_api_key_id=principal.api_key_id,

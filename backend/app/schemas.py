@@ -232,6 +232,11 @@ class ReportOut(BaseModel):
     reporter_hash: Optional[str]
     mailbox_domain: Optional[str]
     raw_source: Optional[str]
+    original_filename: Optional[str]
+    original_content_type: Optional[str]
+    original_size_bytes: Optional[int]
+    original_sha256: Optional[str]
+    has_original_message: bool = False
     sender: Optional[str]
     reply_to: Optional[List[str]]
     in_reply_to: Optional[str]

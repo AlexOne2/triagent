@@ -92,6 +92,11 @@ class Report(Base):
     reporter_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
     mailbox_domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
     raw_source: Mapped[str | None] = mapped_column(Text, nullable=True)
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    original_content_type: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    original_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    original_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    original_s3_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     risk_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     status: Mapped[ReportStatus] = mapped_column(
         Enum(ReportStatus, name="report_status"), default=ReportStatus.OPEN, nullable=False
@@ -127,3 +132,7 @@ class Report(Base):
     resolutions = relationship("ReportResolution", back_populates="report", cascade="all, delete-orphan")
     campaign = relationship("Campaign", back_populates="reports", foreign_keys=[campaign_id])
     feature = relationship("ReportFeature", back_populates="report", uselist=False, cascade="all, delete-orphan")
+
+    @property
+    def has_original_message(self) -> bool:
+        return bool(self.original_s3_key)

@@ -996,6 +996,52 @@ p {
   padding: 14px 16px;
 }
 
+.source-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.source-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.source-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.source-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.source-card-header p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.source-card-grid {
+  font-size: 14px;
+}
+
+.source-card-mono {
+  padding: 16px;
+  max-height: 420px;
+  overflow: auto;
+  border: 0;
+}
+
 .detail-auth {
   padding: 10px 14px 14px;
   display: flex;

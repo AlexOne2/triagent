@@ -3,6 +3,16 @@ import Link from "next/link";
 import { Report, fetchReports } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 
+const sortReportsByCreatedAtDesc = (items: Report[]) =>
+  [...items].sort((left, right) => {
+    const leftTime = new Date(left.created_at).getTime();
+    const rightTime = new Date(right.created_at).getTime();
+    if (leftTime !== rightTime) {
+      return rightTime - leftTime;
+    }
+    return right.id - left.id;
+  });
+
 export default function InTray() {
   const { hasPermission } = useAuth();
   const canRead = hasPermission("reports.read");
@@ -20,7 +30,7 @@ export default function InTray() {
     fetchReports(query, undefined, "AUTO")
       .then((data) => {
         if (!active) return;
-        setReports(data);
+        setReports(sortReportsByCreatedAtDesc(data));
       })
       .finally(() => {
         if (!active) return;

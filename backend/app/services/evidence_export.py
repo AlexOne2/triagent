@@ -30,6 +30,15 @@ class EvidenceAttachment:
 
 
 @dataclass
+class EvidenceOriginalMessage:
+    filename: str | None
+    content_type: str | None
+    size_bytes: int | None
+    sha256: str | None
+    storage_key: str | None
+
+
+@dataclass
 class EvidenceUrlHop:
     index: int
     url: str
@@ -98,6 +107,7 @@ class EvidenceBundle:
     return_path_domain: str | None
     originating_ip: str | None
     message_id: str | None
+    original_message: EvidenceOriginalMessage | None
     urls: list[str]
     url_domains: list[str]
     url_analysis: list[EvidenceUrl]
@@ -482,6 +492,17 @@ class EvidenceExportService:
             return_path_domain=extract_email_domain(report.return_path),
             originating_ip=report.originating_ip,
             message_id=report.message_id,
+            original_message=(
+                EvidenceOriginalMessage(
+                    filename=report.original_filename,
+                    content_type=report.original_content_type,
+                    size_bytes=report.original_size_bytes,
+                    sha256=report.original_sha256,
+                    storage_key=report.original_s3_key,
+                )
+                if report.original_s3_key
+                else None
+            ),
             urls=urls,
             url_domains=url_domains,
             url_analysis=url_analysis,
@@ -534,6 +555,19 @@ class EvidenceExportService:
         lines.append(f"- Return-Path Domain: {_md_escape(bundle.return_path_domain)}")
         lines.append(f"- Originating IP: {_md_escape(bundle.originating_ip)}")
         lines.append(f"- Message-ID: {_md_escape(bundle.message_id)}")
+        lines.append("")
+        lines.append("### Original Message")
+        lines.append("")
+        if bundle.original_message:
+            lines.append(f"- Filename: {_md_escape(bundle.original_message.filename)}")
+            lines.append(f"- Content Type: {_md_escape(bundle.original_message.content_type)}")
+            lines.append(
+                f"- Size (bytes): {_md_escape(str(bundle.original_message.size_bytes) if bundle.original_message.size_bytes is not None else None)}"
+            )
+            lines.append(f"- SHA-256: {_md_escape(bundle.original_message.sha256)}")
+            lines.append(f"- Storage Key: {_md_escape(bundle.original_message.storage_key)}")
+        else:
+            lines.append("- -")
         lines.append("")
         lines.append("### URLs")
         lines.append("")
@@ -704,6 +738,20 @@ class EvidenceExportService:
             ("Message-ID", bundle.message_id),
         ]:
             _pdf_kv_row(pdf, label, value)
+
+        pdf.ln(1)
+        _pdf_subsection_title(pdf, "Original Message")
+        if bundle.original_message:
+            for label, value in [
+                ("Filename", bundle.original_message.filename),
+                ("Content Type", bundle.original_message.content_type),
+                ("Size", _fmt_attachment_size(bundle.original_message.size_bytes)),
+                ("SHA-256", bundle.original_message.sha256),
+                ("Storage Key", bundle.original_message.storage_key),
+            ]:
+                _pdf_kv_row(pdf, label, value)
+        else:
+            _pdf_line(pdf, "-")
 
         pdf.ln(1)
         _pdf_subsection_title(pdf, "URLs")

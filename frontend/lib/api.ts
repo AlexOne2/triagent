@@ -304,6 +304,11 @@ export type Report = {
   reporter_hash?: string | null;
   mailbox_domain?: string | null;
   raw_source?: string | null;
+  original_filename?: string | null;
+  original_content_type?: string | null;
+  original_size_bytes?: number | null;
+  original_sha256?: string | null;
+  has_original_message: boolean;
   sender?: string | null;
   reply_to?: string[] | null;
   in_reply_to?: string | null;
@@ -683,7 +688,37 @@ export async function downloadReportAttachment(
 
   return {
     blob: await res.blob(),
-    filename: filename || "attachment.bin",
+    filename: parseDownloadFilename(res) || filename || "attachment.bin",
+  };
+}
+
+export async function downloadReportOriginalMessage(
+  reportId: number,
+  filename?: string | null
+): Promise<EvidenceDownload> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BASE_URL}/api/reports/${reportId}/original-message/download`, {
+    method: "GET",
+    headers,
+  });
+
+  if (res.status === 401 && unauthorizedHandler) {
+    unauthorizedHandler();
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `Original message download failed: ${res.status}`);
+  }
+
+  return {
+    blob: await res.blob(),
+    filename: parseDownloadFilename(res) || filename || "original-message.bin",
   };
 }
 
@@ -786,6 +821,23 @@ type EvidenceDownload = {
   filename: string | null;
 };
 
+function parseDownloadFilename(res: Response): string | null {
+  const disposition = res.headers.get("content-disposition") || "";
+  const encodedMatch = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1]);
+    } catch {
+      return encodedMatch[1];
+    }
+  }
+  const quotedMatch = disposition.match(/filename=\"([^\"]+)\"/i);
+  if (quotedMatch?.[1]) {
+    return quotedMatch[1];
+  }
+  return null;
+}
+
 async function downloadEvidence(path: string): Promise<EvidenceDownload> {
   const token = getAccessToken();
   const headers: Record<string, string> = {};
@@ -806,11 +858,9 @@ async function downloadEvidence(path: string): Promise<EvidenceDownload> {
     const text = await res.text();
     throw new Error(text || `Export failed: ${res.status}`);
   }
-  const disposition = res.headers.get("content-disposition") || "";
-  const filenameMatch = disposition.match(/filename=\"([^\"]+)\"/i);
   return {
     blob: await res.blob(),
-    filename: filenameMatch ? filenameMatch[1] : null,
+    filename: parseDownloadFilename(res),
   };
 }
 
