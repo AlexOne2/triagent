@@ -529,23 +529,24 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 .copy-inline-button svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .copy-inline-button:hover {
   color: var(--primary);
+  transform: scale(1.05);
 }
 
 .copy-inline-button.copied {
@@ -1257,27 +1258,32 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border: 0;
   background: transparent;
   color: #94a3b8;
+  opacity: 0.72;
   cursor: pointer;
-  transition: color 0.15s ease, opacity 0.15s ease;
+  transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 
 .flag-toggle svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
 }
 
 .flag-toggle:hover {
   color: var(--primary);
+  opacity: 1;
+  transform: scale(1.06);
 }
 
 .flag-toggle.active {
-  color: var(--primary);
+  color: var(--warning);
+  opacity: 1;
+  transform: scale(1.08);
 }
 
 .auth-empty {

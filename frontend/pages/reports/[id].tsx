@@ -194,7 +194,7 @@ function CheckIcon() {
   );
 }
 
-function FlagIcon() {
+function FlagIcon({ active = false }: { active?: boolean }) {
   return (
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M4 13.5V2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
@@ -204,6 +204,8 @@ function FlagIcon() {
         strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
+        fill={active ? "currentColor" : "none"}
+        fillOpacity={active ? 0.2 : 0}
       />
     </svg>
   );
@@ -723,7 +725,7 @@ export default function ReportDetailPage() {
         title={active ? "Marked for flagging" : "Flag this field"}
         onClick={() => toggleArtifact(artifact)}
       >
-        <FlagIcon />
+        <FlagIcon active={active} />
       </button>
     );
   };
