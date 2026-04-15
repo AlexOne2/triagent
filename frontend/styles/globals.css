@@ -1309,9 +1309,23 @@ p {
   gap: 14px;
 }
 
+.lookalike-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .attack-summary-card,
 .attack-technique-card,
 .attack-empty-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 16px;
+}
+
+.lookalike-summary-card,
+.lookalike-match-card {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
@@ -1326,6 +1340,14 @@ p {
   gap: 16px;
 }
 
+.lookalike-summary-header,
+.lookalike-match-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .attack-summary-header h3,
 .attack-technique-header h3,
 .attack-empty-card h3,
@@ -1333,8 +1355,21 @@ p {
   margin: 0;
 }
 
+.lookalike-summary-header h3,
+.lookalike-match-header h3 {
+  margin: 0;
+}
+
 .attack-summary-header p,
 .attack-empty-card p {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.lookalike-summary-header p,
+.lookalike-match-header p,
+.lookalike-summary-copy {
   margin: 6px 0 0;
   color: var(--text-muted);
   line-height: 1.5;
@@ -1372,6 +1407,28 @@ p {
   margin-top: 6px;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.lookalike-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.lookalike-match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lookalike-reasons {
+  margin-top: 14px;
+}
+
+.lookalike-reasons strong {
+  display: block;
+  margin-bottom: 8px;
 }
 
 .attack-pill-list {

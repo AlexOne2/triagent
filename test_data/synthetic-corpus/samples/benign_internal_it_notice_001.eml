@@ -17,16 +17,16 @@ DKIM-Signature: v=1; a=rsa-sha256; d=contoso.example; s=mail;
  c=relaxed/relaxed; bh=kkk111; b=lll222;
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============0940615582091411895=="
+ boundary="===============8325774548304498353=="
 
---===============0940615582091411895==
+--===============8325774548304498353==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 VPN maintenance will take place tonight from 22:00 to 23:00 UTC. No action is=
  required.
 
---===============0940615582091411895==
+--===============8325774548304498353==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -34,4 +34,4 @@ MIME-Version: 1.0
 <html><body><p>VPN maintenance will take place tonight from 22:00 to 23:00 UT=
 C. No action is required.</p></body></html>
 
---===============0940615582091411895==--
+--===============8325774548304498353==--

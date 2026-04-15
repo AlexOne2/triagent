@@ -14,23 +14,23 @@ Received-SPF: fail (mx.contoso.example: domain of freight-docs.example does
  not designate 198.51.100.88 as permitted sender) client-ip=198.51.100.88;
  envelope-from=billing@freight-docs.example; helo=relay.freight-docs.example
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============5429435013666732717=="
+Content-Type: multipart/mixed; boundary="===============5697158316233235942=="
 
---===============5429435013666732717==
+--===============5697158316233235942==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
 Please see the attached invoice archive and confirm the payment timing.
 
---===============5429435013666732717==
+--===============5697158316233235942==
 Content-Type: application/zip
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="invoice-4481.zip"
 MIME-Version: 1.0
 
-UEsDBBQAAAAIABSHjlz2LUNWNAAAADIAAAALAAAAaW52b2ljZS50eHQLrswryUgtyUxWKMhJTE7N
-yM9JSS1SKEiszMlPTFFIyy9SyMwry89MTtU1MbEw1KvKLAAAUEsBAhQDFAAAAAgAFIeOXPYtQ1Y0
+UEsDBBQAAAAIAC5Yj1z2LUNWNAAAADIAAAALAAAAaW52b2ljZS50eHQLrswryUgtyUxWKMhJTE7N
+yM9JSS1SKEiszMlPTFFIyy9SyMwry89MTtU1MbEw1KvKLAAAUEsBAhQDFAAAAAgALliPXPYtQ1Y0
 AAAAMgAAAAsAAAAAAAAAAAAAAIABAAAAAGludm9pY2UudHh0UEsFBgAAAAABAAEAOQAAAF0AAAAA
 AA==
 
---===============5429435013666732717==--
+--===============5697158316233235942==--

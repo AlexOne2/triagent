@@ -101,6 +101,30 @@
             "type": "array",
             "items": {"type": "string"}
           },
+          "expected_lookalikes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["field", "domain", "match_type", "confidence"],
+              "properties": {
+                "field": {
+                  "type": "string",
+                  "enum": ["from_addr", "reply_to", "return_path"]
+                },
+                "domain": {
+                  "type": "string"
+                },
+                "match_type": {
+                  "type": "string",
+                  "enum": ["brand_affix", "deceptive_subdomain", "edit_distance", "homoglyph"]
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": ["high", "medium", "low"]
+                }
+              }
+            }
+          },
           "expected_url_domains": {
             "type": "object",
             "properties": {

@@ -9,6 +9,7 @@
       "dmarc": "pass",
       "spf": "pass"
     },
+    "expected_lookalikes": [],
     "expected_url_domains": {
       "observed": [],
       "resolved": []

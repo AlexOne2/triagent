@@ -235,6 +235,32 @@ class AttackMappingOut(BaseModel):
     notes: List[str] = Field(default_factory=list)
 
 
+LookalikeField = Literal["from_addr", "reply_to", "return_path"]
+LookalikeMatchType = Literal["brand_affix", "deceptive_subdomain", "edit_distance", "homoglyph"]
+LookalikeConfidence = Literal["high", "medium", "low"]
+
+
+class LookalikeMatchOut(BaseModel):
+    field: LookalikeField
+    address: str
+    observed_domain: str
+    observed_registrable_domain: Optional[str] = None
+    target_domain: str
+    target_registrable_domain: str
+    match_type: LookalikeMatchType
+    confidence: LookalikeConfidence
+    distance: Optional[int] = None
+    reasons: List[str] = Field(default_factory=list)
+
+
+class LookalikeAnalysisOut(BaseModel):
+    target_domain: str
+    target_registrable_domain: str
+    has_suspected_lookalikes: bool = False
+    matches: List[LookalikeMatchOut] = Field(default_factory=list)
+    summary: str
+
+
 class ReportOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -280,6 +306,7 @@ class ReportOut(BaseModel):
     campaign_assignment_explanation_json: Optional[Dict[str, Any]]
     auth_summary: Optional[ReportAuthSummaryOut] = None
     attack_mapping: Optional[AttackMappingOut] = None
+    lookalike_analysis: Optional[LookalikeAnalysisOut] = None
     created_at: datetime
 
 

@@ -11,6 +11,26 @@
       "dmarc": "fail",
       "spf": "fail"
     },
+    "expected_lookalikes": [
+      {
+        "confidence": "medium",
+        "domain": "contoso-mail.example",
+        "field": "from_addr",
+        "match_type": "brand_affix"
+      },
+      {
+        "confidence": "medium",
+        "domain": "contoso-mail.example",
+        "field": "reply_to",
+        "match_type": "brand_affix"
+      },
+      {
+        "confidence": "medium",
+        "domain": "contoso-mail.example",
+        "field": "return_path",
+        "match_type": "brand_affix"
+      }
+    ],
     "expected_url_domains": {
       "observed": [
         "bit.ly"

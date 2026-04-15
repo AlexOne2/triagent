@@ -20,15 +20,15 @@ class SyntheticCorpusScaffoldTests(unittest.TestCase):
             corpus_root = Path(temp_dir) / "synthetic-corpus"
             manifest = generate_corpus(DEFAULT_SPEC_PATH, corpus_root)
 
-            self.assertEqual(manifest["sample_count"], 12)
+            self.assertEqual(manifest["sample_count"], 14)
             self.assertTrue((corpus_root / "manifest.json").exists())
 
             errors = validate_corpus(corpus_root)
             self.assertEqual(errors, [])
 
             manifest_payload = json.loads((corpus_root / "manifest.json").read_text(encoding="utf-8"))
-            self.assertEqual(manifest_payload["sample_count"], 12)
-            self.assertEqual(len(manifest_payload["samples"]), 12)
+            self.assertEqual(manifest_payload["sample_count"], 14)
+            self.assertEqual(len(manifest_payload["samples"]), 14)
 
 
 if __name__ == "__main__":

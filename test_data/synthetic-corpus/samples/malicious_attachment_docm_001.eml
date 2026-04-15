@@ -15,28 +15,28 @@ Received-SPF: neutral (mx.contoso.example: 198.51.100.89 is neither permitted
  envelope-from=collections@accounts-alerts.example;
  helo=mx.accounts-alerts.example
 MIME-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============6879751091863577357=="
+Content-Type: multipart/mixed; boundary="===============6874740131920857395=="
 
---===============6879751091863577357==
+--===============6874740131920857395==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 
 Open the attached statement and confirm remittance details.
 
---===============6879751091863577357==
+--===============6874740131920857395==
 Content-Type: application/vnd.ms-word.document.macroEnabled.12
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="remittance-statement.docm"
 MIME-Version: 1.0
 
-UEsDBBQAAAAIABSHjlyaxphxygAAADoBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH1QzU7DMAx+
+UEsDBBQAAAAIAC5Yj1yaxphxygAAADoBAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH1QzU7DMAx+
 lShX1LrjgBBquwODI3AYD2AlbhfR2FGSjfH2uAztwIGj/f3a/fYcF3OiXILwYDdtZw2xEx94Huz7
 /rm5t9ux338lKkapXAZ7qDU9ABR3oIillUSsyCQ5YtUxz5DQfeBMcNt1d+CEK3Ft6uphx35HEx6X
 ap7Our7EqtyaxwtvjRosprQEh1VhWFEY+1dtmYMn84a5vmBUFnxK9uDFHaMq2/9tTuz/dG1kmoKj
-q351S1kclaLnx6W9IhED3/z2gJ9njN9QSwMEFAAAAAgAFIeOXEO47k1AAAAATgAAABEAAAB3b3Jk
+q351S1kclaLnx6W9IhED3/z2gJ9njN9QSwMEFAAAAAgALliPXEO47k1AAAAATgAAABEAAAB3b3Jk
 L2RvY3VtZW50LnhtbLNJyU8uzU3NK7GzScpPqbQLrswryUgtyUxWyE1MLsrXTc1LTMpJTVGAKVMo
-yElMTs3Iz0lJLbLRB2ux0YebAQBQSwECFAMUAAAACAAUh45cmsaYccoAAAA6AQAAEwAAAAAAAAAA
-AAAAgAEAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQIUAxQAAAAIABSHjlxDuO5NQAAAAE4AAAAR
+yElMTs3Iz0lJLbLRB2ux0YebAQBQSwECFAMUAAAACAAuWI9cmsaYccoAAAA6AQAAEwAAAAAAAAAA
+AAAAgAEAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQIUAxQAAAAIAC5Yj1xDuO5NQAAAAE4AAAAR
 AAAAAAAAAAAAAACAAfsAAAB3b3JkL2RvY3VtZW50LnhtbFBLBQYAAAAAAgACAIAAAABqAQAAAAA=
 
---===============6879751091863577357==--
+--===============6874740131920857395==--

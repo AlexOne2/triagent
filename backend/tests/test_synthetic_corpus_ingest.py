@@ -24,6 +24,8 @@ from app.services.evidence_export import (
     EvidenceAttachment,
     EvidenceAuditEvent,
     EvidenceBundle,
+    EvidenceLookalikeAnalysis,
+    EvidenceLookalikeMatch,
     EvidenceExportService,
     EvidenceOriginalMessage,
     EvidenceResolution,
@@ -32,6 +34,7 @@ from app.services.evidence_export import (
     _build_iocs,
     extract_email_domain,
 )
+from app.services.lookalike_detection import build_lookalike_analysis
 from app.services.url_resolution import build_url_analysis, extract_url_domain
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -90,6 +93,32 @@ def _to_evidence_url(item: dict[str, Any]) -> EvidenceUrl:
     )
 
 
+def _to_evidence_lookalike_analysis(item: dict[str, Any] | None) -> EvidenceLookalikeAnalysis | None:
+    if not item:
+        return None
+    return EvidenceLookalikeAnalysis(
+        target_domain=str(item.get("target_domain") or ""),
+        target_registrable_domain=str(item.get("target_registrable_domain") or ""),
+        has_suspected_lookalikes=bool(item.get("has_suspected_lookalikes")),
+        matches=[
+            EvidenceLookalikeMatch(
+                field=str(match.get("field") or ""),
+                address=str(match.get("address") or ""),
+                observed_domain=str(match.get("observed_domain") or ""),
+                observed_registrable_domain=match.get("observed_registrable_domain"),
+                target_domain=str(match.get("target_domain") or ""),
+                target_registrable_domain=str(match.get("target_registrable_domain") or ""),
+                match_type=str(match.get("match_type") or ""),
+                confidence=str(match.get("confidence") or ""),
+                distance=int(match["distance"]) if match.get("distance") is not None else None,
+                reasons=[str(reason) for reason in (match.get("reasons") or []) if reason],
+            )
+            for match in (item.get("matches") or [])
+        ],
+        summary=str(item.get("summary") or ""),
+    )
+
+
 class SyntheticCorpusIngestTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -128,6 +157,25 @@ class SyntheticCorpusIngestTests(unittest.TestCase):
                     sorted(item.filename for item in bundle.attachments if item.filename),
                     sorted(entry.get("expected_attachment_names", [])),
                 )
+                expected_lookalikes = sorted(
+                    (
+                        item["field"],
+                        item["domain"],
+                        item["match_type"],
+                        item["confidence"],
+                    )
+                    for item in entry.get("expected_lookalikes", [])
+                )
+                actual_lookalikes = sorted(
+                    (
+                        item.field,
+                        item.observed_domain,
+                        item.match_type,
+                        item.confidence,
+                    )
+                    for item in (bundle.lookalike_analysis.matches if bundle.lookalike_analysis else [])
+                )
+                self.assertEqual(actual_lookalikes, expected_lookalikes)
 
                 actual_techniques = sorted(item.technique_id for item in bundle.attack_mapping.techniques)
                 self.assertEqual(actual_techniques, sorted(entry["expected_attack_techniques"]))
@@ -143,6 +191,18 @@ class SyntheticCorpusIngestTests(unittest.TestCase):
                 self.assertEqual(
                     sorted(item["technique_id"] for item in report_json["attack_mapping"]["techniques"]),
                     sorted(entry["expected_attack_techniques"]),
+                )
+                self.assertEqual(
+                    sorted(
+                        (
+                            item["field"],
+                            item["observed_domain"],
+                            item["match_type"],
+                            item["confidence"],
+                        )
+                        for item in (report_json.get("lookalike_analysis", {}) or {}).get("matches", [])
+                    ),
+                    expected_lookalikes,
                 )
                 self.assertEqual(
                     sorted(report_json["artifacts"]["url_domains"]),
@@ -240,6 +300,14 @@ class SyntheticCorpusIngestTests(unittest.TestCase):
                 auth_dmarc_result=str((auth_summary.get("dmarc") or {}).get("result") or "unknown"),
             )
         )
+        lookalike_analysis = _to_evidence_lookalike_analysis(
+            build_lookalike_analysis(
+                mailbox_domain=entry.get("mailbox_domain"),
+                from_addr=parsed_report.get("from_addr"),
+                reply_to=list(parsed_report.get("reply_to") or []),
+                return_path=parsed_report.get("return_path"),
+            )
+        )
 
         bundle = EvidenceBundle(
             report_id=report_id,
@@ -274,6 +342,7 @@ class SyntheticCorpusIngestTests(unittest.TestCase):
             originating_ip=parsed_report.get("originating_ip"),
             message_id=parsed_report.get("message_id"),
             auth_summary=auth_summary,
+            lookalike_analysis=lookalike_analysis,
             original_message=EvidenceOriginalMessage(
                 filename=entry["file_name"],
                 content_type="message/rfc822",

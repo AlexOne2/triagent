@@ -6,6 +6,8 @@ import {
   Attachment,
   AuthStatus,
   FlaggedArtifact,
+  LookalikeConfidence,
+  LookalikeMatchType,
   Report,
   ReportResolutionEvent,
   UrlAnalysis,
@@ -220,6 +222,46 @@ function urlResolutionTone(status?: UrlResolutionStatus | null): "good" | "warn"
   if (status === "max_hops_exceeded" || status === "loop_detected") return "warn";
   if (status === "error") return "bad";
   return "neutral";
+}
+
+function lookalikeConfidenceLabel(confidence?: LookalikeConfidence | null): string {
+  if (!confidence) return "Unknown";
+  return confidence.charAt(0).toUpperCase() + confidence.slice(1);
+}
+
+function lookalikeConfidenceTone(confidence?: LookalikeConfidence | null): "good" | "warn" | "bad" | "neutral" {
+  if (confidence === "high") return "bad";
+  if (confidence === "medium") return "warn";
+  if (confidence === "low") return "neutral";
+  return "good";
+}
+
+function lookalikeMatchTypeLabel(matchType?: LookalikeMatchType | null): string {
+  switch (matchType) {
+    case "brand_affix":
+      return "Brand affix";
+    case "deceptive_subdomain":
+      return "Deceptive subdomain";
+    case "edit_distance":
+      return "Edit distance";
+    case "homoglyph":
+      return "Homoglyph";
+    default:
+      return "Unknown";
+  }
+}
+
+function lookalikeFieldLabel(field?: string | null): string {
+  switch (field) {
+    case "from_addr":
+      return "From";
+    case "reply_to":
+      return "Reply-To";
+    case "return_path":
+      return "Return-Path";
+    default:
+      return field || "Field";
+  }
 }
 
 function attackConfidenceLabel(confidence?: string | null): string {
@@ -443,6 +485,7 @@ export default function ReportDetailPage() {
   const latestHeaders = (report?.headers_json as Record<string, unknown>) || {};
   const authSummary = report?.auth_summary;
   const attackMapping = report?.attack_mapping;
+  const lookalikeAnalysis = report?.lookalike_analysis;
   const spfRecord = extractRecord(authSummary?.raw_headers.received_spf || authSummary?.spf.raw, "spf");
   const dkimStatuses = authSummary?.dkim.signatures.map((signature) => signature.result) || [];
   const primarySignature = authSummary?.dkim.signatures[0];
@@ -1010,7 +1053,7 @@ export default function ReportDetailPage() {
       <section className="split report-detail-split">
         <div className="panel report-detail-panel">
           <div className="tabs report-detail-tabs">
-            {["Details", "Authentication", "ATT&CK", "URLs", "Attachments", "Transmission", "X-Headers"].map((tab) => (
+            {["Details", "Lookalikes", "Authentication", "ATT&CK", "URLs", "Attachments", "Transmission", "X-Headers"].map((tab) => (
               <button
                 key={tab}
                 className={`tab ${leftTab === tab ? "active" : ""}`}
@@ -1054,6 +1097,117 @@ export default function ReportDetailPage() {
                     : ""}
                 </>,
                 findArtifact("ORIGINATING_IP", latestReport?.originating_ip || authSummary?.spf.originating_ip),
+              )}
+            </div>
+          ) : null}
+
+          {leftTab === "Lookalikes" ? (
+            <div className="detail-section lookalike-tab">
+              <section className="lookalike-summary-card">
+                <div className="lookalike-summary-header">
+                  <div>
+                    <h3>Sender-domain impersonation</h3>
+                    <p>
+                      Compares sender-controlled domains against the mailbox domain to catch same-org impersonation and
+                      near-match lookalikes.
+                    </p>
+                  </div>
+                  <span
+                    className={`url-badge url-badge-${
+                      lookalikeAnalysis?.has_suspected_lookalikes ? "bad" : "good"
+                    }`}
+                  >
+                    {lookalikeAnalysis?.has_suspected_lookalikes ? "Lookalikes detected" : "No lookalikes"}
+                  </span>
+                </div>
+                <div className="lookalike-summary-stats">
+                  <div className="attack-summary-stat">
+                    <strong>{lookalikeAnalysis?.target_domain || latestReport?.mailbox_domain || "-"}</strong>
+                    <span>trusted mailbox domain</span>
+                  </div>
+                  <div className="attack-summary-stat">
+                    <strong>{lookalikeAnalysis?.matches.length || 0}</strong>
+                    <span>matches</span>
+                  </div>
+                  <div className="attack-summary-stat">
+                    <strong>
+                      {lookalikeAnalysis?.matches.filter((item) => item.confidence === "high").length || 0}
+                    </strong>
+                    <span>high confidence</span>
+                  </div>
+                </div>
+                <p className="lookalike-summary-copy">
+                  {lookalikeAnalysis?.summary ||
+                    "Mailbox domain context is unavailable, so same-org sender lookalike detection could not run."}
+                </p>
+              </section>
+
+              {lookalikeAnalysis?.matches && lookalikeAnalysis.matches.length > 0 ? (
+                <div className="lookalike-match-list">
+                  {lookalikeAnalysis.matches.map((match, index) => (
+                    <section
+                      key={`${match.field}-${match.address}-${match.match_type}-${index}`}
+                      className="lookalike-match-card"
+                    >
+                      <div className="lookalike-match-header">
+                        <div>
+                          <h3>{lookalikeFieldLabel(match.field)}</h3>
+                          <p>{match.address}</p>
+                        </div>
+                        <div className="url-record-badges">
+                          <span className={`url-badge url-badge-${lookalikeConfidenceTone(match.confidence)}`}>
+                            {lookalikeConfidenceLabel(match.confidence)}
+                          </span>
+                          <span className="url-badge url-badge-neutral">
+                            {lookalikeMatchTypeLabel(match.match_type)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="kv url-record-grid">
+                        {renderFieldRow(
+                          "Observed Domain",
+                          <div className="url-field-content">
+                            <span>{match.observed_domain}</span>
+                            {renderCopyButton(match.observed_domain)}
+                          </div>,
+                        )}
+                        {renderFieldRow(
+                          "Registrable Domain",
+                          <div className="url-field-content">
+                            <span>{match.observed_registrable_domain || "unknown"}</span>
+                            {renderCopyButton(match.observed_registrable_domain)}
+                          </div>,
+                        )}
+                        {renderFieldRow(
+                          "Trusted Domain",
+                          <div className="url-field-content">
+                            <span>{match.target_domain}</span>
+                            {renderCopyButton(match.target_domain)}
+                          </div>,
+                        )}
+                        {renderFieldRow("Edit Distance", match.distance != null ? String(match.distance) : "-")}
+                      </div>
+                      {match.reasons.length > 0 ? (
+                        <div className="lookalike-reasons">
+                          <strong>Why it matched</strong>
+                          <ul className="attack-list">
+                            {match.reasons.map((reason, reasonIndex) => (
+                              <li key={`${match.address}-reason-${reasonIndex}`}>{reason}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </section>
+                  ))}
+                </div>
+              ) : (
+                <section className="attack-empty-card">
+                  <h3>No same-org lookalike detected</h3>
+                  <p>
+                    The sender-controlled domains did not resemble the mailbox domain closely enough to assert same-org
+                    impersonation.
+                  </p>
+                </section>
               )}
             </div>
           ) : null}

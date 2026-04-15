@@ -1,0 +1,44 @@
+{
+  "expectations": {
+    "classification_code": "SPOOF",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1672"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_lookalikes": [
+      {
+        "confidence": "high",
+        "domain": "contoso.example.login-review.example",
+        "field": "from_addr",
+        "match_type": "deceptive_subdomain"
+      },
+      {
+        "confidence": "high",
+        "domain": "contoso.example.login-review.example",
+        "field": "reply_to",
+        "match_type": "deceptive_subdomain"
+      },
+      {
+        "confidence": "high",
+        "domain": "contoso.example.login-review.example",
+        "field": "return_path",
+        "match_type": "deceptive_subdomain"
+      }
+    ],
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "Mailbox domain is embedded as a deceptive left-hand subdomain under an unrelated registrable domain.",
+    "risk_min": 20
+  },
+  "family_id": "same_org_sender_spoofing",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "same_org_lookalike_subdomain_001"
+}

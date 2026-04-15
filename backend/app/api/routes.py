@@ -59,6 +59,7 @@ from app.services.campaign_service import CampaignService, CampaignServiceError
 from app.services.auth import create_security_audit_event
 from app.services.eml_parser import parse_eml
 from app.services.evidence_export import EvidenceExportService
+from app.services.lookalike_detection import build_lookalike_analysis
 from app.services.msg_parser import MsgParseError, parse_msg
 from app.services.object_storage import ObjectStorageError, ObjectStorageService, normalize_filename, sanitize_filename
 from app.services.url_resolution import build_static_url_analysis, build_url_analysis, extract_url_domain, resolved_urls_for_scoring
@@ -388,6 +389,12 @@ def _serialize_report(report: Report) -> ReportOut:
     payload = ReportOut.model_validate(report)
     url_analysis = report.url_analysis_json or build_static_url_analysis(report.urls_json or [])
     auth_summary = build_auth_summary(report)
+    lookalike_analysis = build_lookalike_analysis(
+        mailbox_domain=report.mailbox_domain,
+        from_addr=report.from_addr,
+        reply_to=list(report.reply_to or []),
+        return_path=report.return_path,
+    )
     attack_mapping = build_attack_mapping(
         AttackMappingInput(
             classification_code=report.classification_code,
@@ -419,6 +426,7 @@ def _serialize_report(report: Report) -> ReportOut:
             "auth_summary": auth_summary,
             "url_analysis_json": url_analysis,
             "attack_mapping": attack_mapping,
+            "lookalike_analysis": lookalike_analysis,
         }
     )
 

@@ -21,16 +21,16 @@ DKIM-Signature: v=1; a=rsa-sha256; d=external-advisory.example; s=mail;
  c=relaxed/relaxed; bh=aaa111; b=bbb222;
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============9145338591139534156=="
+ boundary="===============0902582278091420702=="
 
---===============9145338591139534156==
+--===============0902582278091420702==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 Are you available? I need you to handle a confidential wire transfer today. R=
 eply once you are at your desk.
 
---===============9145338591139534156==
+--===============0902582278091420702==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -38,4 +38,4 @@ MIME-Version: 1.0
 <html><body><p>Are you available?</p><p>I need you to handle a confidential w=
 ire transfer today. Reply once you are at your desk.</p></body></html>
 
---===============9145338591139534156==--
+--===============0902582278091420702==--

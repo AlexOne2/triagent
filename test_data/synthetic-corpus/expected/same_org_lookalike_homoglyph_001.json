@@ -1,0 +1,44 @@
+{
+  "expectations": {
+    "classification_code": "SPOOF",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1672"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_lookalikes": [
+      {
+        "confidence": "high",
+        "domain": "cont0so.example",
+        "field": "from_addr",
+        "match_type": "homoglyph"
+      },
+      {
+        "confidence": "high",
+        "domain": "cont0so.example",
+        "field": "reply_to",
+        "match_type": "homoglyph"
+      },
+      {
+        "confidence": "high",
+        "domain": "cont0so.example",
+        "field": "return_path",
+        "match_type": "homoglyph"
+      }
+    ],
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "Mailbox-domain impersonation using a digit substitution in the org label.",
+    "risk_min": 20
+  },
+  "family_id": "same_org_sender_spoofing",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "same_org_lookalike_homoglyph_001"
+}

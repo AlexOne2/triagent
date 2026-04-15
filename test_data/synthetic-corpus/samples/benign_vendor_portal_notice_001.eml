@@ -17,16 +17,16 @@ DKIM-Signature: v=1; a=rsa-sha256; d=vendor.example; s=mail;
  c=relaxed/relaxed; bh=iii999; b=jjj000;
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============3871669648750627652=="
+ boundary="===============0756994584025552029=="
 
---===============3871669648750627652==
+--===============0756994584025552029==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 Your monthly vendor notice is ready at https://portal.vendor.example/notices/=
 april.
 
---===============3871669648750627652==
+--===============0756994584025552029==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -34,4 +34,4 @@ MIME-Version: 1.0
 <html><body><p>Your monthly vendor notice is ready at <a href=3D"https://port=
 al.vendor.example/notices/april">the vendor portal</a>.</p></body></html>
 
---===============3871669648750627652==--
+--===============0756994584025552029==--

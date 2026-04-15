@@ -1,0 +1,36 @@
+Subject: Immediate mailbox action required
+From: Contoso Security <security@cont0so.example>
+To: alex@contoso.example
+Reply-To: helpdesk@cont0so.example
+Return-Path: <bounce@cont0so.example>
+Message-ID: <same_org_lookalike_homoglyph_001@triagent.example>
+Date: Thu, 05 Mar 2026 07:40:00 +0000
+Received: from mx.cont0so.example (mx.cont0so.example [198.51.100.52]) by
+ mx.contoso.example with ESMTPS id 1003b for <alex@contoso.example>; Thu, 5
+ Mar 2026 07:40:00 +0000
+Authentication-Results: mx.contoso.example; spf=fail
+ smtp.mailfrom=cont0so.example; dkim=fail header.d=cont0so.example
+ header.i=@cont0so.example; dmarc=fail header.from=cont0so.example
+Received-SPF: fail (mx.contoso.example: domain of cont0so.example does not
+ designate 198.51.100.52 as permitted sender) client-ip=198.51.100.52;
+ envelope-from=bounce@cont0so.example; helo=mx.cont0so.example
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============4855199557224513959=="
+
+--===============4855199557224513959==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Your mailbox will be limited unless you confirm your account state with IT su=
+pport today.
+
+--===============4855199557224513959==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Your mailbox will be limited unless you confirm your account s=
+tate with IT support today.</p></body></html>
+
+--===============4855199557224513959==--

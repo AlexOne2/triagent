@@ -309,6 +309,31 @@ export type AttackMapping = {
   notes: string[];
 };
 
+export type LookalikeField = "from_addr" | "reply_to" | "return_path";
+export type LookalikeMatchType = "brand_affix" | "deceptive_subdomain" | "edit_distance" | "homoglyph";
+export type LookalikeConfidence = "high" | "medium" | "low";
+
+export type LookalikeMatch = {
+  field: LookalikeField;
+  address: string;
+  observed_domain: string;
+  observed_registrable_domain?: string | null;
+  target_domain: string;
+  target_registrable_domain: string;
+  match_type: LookalikeMatchType;
+  confidence: LookalikeConfidence;
+  distance?: number | null;
+  reasons: string[];
+};
+
+export type LookalikeAnalysis = {
+  target_domain: string;
+  target_registrable_domain: string;
+  has_suspected_lookalikes: boolean;
+  matches: LookalikeMatch[];
+  summary: string;
+};
+
 export type Report = {
   id: number;
   message_id?: string | null;
@@ -352,6 +377,7 @@ export type Report = {
   campaign_assignment_explanation_json?: Record<string, unknown> | null;
   auth_summary?: ReportAuthSummary | null;
   attack_mapping?: AttackMapping | null;
+  lookalike_analysis?: LookalikeAnalysis | null;
   created_at: string;
 };
 

@@ -41,6 +41,26 @@
           "resolved": ["login-help.example"]
         },
         "expected_attachment_names": [],
+        "expected_lookalikes": [
+          {
+            "field": "from_addr",
+            "domain": "contoso-mail.example",
+            "match_type": "brand_affix",
+            "confidence": "medium"
+          },
+          {
+            "field": "reply_to",
+            "domain": "contoso-mail.example",
+            "match_type": "brand_affix",
+            "confidence": "medium"
+          },
+          {
+            "field": "return_path",
+            "domain": "contoso-mail.example",
+            "match_type": "brand_affix",
+            "confidence": "medium"
+          }
+        ],
         "notes": "Shortened URL resolves to a credential collection page."
       }
     },
@@ -80,6 +100,20 @@
           "resolved": ["review-docs.example"]
         },
         "expected_attachment_names": [],
+        "expected_lookalikes": [
+          {
+            "field": "from_addr",
+            "domain": "contoso-docs.example",
+            "match_type": "brand_affix",
+            "confidence": "medium"
+          },
+          {
+            "field": "return_path",
+            "domain": "contoso-docs.example",
+            "match_type": "brand_affix",
+            "confidence": "medium"
+          }
+        ],
         "notes": "Direct link still redirects into a credential-oriented review flow."
       }
     },
@@ -120,7 +154,128 @@
           "resolved": ["signin-payroll.example"]
         },
         "expected_attachment_names": [],
+        "expected_lookalikes": [],
         "notes": "Observed sender domain intentionally uses a lookalike label."
+      }
+    },
+    {
+      "sample_id": "same_org_lookalike_homoglyph_001",
+      "family_id": "same_org_sender_spoofing",
+      "split": "gold",
+      "scenario": "same_org_lookalike_homoglyph",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Immediate mailbox action required",
+        "from_addr": "security@cont0so.example",
+        "from_display_name": "Contoso Security",
+        "to_addrs": ["alex@contoso.example"],
+        "reply_to": ["helpdesk@cont0so.example"],
+        "return_path": "<bounce@cont0so.example>",
+        "message_id": "<same_org_lookalike_homoglyph_001@triagent.example>",
+        "date": "2026-03-05T07:40:00+00:00",
+        "headers": {
+          "Received": [
+            "from mx.cont0so.example (mx.cont0so.example [198.51.100.52]) by mx.contoso.example with ESMTPS id 1003b for <alex@contoso.example>; Thu, 5 Mar 2026 07:40:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=fail smtp.mailfrom=cont0so.example; dkim=fail header.d=cont0so.example header.i=@cont0so.example; dmarc=fail header.from=cont0so.example",
+          "Received-SPF": "fail (mx.contoso.example: domain of cont0so.example does not designate 198.51.100.52 as permitted sender) client-ip=198.51.100.52; envelope-from=bounce@cont0so.example; helo=mx.cont0so.example"
+        },
+        "body_text": "Your mailbox will be limited unless you confirm your account state with IT support today.",
+        "body_html": "<html><body><p>Your mailbox will be limited unless you confirm your account state with IT support today.</p></body></html>"
+      },
+      "expectations": {
+        "disposition": "MALICIOUS",
+        "classification_code": "SPOOF",
+        "risk_min": 20,
+        "expected_auth": {"spf": "fail", "dkim": "fail", "dmarc": "fail"},
+        "expected_attack_techniques": ["T1672"],
+        "expected_url_domains": {
+          "observed": [],
+          "resolved": []
+        },
+        "expected_attachment_names": [],
+        "expected_lookalikes": [
+          {
+            "field": "from_addr",
+            "domain": "cont0so.example",
+            "match_type": "homoglyph",
+            "confidence": "high"
+          },
+          {
+            "field": "reply_to",
+            "domain": "cont0so.example",
+            "match_type": "homoglyph",
+            "confidence": "high"
+          },
+          {
+            "field": "return_path",
+            "domain": "cont0so.example",
+            "match_type": "homoglyph",
+            "confidence": "high"
+          }
+        ],
+        "notes": "Mailbox-domain impersonation using a digit substitution in the org label."
+      }
+    },
+    {
+      "sample_id": "same_org_lookalike_subdomain_001",
+      "family_id": "same_org_sender_spoofing",
+      "split": "gold",
+      "scenario": "same_org_lookalike_deceptive_subdomain",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Updated remote access validation",
+        "from_addr": "it-support@contoso.example.login-review.example",
+        "from_display_name": "Contoso IT Support",
+        "to_addrs": ["alex@contoso.example"],
+        "reply_to": ["service-desk@contoso.example.login-review.example"],
+        "return_path": "<bounce@contoso.example.login-review.example>",
+        "message_id": "<same_org_lookalike_subdomain_001@triagent.example>",
+        "date": "2026-03-06T06:55:00+00:00",
+        "headers": {
+          "Received": [
+            "from login-review.example (login-review.example [198.51.100.53]) by mx.contoso.example with ESMTPS id 1003c for <alex@contoso.example>; Fri, 6 Mar 2026 06:55:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=fail smtp.mailfrom=login-review.example; dkim=fail header.d=login-review.example header.i=@login-review.example; dmarc=fail header.from=login-review.example",
+          "Received-SPF": "fail (mx.contoso.example: domain of login-review.example does not designate 198.51.100.53 as permitted sender) client-ip=198.51.100.53; envelope-from=bounce@contoso.example.login-review.example; helo=login-review.example"
+        },
+        "body_text": "Remote access validation was updated. Reply to IT support if you need your enrollment reopened.",
+        "body_html": "<html><body><p>Remote access validation was updated. Reply to IT support if you need your enrollment reopened.</p></body></html>"
+      },
+      "expectations": {
+        "disposition": "MALICIOUS",
+        "classification_code": "SPOOF",
+        "risk_min": 20,
+        "expected_auth": {"spf": "fail", "dkim": "fail", "dmarc": "fail"},
+        "expected_attack_techniques": ["T1672"],
+        "expected_url_domains": {
+          "observed": [],
+          "resolved": []
+        },
+        "expected_attachment_names": [],
+        "expected_lookalikes": [
+          {
+            "field": "from_addr",
+            "domain": "contoso.example.login-review.example",
+            "match_type": "deceptive_subdomain",
+            "confidence": "high"
+          },
+          {
+            "field": "reply_to",
+            "domain": "contoso.example.login-review.example",
+            "match_type": "deceptive_subdomain",
+            "confidence": "high"
+          },
+          {
+            "field": "return_path",
+            "domain": "contoso.example.login-review.example",
+            "match_type": "deceptive_subdomain",
+            "confidence": "high"
+          }
+        ],
+        "notes": "Mailbox domain is embedded as a deceptive left-hand subdomain under an unrelated registrable domain."
       }
     },
     {
@@ -161,6 +316,7 @@
           "resolved": []
         },
         "expected_attachment_names": [],
+        "expected_lookalikes": [],
         "notes": "No link is required; the reply-to mismatch drives the analyst workflow."
       }
     },
@@ -501,6 +657,7 @@
           "resolved": []
         },
         "expected_attachment_names": [],
+        "expected_lookalikes": [],
         "notes": "Internal control sample with clean authentication and no suspicious artifacts."
       }
     }

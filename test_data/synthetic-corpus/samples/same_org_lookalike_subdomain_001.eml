@@ -1,0 +1,37 @@
+Subject: Updated remote access validation
+From: Contoso IT Support <it-support@contoso.example.login-review.example>
+To: alex@contoso.example
+Reply-To: service-desk@contoso.example.login-review.example
+Return-Path: <bounce@contoso.example.login-review.example>
+Message-ID: <same_org_lookalike_subdomain_001@triagent.example>
+Date: Fri, 06 Mar 2026 06:55:00 +0000
+Received: from login-review.example (login-review.example [198.51.100.53]) by
+ mx.contoso.example with ESMTPS id 1003c for <alex@contoso.example>; Fri, 6
+ Mar 2026 06:55:00 +0000
+Authentication-Results: mx.contoso.example; spf=fail
+ smtp.mailfrom=login-review.example; dkim=fail header.d=login-review.example
+ header.i=@login-review.example; dmarc=fail header.from=login-review.example
+Received-SPF: fail (mx.contoso.example: domain of login-review.example does
+ not designate 198.51.100.53 as permitted sender) client-ip=198.51.100.53;
+ envelope-from=bounce@contoso.example.login-review.example;
+ helo=login-review.example
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============5387811028984018675=="
+
+--===============5387811028984018675==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Remote access validation was updated. Reply to IT support if you need your en=
+rollment reopened.
+
+--===============5387811028984018675==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><body><p>Remote access validation was updated. Reply to IT support if y=
+ou need your enrollment reopened.</p></body></html>
+
+--===============5387811028984018675==--

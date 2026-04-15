@@ -11,6 +11,20 @@
       "dmarc": "fail",
       "spf": "softfail"
     },
+    "expected_lookalikes": [
+      {
+        "confidence": "medium",
+        "domain": "contoso-docs.example",
+        "field": "from_addr",
+        "match_type": "brand_affix"
+      },
+      {
+        "confidence": "medium",
+        "domain": "contoso-docs.example",
+        "field": "return_path",
+        "match_type": "brand_affix"
+      }
+    ],
     "expected_url_domains": {
       "observed": [
         "contoso-files.example"

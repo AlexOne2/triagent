@@ -16,16 +16,16 @@ Received-SPF: softfail (mx.contoso.example: transitioning domain of
  helo=mail.contoso-docs.example
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============6191291050172965834=="
+ boundary="===============2025241227499078997=="
 
---===============6191291050172965834==
+--===============2025241227499078997==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 Review the secure portal update at https://contoso-files.example/review and k=
 eep your access active.
 
---===============6191291050172965834==
+--===============2025241227499078997==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -34,4 +34,4 @@ MIME-Version: 1.0
 files.example/review">the secure portal</a> and keep your access active.</p><=
 /body></html>
 
---===============6191291050172965834==--
+--===============2025241227499078997==--

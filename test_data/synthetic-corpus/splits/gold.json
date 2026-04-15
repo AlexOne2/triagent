@@ -11,6 +11,8 @@
     "malicious_attachment_docm_001",
     "malicious_attachment_zip_001",
     "qr_login_lure_001",
+    "same_org_lookalike_homoglyph_001",
+    "same_org_lookalike_subdomain_001",
     "thread_hijack_link_followup_001"
   ],
   "split": "gold"

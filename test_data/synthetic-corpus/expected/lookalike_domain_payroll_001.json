@@ -12,6 +12,7 @@
       "dmarc": "fail",
       "spf": "fail"
     },
+    "expected_lookalikes": [],
     "expected_url_domains": {
       "observed": [
         "payrol1-updates.example"

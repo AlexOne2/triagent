@@ -21,6 +21,7 @@ from app.models.security_audit import AuditActorType, SecurityAuditEvent
 from app.models.user import User
 from app.services.attack_mapping import AttackEvidenceRef, AttackMappingInput, AttackMappingResult, build_attack_mapping
 from app.services.auth_summary import build_auth_summary
+from app.services.lookalike_detection import build_lookalike_analysis
 from app.services.url_resolution import build_static_url_analysis, extract_url_domain as resolve_url_domain
 
 
@@ -103,6 +104,29 @@ class EvidenceIoc:
 
 
 @dataclass
+class EvidenceLookalikeMatch:
+    field: str
+    address: str
+    observed_domain: str
+    observed_registrable_domain: str | None
+    target_domain: str
+    target_registrable_domain: str
+    match_type: str
+    confidence: str
+    distance: int | None
+    reasons: list[str]
+
+
+@dataclass
+class EvidenceLookalikeAnalysis:
+    target_domain: str
+    target_registrable_domain: str
+    has_suspected_lookalikes: bool
+    matches: list[EvidenceLookalikeMatch]
+    summary: str
+
+
+@dataclass
 class EvidenceBundle:
     report_id: int
     subject: str | None
@@ -128,6 +152,7 @@ class EvidenceBundle:
     originating_ip: str | None
     message_id: str | None
     auth_summary: dict[str, Any]
+    lookalike_analysis: EvidenceLookalikeAnalysis | None
     original_message: EvidenceOriginalMessage | None
     urls: list[str]
     url_domains: list[str]
@@ -505,6 +530,32 @@ def _build_iocs(bundle: EvidenceBundle) -> list[EvidenceIoc]:
     return sorted(items.values(), key=lambda item: (item.type, item.value))
 
 
+def _to_evidence_lookalike_analysis(payload: dict[str, Any] | None) -> EvidenceLookalikeAnalysis | None:
+    if not payload:
+        return None
+    return EvidenceLookalikeAnalysis(
+        target_domain=str(payload.get("target_domain") or ""),
+        target_registrable_domain=str(payload.get("target_registrable_domain") or ""),
+        has_suspected_lookalikes=bool(payload.get("has_suspected_lookalikes")),
+        matches=[
+            EvidenceLookalikeMatch(
+                field=str(item.get("field") or ""),
+                address=str(item.get("address") or ""),
+                observed_domain=str(item.get("observed_domain") or ""),
+                observed_registrable_domain=item.get("observed_registrable_domain"),
+                target_domain=str(item.get("target_domain") or ""),
+                target_registrable_domain=str(item.get("target_registrable_domain") or ""),
+                match_type=str(item.get("match_type") or ""),
+                confidence=str(item.get("confidence") or ""),
+                distance=int(item["distance"]) if item.get("distance") is not None else None,
+                reasons=[str(reason) for reason in (item.get("reasons") or []) if reason],
+            )
+            for item in (payload.get("matches") or [])
+        ],
+        summary=str(payload.get("summary") or ""),
+    )
+
+
 class EvidenceExportService:
     def __init__(self, db: Session):
         self.db = db
@@ -669,6 +720,14 @@ class EvidenceExportService:
                 auth_dmarc_result=str((auth_summary.get("dmarc") or {}).get("result") or "unknown"),
             )
         )
+        lookalike_analysis = _to_evidence_lookalike_analysis(
+            build_lookalike_analysis(
+                mailbox_domain=report.mailbox_domain,
+                from_addr=report.from_addr,
+                reply_to=list(report.reply_to or []),
+                return_path=report.return_path,
+            )
+        )
 
         bundle = EvidenceBundle(
             report_id=report.id,
@@ -697,6 +756,7 @@ class EvidenceExportService:
             originating_ip=report.originating_ip,
             message_id=report.message_id,
             auth_summary=auth_summary,
+            lookalike_analysis=lookalike_analysis,
             original_message=(
                 EvidenceOriginalMessage(
                     filename=report.original_filename,
@@ -800,6 +860,25 @@ class EvidenceExportService:
             )
             lines.append(f"- SHA-256: {_md_escape(bundle.original_message.sha256)}")
             lines.append(f"- Storage Key: {_md_escape(bundle.original_message.storage_key)}")
+        else:
+            lines.append("- -")
+        lines.append("")
+        lines.append("### Domain Lookalike Analysis")
+        lines.append("")
+        if bundle.lookalike_analysis:
+            lines.append(f"- Target Domain: {_md_escape(bundle.lookalike_analysis.target_domain)}")
+            lines.append(f"- Summary: {_md_escape(bundle.lookalike_analysis.summary)}")
+            if bundle.lookalike_analysis.matches:
+                lines.append("- Matches:")
+                for item in bundle.lookalike_analysis.matches:
+                    lines.append(
+                        f"  - `{item.field}` {item.address} -> {item.observed_domain} "
+                        f"(`{item.match_type}`, confidence: `{item.confidence}`)"
+                    )
+                    for reason in item.reasons:
+                        lines.append(f"    - {_md_escape(reason)}")
+            else:
+                lines.append("- Matches: -")
         else:
             lines.append("- -")
         lines.append("")
@@ -1010,6 +1089,34 @@ class EvidenceExportService:
             _pdf_line(pdf, "-")
 
         pdf.ln(1)
+        _pdf_subsection_title(pdf, "Domain Lookalike Analysis")
+        if bundle.lookalike_analysis:
+            _pdf_kv_row(pdf, "Target Domain", bundle.lookalike_analysis.target_domain)
+            _pdf_kv_row(pdf, "Summary", bundle.lookalike_analysis.summary)
+            if bundle.lookalike_analysis.matches:
+                for index, item in enumerate(bundle.lookalike_analysis.matches, start=1):
+                    _pdf_subsection_title(pdf, f"Lookalike Match {index}")
+                    for label, value in [
+                        ("Field", item.field),
+                        ("Address", item.address),
+                        ("Observed Domain", item.observed_domain),
+                        ("Observed Registrable Domain", item.observed_registrable_domain),
+                        ("Match Type", item.match_type),
+                        ("Confidence", item.confidence),
+                        ("Distance", str(item.distance) if item.distance is not None else "-"),
+                    ]:
+                        _pdf_kv_row(pdf, label, value)
+                    if item.reasons:
+                        _pdf_line(pdf, "Reasons")
+                        for reason in item.reasons:
+                            _pdf_line(pdf, f"- {reason}")
+                    pdf.ln(1)
+            else:
+                _pdf_line(pdf, "-")
+        else:
+            _pdf_line(pdf, "-")
+
+        pdf.ln(1)
         _pdf_subsection_title(pdf, "URLs")
         _pdf_bullets(pdf, bundle.urls)
 
@@ -1147,6 +1254,7 @@ class EvidenceExportService:
                 "original_message": _json_compatible(bundle.original_message),
             },
             "authentication": _json_compatible(bundle.auth_summary),
+            "lookalike_analysis": _json_compatible(bundle.lookalike_analysis),
             "attack_mapping": _json_compatible(bundle.attack_mapping),
             "artifacts": {
                 "urls": bundle.urls,

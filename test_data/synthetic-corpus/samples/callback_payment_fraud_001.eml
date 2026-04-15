@@ -18,16 +18,16 @@ DKIM-Signature: v=1; a=rsa-sha256; d=vendor-voice.example; s=mail;
  c=relaxed/relaxed; bh=eee555; b=fff666;
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============8376644308306445053=="
+ boundary="===============2836277570460336370=="
 
---===============8376644308306445053==
+--===============2836277570460336370==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 Your payment profile has been suspended. Call the payment desk at +1-555-0100=
  immediately to prevent settlement delays.
 
---===============8376644308306445053==
+--===============2836277570460336370==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -36,4 +36,4 @@ MIME-Version: 1.0
 t desk at +1-555-0100 immediately to prevent settlement delays.</p></body></h=
 tml>
 
---===============8376644308306445053==--
+--===============2836277570460336370==--

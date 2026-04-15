@@ -21,16 +21,16 @@ DKIM-Signature: v=1; a=rsa-sha256; d=shared-workspace.example; s=mail;
  c=relaxed/relaxed; bh=ggg777; b=hhh888;
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============2352808832078524659=="
+ boundary="===============9104866443530380941=="
 
---===============2352808832078524659==
+--===============9104866443530380941==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 Circling back on the contract changes. Continue the review here: https://file=
 share-updates.example/review/continue
 
---===============2352808832078524659==
+--===============9104866443530380941==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -39,4 +39,4 @@ MIME-Version: 1.0
 ew <a href=3D"https://fileshare-updates.example/review/continue">here</a>.</p=
 ></body></html>
 
---===============2352808832078524659==--
+--===============9104866443530380941==--

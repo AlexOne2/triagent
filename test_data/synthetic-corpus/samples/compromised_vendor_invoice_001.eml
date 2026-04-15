@@ -18,16 +18,16 @@ DKIM-Signature: v=1; a=rsa-sha256; d=billing-vendor.example; s=mail;
  c=relaxed/relaxed; bh=ccc333; b=ddd444;
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============4264326215061748341=="
+ boundary="===============0400788768057921371=="
 
---===============4264326215061748341==
+--===============0400788768057921371==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 Please review the revised invoice package at https://billing-vendor.example/i=
 nvoice/4481 before the payment window closes.
 
---===============4264326215061748341==
+--===============0400788768057921371==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -36,4 +36,4 @@ MIME-Version: 1.0
 //billing-vendor.example/invoice/4481">the vendor portal</a> before the payme=
 nt window closes.</p></body></html>
 
---===============4264326215061748341==--
+--===============0400788768057921371==--

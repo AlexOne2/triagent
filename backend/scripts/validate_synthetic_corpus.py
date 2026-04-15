@@ -14,6 +14,7 @@ if str(BACKEND_ROOT) not in sys.path:
 from app.services.analysis import URL_SHORTENERS, calculate_risk, extract_urls
 from app.services.attack_mapping import AttackMappingInput, build_attack_mapping
 from app.services.eml_parser import parse_eml
+from app.services.lookalike_detection import build_lookalike_analysis
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CORPUS_ROOT = REPO_ROOT / "test_data" / "synthetic-corpus"
@@ -185,6 +186,12 @@ def validate_corpus(root: Path) -> list[str]:
             resolved_urls=[item["final_url"] for item in url_analysis if item.get("final_url")],
             from_display_name=parsed_report.get("from_display_name"),
         )
+        lookalike_analysis = build_lookalike_analysis(
+            mailbox_domain=entry.get("mailbox_domain"),
+            from_addr=parsed_report.get("from_addr"),
+            reply_to=list(parsed_report.get("reply_to") or []),
+            return_path=parsed_report.get("return_path"),
+        ) or {"matches": []}
 
         expected_auth = entry["expected_auth"]
         for key in ("spf", "dkim", "dmarc"):
@@ -209,6 +216,29 @@ def validate_corpus(root: Path) -> list[str]:
         if expected_attachments != actual_attachments:
             errors.append(
                 f"{sample_id}: expected attachments {expected_attachments} but got {actual_attachments}"
+            )
+
+        expected_lookalikes = sorted(
+            (
+                item["field"],
+                item["domain"],
+                item["match_type"],
+                item["confidence"],
+            )
+            for item in entry.get("expected_lookalikes", [])
+        )
+        actual_lookalikes = sorted(
+            (
+                str(item.get("field") or ""),
+                str(item.get("observed_domain") or ""),
+                str(item.get("match_type") or ""),
+                str(item.get("confidence") or ""),
+            )
+            for item in lookalike_analysis.get("matches", [])
+        )
+        if expected_lookalikes != actual_lookalikes:
+            errors.append(
+                f"{sample_id}: expected lookalikes {expected_lookalikes} but got {actual_lookalikes}"
             )
 
         if risk_score < int(entry.get("risk_min", 0)):

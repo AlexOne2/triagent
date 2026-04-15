@@ -18,16 +18,16 @@ DKIM-Signature: v=1; a=rsa-sha256; d=contoso-mail.example; s=mail;
  c=relaxed/relaxed; bh=abc123; b=xyz456;
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
- boundary="===============0498696376686729588=="
+ boundary="===============2706378838211632053=="
 
---===============0498696376686729588==
+--===============2706378838211632053==
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 
 Your mailbox was placed into restricted mode. Reset your password immediately=
  at http://bit.ly/contoso-reset to avoid service interruption.
 
---===============0498696376686729588==
+--===============2706378838211632053==
 Content-Type: text/html; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
 MIME-Version: 1.0
@@ -36,4 +36,4 @@ MIME-Version: 1.0
 "http://bit.ly/contoso-reset">Reset your password immediately</a> to avoid se=
 rvice interruption.</p></body></html>
 
---===============0498696376686729588==--
+--===============2706378838211632053==--

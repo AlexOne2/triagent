@@ -182,6 +182,7 @@ def _manifest_entry(sample: dict[str, Any], raw_bytes: bytes) -> dict[str, Any]:
         "expected_attack_techniques": expectations.get("expected_attack_techniques", []),
         "expected_attachment_names": expectations.get("expected_attachment_names", []),
         "expected_url_domains": expectations.get("expected_url_domains", {"observed": [], "resolved": []}),
+        "expected_lookalikes": expectations.get("expected_lookalikes", []),
         "risk_min": expectations.get("risk_min", 0),
         "notes": expectations.get("notes", ""),
     }
