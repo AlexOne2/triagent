@@ -198,7 +198,7 @@ body {
 .dashboard-filter-card {
   margin-bottom: 20px;
   padding-bottom: 18px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid #cbd5e1;
 }
 
 .dashboard-filter-row {
@@ -219,10 +219,12 @@ body {
   grid-template-columns: repeat(4, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid #cbd5e1;
 }
 
 .dashboard-kpi-card {
-  border-left: 1px solid var(--border);
+  border-left: 1px solid #d7e0ea;
   padding: 0 0 0 18px;
   min-height: 72px;
 }
@@ -252,7 +254,13 @@ body {
 .dashboard-chart-grid > .card,
 .dashboard-table-grid > .card {
   padding-top: 18px;
-  border-top: 1px solid var(--border);
+  border-top: 2px solid #cbd5e1;
+  padding-left: 18px;
+}
+
+.dashboard-chart-grid > .card:not(:first-child),
+.dashboard-table-grid > .card:not(:first-child) {
+  border-left: 1px solid #d7e0ea;
 }
 
 .chart-wrap {
@@ -2807,6 +2815,16 @@ p {
 
   .dashboard-chart-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-chart-grid > .card,
+  .dashboard-table-grid > .card {
+    padding-left: 0;
+  }
+
+  .dashboard-chart-grid > .card:not(:first-child),
+  .dashboard-table-grid > .card:not(:first-child) {
+    border-left: 0;
   }
 
   .dashboard-table-grid {
