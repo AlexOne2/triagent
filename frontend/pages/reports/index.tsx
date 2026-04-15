@@ -108,7 +108,7 @@ export default function ReportList() {
   }
 
   return (
-    <main className="full">
+    <main className="full queue-page">
       <header>
         <div>
           <h1>Uploads</h1>

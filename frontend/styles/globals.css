@@ -131,6 +131,64 @@ body {
   margin-bottom: 12px;
 }
 
+.dashboard-header-link {
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.dashboard-header-link:hover {
+  color: var(--primary-hover);
+  transform: translateX(2px);
+}
+
+.queue-page .card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.queue-page .upload-zone {
+  margin-top: 12px;
+  padding: 0 0 18px;
+  border: 0;
+  border-bottom: 1px dashed var(--border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.queue-page .upload-zone.active {
+  background: transparent;
+  border-bottom-color: var(--primary);
+}
+
+.queue-page .search-toolbar {
+  padding: 0 0 18px;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+}
+
+.queue-page .report-table {
+  margin-top: 18px;
+}
+
+.queue-page .report-table h2 {
+  margin-top: 0;
+}
+
+.dashboard-page .card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
 .dashboard-breadcrumb {
   color: var(--text-muted);
   font-size: 13px;
@@ -139,6 +197,8 @@ body {
 
 .dashboard-filter-card {
   margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
 }
 
 .dashboard-filter-row {
@@ -162,11 +222,14 @@ body {
 }
 
 .dashboard-kpi-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px 16px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+  border-left: 1px solid var(--border);
+  padding: 0 0 0 18px;
+  min-height: 72px;
+}
+
+.dashboard-kpi-card:first-child {
+  border-left: 0;
+  padding-left: 0;
 }
 
 .dashboard-kpi-card h2 {
@@ -184,6 +247,12 @@ body {
   grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 14px;
   margin-bottom: 20px;
+}
+
+.dashboard-chart-grid > .card,
+.dashboard-table-grid > .card {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
 }
 
 .chart-wrap {
@@ -2728,6 +2797,18 @@ p {
 
   .dashboard-kpi-row {
     grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .dashboard-kpi-card {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 14px 0 0;
+    min-height: 0;
+  }
+
+  .dashboard-kpi-card:first-child {
+    border-top: 0;
+    padding-top: 0;
   }
 
   .dashboard-chart-grid {

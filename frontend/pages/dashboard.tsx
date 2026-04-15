@@ -119,14 +119,14 @@ export default function Dashboard() {
   );
 
   return (
-    <main className="full">
+    <main className="full dashboard-page">
       <header className="dashboard-header">
         <div>
           <p className="dashboard-breadcrumb">Dashboard &gt; Overview</p>
           <h1>Overview</h1>
         </div>
         {canReadReports ? (
-          <Link href="/reports" className="tab">
+          <Link href="/reports" className="dashboard-header-link">
             Go to Uploads
           </Link>
         ) : null}

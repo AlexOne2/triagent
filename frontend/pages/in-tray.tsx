@@ -68,7 +68,7 @@ export default function InTray() {
   }
 
   return (
-    <main className="full">
+    <main className="full queue-page">
       <header>
         <div>
           <h1>In-tray</h1>
