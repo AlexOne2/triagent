@@ -49,6 +49,12 @@ make dev
 make seed
 ```
 
+5) (Optional) Import the synthetic gold corpus as ready-to-review demo cases:
+
+```bash
+make import-synthetic SPLIT=gold
+```
+
 Open:
 - Dashboard: `http://localhost:${FRONTEND_PORT}` (default `http://localhost:3000`)
 - Login: `http://localhost:${FRONTEND_PORT}/login`
@@ -108,6 +114,24 @@ Validate the generated samples against their manifest:
 
 ```bash
 python3 backend/scripts/validate_synthetic_corpus.py
+```
+
+Import the gold split into a local demo environment on demand:
+
+```bash
+make import-synthetic SPLIT=gold
+```
+
+Refresh previously imported synthetic reports in place:
+
+```bash
+make import-synthetic SPLIT=gold REFRESH_EXISTING=1
+```
+
+Remove previously imported synthetic reports from a split:
+
+```bash
+make remove-synthetic SPLIT=gold
 ```
 
 ## Public Demo Scope

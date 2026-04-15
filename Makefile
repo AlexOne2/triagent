@@ -2,7 +2,7 @@ ENV_FILE = infra/.env
 ENV_EXAMPLE = infra/.env.example
 COMPOSE = docker compose -f infra/docker-compose.yml --env-file $(ENV_FILE)
 
-.PHONY: dev migrate seed down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval reset-data
+.PHONY: dev migrate seed import-synthetic remove-synthetic down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval reset-data
 
 ensure-env:
 	@if [ ! -f $(ENV_FILE) ]; then cp $(ENV_EXAMPLE) $(ENV_FILE); echo "Created $(ENV_FILE) from $(ENV_EXAMPLE)"; fi
@@ -25,6 +25,14 @@ migrate: wait-db
 seed: wait-db
 	$(COMPOSE) build backend
 	$(COMPOSE) run --rm backend python -m scripts.seed
+
+import-synthetic: wait-db
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.import_synthetic_corpus --corpus-root "/workspace/$(or $(CORPUS_ROOT),test_data/synthetic-corpus)" --split "$(or $(SPLIT),gold)" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(OPEN_ONLY),--open-only,) $(if $(REFRESH_EXISTING),--refresh-existing,)
+
+remove-synthetic: wait-db
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.remove_synthetic_corpus --corpus-root "/workspace/$(or $(CORPUS_ROOT),test_data/synthetic-corpus)" --split "$(or $(SPLIT),gold)" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(DRY_RUN),--dry-run,)
 
 down:
 	$(COMPOSE) down

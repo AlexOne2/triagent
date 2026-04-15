@@ -46,6 +46,30 @@ cd backend
 python -m unittest tests.test_synthetic_corpus_ingest
 ```
 
+Import the gold split into a local demo stack on demand:
+
+```bash
+make import-synthetic SPLIT=gold
+```
+
+Leave imported cases open instead of auto-resolving them:
+
+```bash
+make import-synthetic SPLIT=gold OPEN_ONLY=1
+```
+
+Refresh already imported synthetic cases in place after the corpus or importer changes:
+
+```bash
+make import-synthetic SPLIT=gold REFRESH_EXISTING=1
+```
+
+Remove previously imported synthetic cases from a split:
+
+```bash
+make remove-synthetic SPLIT=gold
+```
+
 ## Design Constraints
 
 - Use only reserved example domains such as `example.com` and `example.net`
