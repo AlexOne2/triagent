@@ -681,19 +681,24 @@ p {
 .url-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
 .url-summary-stat {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 15px;
+}
+
+.url-summary-stat strong {
+  color: var(--text);
 }
 
 .url-record-list {
@@ -1671,7 +1676,6 @@ p {
   gap: 14px;
 }
 
-.attack-summary-card,
 .attack-technique-card,
 .attack-empty-card {
   border: 1px solid var(--border);
@@ -1680,7 +1684,15 @@ p {
   padding: 16px;
 }
 
-.lookalike-summary-card,
+.attack-summary-card,
+.lookalike-summary-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+
 .lookalike-match-card {
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -1741,15 +1753,21 @@ p {
 .attack-summary-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  gap: 18px;
+  margin-top: 18px;
 }
 
 .attack-summary-stat {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-  padding: 12px 14px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 0 18px;
+}
+
+.attack-summary-stat:first-child {
+  border-left: 0;
+  padding-left: 0;
 }
 
 .attack-summary-stat strong {
@@ -1768,8 +1786,8 @@ p {
 .lookalike-summary-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  gap: 18px;
+  margin-top: 18px;
 }
 
 .lookalike-match-list {
@@ -2150,8 +2168,20 @@ p {
     align-items: flex-start;
   }
 
-  .attack-summary-stats {
+  .attack-summary-stats,
+  .lookalike-summary-stats {
     grid-template-columns: 1fr;
+  }
+
+  .attack-summary-stat {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 14px 0 0;
+  }
+
+  .attack-summary-stat:first-child {
+    border-top: 0;
+    padding-top: 0;
   }
 }
 
