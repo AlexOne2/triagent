@@ -177,6 +177,38 @@ type HeaderEntry = {
   value: string;
 };
 
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="5" y="3" width="8" height="10" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3.5 10.5V5.5C3.5 4.4 4.4 3.5 5.5 3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3.5 8.5L6.5 11.5L12.5 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FlagIcon() {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4 13.5V2.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path
+        d="M5 3H11.5L10 5.5L11.5 8H5V3Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 type UrlRecord = {
   originalUrl: string;
   initialDomain: string | null;
@@ -691,7 +723,7 @@ export default function ReportDetailPage() {
         title={active ? "Marked for flagging" : "Flag this field"}
         onClick={() => toggleArtifact(artifact)}
       >
-        ⚑
+        <FlagIcon />
       </button>
     );
   };
@@ -721,7 +753,7 @@ export default function ReportDetailPage() {
         aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
         title={copied ? "Copied" : "Copy to clipboard"}
       >
-        {copied ? "Copied" : "Copy"}
+        {copied ? <CheckIcon /> : <CopyIcon />}
       </button>
     );
   };
