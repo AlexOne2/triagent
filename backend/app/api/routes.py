@@ -14,6 +14,7 @@ from app.core.config import get_settings
 from app.models.attachment import Attachment
 from app.models.campaign import Campaign, CampaignEvent
 from app.models.report import (
+    CLASSIFICATION_CODES,
     ArtifactKind,
     CampaignAssignmentMethod,
     IngestSource,
@@ -169,25 +170,6 @@ def _build_report_search_predicate(search_term: str):
         .exists()
     )
 
-
-def _apply_report_list_filters(
-    query,
-    *,
-    q: str | None,
-    status: ReportStatus | None,
-    source: IngestSource | None,
-    classification_code: str | None,
-):
-    if q and q.strip():
-        query = query.where(_build_report_search_predicate(q))
-    if status:
-        query = query.where(Report.status == status)
-    if source:
-        query = query.where(Report.ingest_source == source)
-    if classification_code and classification_code.strip():
-        query = query.where(Report.classification_code == classification_code.strip().upper())
-    return query
-
     return or_(
         _matches_report_search(Report.subject, like),
         _matches_report_search(Report.from_addr, like),
@@ -210,6 +192,44 @@ def _apply_report_list_filters(
         _matches_report_search(Report.classification_code, like),
         attachment_match,
     )
+
+
+def _normalize_classification_filters(values: list[str] | None) -> list[str]:
+    if not values:
+        return []
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        cleaned = value.strip().upper()
+        if not cleaned:
+            continue
+        if cleaned not in CLASSIFICATION_CODES:
+            raise HTTPException(status_code=400, detail=f"Invalid classification code: {cleaned}")
+        if cleaned in seen:
+            continue
+        seen.add(cleaned)
+        normalized.append(cleaned)
+    return normalized
+
+
+def _apply_report_list_filters(
+    query,
+    *,
+    q: str | None,
+    statuses: list[ReportStatus] | None,
+    source: IngestSource | None,
+    classification_codes: list[str] | None,
+):
+    if q and q.strip():
+        query = query.where(_build_report_search_predicate(q))
+    if statuses:
+        query = query.where(Report.status.in_(statuses))
+    if source:
+        query = query.where(Report.ingest_source == source)
+    normalized_classifications = _normalize_classification_filters(classification_codes)
+    if normalized_classifications:
+        query = query.where(Report.classification_code.in_(normalized_classifications))
+    return query
 
 
 def _ranked_counts(counter: Counter[str], limit: int = 10) -> list[DashboardAddressPoint]:
@@ -1006,25 +1026,25 @@ def list_reports(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     q: str | None = Query(default=None, max_length=200),
-    status: ReportStatus | None = Query(default=None),
+    status: list[ReportStatus] | None = Query(default=None),
     source: IngestSource | None = Query(default=None),
-    classification_code: str | None = Query(default=None, max_length=32),
+    classification_code: list[str] | None = Query(default=None),
     _: Principal = Depends(require_permission("reports.read")),
 ):
     filtered_query = _apply_report_list_filters(
         select(Report),
         q=q,
-        status=status,
+        statuses=status,
         source=source,
-        classification_code=classification_code,
+        classification_codes=classification_code,
     )
     total = db.execute(
         _apply_report_list_filters(
             select(func.count()).select_from(Report),
             q=q,
-            status=status,
+            statuses=status,
             source=source,
-            classification_code=classification_code,
+            classification_codes=classification_code,
         )
     ).scalar_one()
     reports = db.execute(

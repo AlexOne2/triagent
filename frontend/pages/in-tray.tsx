@@ -25,8 +25,8 @@ export default function InTray() {
   const [draftQuery, setDraftQuery] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<Report["status"] | "">("");
-  const [classificationFilter, setClassificationFilter] = useState<ClassificationCode | "">("");
+  const [statusFilters, setStatusFilters] = useState<Report["status"][]>([]);
+  const [classificationFilters, setClassificationFilters] = useState<ClassificationCode[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
@@ -38,9 +38,9 @@ export default function InTray() {
     setLoading(true);
     fetchReports({
       query,
-      status: statusFilter || undefined,
+      statuses: statusFilters.length > 0 ? statusFilters : undefined,
       source: "AUTO",
-      classificationCode: classificationFilter || undefined,
+      classificationCodes: classificationFilters.length > 0 ? classificationFilters : undefined,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     })
@@ -56,7 +56,7 @@ export default function InTray() {
     return () => {
       active = false;
     };
-  }, [query, page, statusFilter, classificationFilter, canRead]);
+  }, [query, page, statusFilters, classificationFilters, canRead]);
 
   if (!canRead) {
     return (
@@ -87,18 +87,18 @@ export default function InTray() {
           setDraftQuery("");
           setQuery("");
           setPage(0);
-          setStatusFilter("");
-          setClassificationFilter("");
+          setStatusFilters([]);
+          setClassificationFilters([]);
         }}
-        status={statusFilter}
-        onStatusChange={(value) => {
+        statuses={statusFilters}
+        onStatusesChange={(value) => {
           setPage(0);
-          setStatusFilter(value);
+          setStatusFilters(value);
         }}
-        classification={classificationFilter}
-        onClassificationChange={(value) => {
+        classifications={classificationFilters}
+        onClassificationsChange={(value) => {
           setPage(0);
-          setClassificationFilter(value);
+          setClassificationFilters(value);
         }}
         resultCount={totalCount}
         resultLabel={totalCount === 1 ? "message" : "messages"}

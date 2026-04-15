@@ -577,18 +577,22 @@ export async function authLogout(): Promise<void> {
 
 export async function fetchReports(params: {
   query?: string;
-  status?: Report["status"];
+  statuses?: Report["status"][];
   source?: Report["ingest_source"];
-  classificationCode?: ClassificationCode;
+  classificationCodes?: ClassificationCode[];
   limit?: number;
   offset?: number;
 } = {}): Promise<ReportListResponse> {
-  const { query, status, source, classificationCode, limit, offset } = params;
+  const { query, statuses, source, classificationCodes, limit, offset } = params;
   const searchParams = new URLSearchParams();
   if (query) searchParams.set("q", query);
-  if (status) searchParams.set("status", status);
+  for (const status of statuses || []) {
+    searchParams.append("status", status);
+  }
   if (source) searchParams.set("source", source);
-  if (classificationCode) searchParams.set("classification_code", classificationCode);
+  for (const classificationCode of classificationCodes || []) {
+    searchParams.append("classification_code", classificationCode);
+  }
   if (typeof limit === "number") searchParams.set("limit", String(limit));
   if (typeof offset === "number") searchParams.set("offset", String(offset));
   const suffix = searchParams.toString();

@@ -1,15 +1,21 @@
-import { FormEvent } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { CLASSIFICATION_CODES, ClassificationCode, Report } from "../lib/api";
+
+const STATUS_OPTIONS: Array<{ value: Report["status"]; label: string }> = [
+  { value: "OPEN", label: "Open" },
+  { value: "PHISHING", label: "Phishing" },
+  { value: "BENIGN", label: "Benign" },
+];
 
 type ReportSearchToolbarProps = {
   draftQuery: string;
   onDraftQueryChange: (value: string) => void;
   onSubmit: () => void;
   onClear: () => void;
-  status: Report["status"] | "";
-  onStatusChange: (value: Report["status"] | "") => void;
-  classification: ClassificationCode | "";
-  onClassificationChange: (value: ClassificationCode | "") => void;
+  statuses: Report["status"][];
+  onStatusesChange: (value: Report["status"][]) => void;
+  classifications: ClassificationCode[];
+  onClassificationsChange: (value: ClassificationCode[]) => void;
   resultCount: number;
   resultLabel: string;
 };
@@ -19,19 +25,50 @@ export default function ReportSearchToolbar({
   onDraftQueryChange,
   onSubmit,
   onClear,
-  status,
-  onStatusChange,
-  classification,
-  onClassificationChange,
+  statuses,
+  onStatusesChange,
+  classifications,
+  onClassificationsChange,
   resultCount,
   resultLabel,
 }: ReportSearchToolbarProps) {
-  const activeFilterCount = Number(Boolean(status)) + Number(Boolean(classification));
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterAnchorRef = useRef<HTMLDivElement | null>(null);
+  const activeFilterCount = statuses.length + classifications.length;
   const hasSearchState = Boolean(draftQuery.trim()) || activeFilterCount > 0;
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!filterAnchorRef.current) return;
+      if (filterAnchorRef.current.contains(event.target as Node)) return;
+      setFiltersOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, []);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit();
+  };
+
+  const toggleStatus = (value: Report["status"]) => {
+    if (statuses.includes(value)) {
+      onStatusesChange(statuses.filter((item) => item !== value));
+      return;
+    }
+    onStatusesChange([...statuses, value]);
+  };
+
+  const toggleClassification = (value: ClassificationCode) => {
+    if (classifications.includes(value)) {
+      onClassificationsChange(classifications.filter((item) => item !== value));
+      return;
+    }
+    onClassificationsChange([...classifications, value]);
   };
 
   return (
@@ -47,11 +84,6 @@ export default function ReportSearchToolbar({
           <span className="search-toolbar-results">
             {resultCount} {resultLabel}
           </span>
-          {activeFilterCount > 0 ? (
-            <span className="search-toolbar-active-count">
-              {activeFilterCount} active filter{activeFilterCount === 1 ? "" : "s"}
-            </span>
-          ) : null}
           {hasSearchState ? (
             <button type="button" className="search-toolbar-clear" onClick={onClear}>
               Clear
@@ -81,60 +113,98 @@ export default function ReportSearchToolbar({
       </form>
 
       <div className="search-toolbar-row">
-        <div className="search-toolbar-filter-heading">Filters</div>
-        <div className="search-toolbar-filters">
-          <label className="search-toolbar-filter">
-            <span>Status</span>
-            <select
-              className="select"
-              value={status}
-              onChange={(event) => onStatusChange((event.target.value as Report["status"] | "") || "")}
+        <div className="search-toolbar-controls">
+          <div className="search-toolbar-filter-anchor" ref={filterAnchorRef}>
+            <button
+              type="button"
+              className={`search-toolbar-filter-trigger ${filtersOpen ? "open" : ""}`.trim()}
+              onClick={() => setFiltersOpen((current) => !current)}
             >
-              <option value="">All statuses</option>
-              <option value="OPEN">Open</option>
-              <option value="PHISHING">Phishing</option>
-              <option value="BENIGN">Benign</option>
-            </select>
-          </label>
+              <span>Filters ({activeFilterCount})</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d={filtersOpen ? "M5.2 12.8L10 8l4.8 4.8-1.4 1.4L10 10.8l-3.4 3.4z" : "M5.2 7.2L10 12l4.8-4.8-1.4-1.4L10 9.2 6.6 5.8z"}
+                />
+              </svg>
+            </button>
 
-          <label className="search-toolbar-filter">
-            <span>Classification</span>
-            <select
-              className="select"
-              value={classification}
-              onChange={(event) =>
-                onClassificationChange((event.target.value as ClassificationCode | "") || "")
-              }
-            >
-              <option value="">All classifications</option>
-              {CLASSIFICATION_CODES.map((code) => (
-                <option key={code} value={code}>
-                  {code}
-                </option>
-              ))}
-            </select>
-          </label>
+            {filtersOpen ? (
+              <div className="search-toolbar-filter-panel">
+                <div className="search-toolbar-filter-column">
+                  <div className="search-toolbar-filter-column-header">
+                    <span>Status ({statuses.length})</span>
+                    {statuses.length > 0 ? (
+                      <button type="button" className="search-toolbar-filter-clear" onClick={() => onStatusesChange([])}>
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="search-toolbar-filter-list">
+                    {STATUS_OPTIONS.map((option) => (
+                      <label key={option.value} className="search-toolbar-filter-option">
+                        <input
+                          type="checkbox"
+                          checked={statuses.includes(option.value)}
+                          onChange={() => toggleStatus(option.value)}
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="search-toolbar-filter-column search-toolbar-filter-column-scroll">
+                  <div className="search-toolbar-filter-column-header">
+                    <span>Classification ({classifications.length})</span>
+                    {classifications.length > 0 ? (
+                      <button
+                        type="button"
+                        className="search-toolbar-filter-clear"
+                        onClick={() => onClassificationsChange([])}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="search-toolbar-filter-list">
+                    {CLASSIFICATION_CODES.map((code) => (
+                      <label key={code} className="search-toolbar-filter-option">
+                        <input
+                          type="checkbox"
+                          checked={classifications.includes(code)}
+                          onChange={() => toggleClassification(code)}
+                        />
+                        <span>{code}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
       {activeFilterCount > 0 ? (
         <div className="search-toolbar-chip-row">
-          {status ? (
-            <button type="button" className="search-toolbar-chip" onClick={() => onStatusChange("")}>
-              Status: {status}
+          {statuses.map((status) => (
+            <button key={status} type="button" className="search-toolbar-chip" onClick={() => toggleStatus(status)}>
+              Status: {STATUS_OPTIONS.find((item) => item.value === status)?.label || status}
               <span aria-hidden="true">×</span>
             </button>
-          ) : null}
-          {classification ? (
+          ))}
+          {classifications.map((classification) => (
             <button
+              key={classification}
               type="button"
               className="search-toolbar-chip"
-              onClick={() => onClassificationChange("")}
+              onClick={() => toggleClassification(classification)}
             >
               Classification: {classification}
               <span aria-hidden="true">×</span>
             </button>
-          ) : null}
+          ))}
         </div>
       ) : null}
     </section>
