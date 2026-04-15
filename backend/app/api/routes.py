@@ -5,7 +5,7 @@ from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
-from sqlalchemy import case, func, or_, select
+from sqlalchemy import Text, case, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -45,6 +45,7 @@ from app.schemas import (
     FlaggedArtifactIn,
     FlaggedArtifactOut,
     ReportCreate,
+    ReportListOut,
     ReportOut,
     ReportResolutionOut,
     ReportResult,
@@ -142,6 +143,73 @@ def _normalize_email(value: str | None) -> str | None:
     if not cleaned or "@" not in cleaned:
         return None
     return cleaned
+
+
+def _searchable_text(value):
+    return func.lower(func.coalesce(cast(value, Text), ""))
+
+
+def _matches_report_search(value, like: str):
+    return _searchable_text(value).like(like)
+
+
+def _build_report_search_predicate(search_term: str):
+    like = f"%{search_term.strip().lower()}%"
+
+    attachment_match = (
+        select(Attachment.id)
+        .where(
+            Attachment.report_id == Report.id,
+            or_(
+                _matches_report_search(Attachment.filename, like),
+                _matches_report_search(Attachment.content_type, like),
+                _matches_report_search(Attachment.sha256, like),
+            ),
+        )
+        .exists()
+    )
+
+
+def _apply_report_list_filters(
+    query,
+    *,
+    q: str | None,
+    status: ReportStatus | None,
+    source: IngestSource | None,
+    classification_code: str | None,
+):
+    if q and q.strip():
+        query = query.where(_build_report_search_predicate(q))
+    if status:
+        query = query.where(Report.status == status)
+    if source:
+        query = query.where(Report.ingest_source == source)
+    if classification_code and classification_code.strip():
+        query = query.where(Report.classification_code == classification_code.strip().upper())
+    return query
+
+    return or_(
+        _matches_report_search(Report.subject, like),
+        _matches_report_search(Report.from_addr, like),
+        _matches_report_search(Report.from_display_name, like),
+        _matches_report_search(Report.sender, like),
+        _matches_report_search(Report.to_addrs, like),
+        _matches_report_search(Report.cc_addrs, like),
+        _matches_report_search(Report.reply_to, like),
+        _matches_report_search(Report.return_path, like),
+        _matches_report_search(Report.mailbox_domain, like),
+        _matches_report_search(Report.message_id, like),
+        _matches_report_search(Report.in_reply_to, like),
+        _matches_report_search(Report.originating_ip, like),
+        _matches_report_search(Report.originating_rdns, like),
+        _matches_report_search(Report.urls_json, like),
+        _matches_report_search(Report.url_analysis_json, like),
+        _matches_report_search(Report.headers_json, like),
+        _matches_report_search(Report.original_filename, like),
+        _matches_report_search(Report.original_sha256, like),
+        _matches_report_search(Report.classification_code, like),
+        attachment_match,
+    )
 
 
 def _ranked_counts(counter: Counter[str], limit: int = 10) -> list[DashboardAddressPoint]:
@@ -932,7 +1000,7 @@ async def create_reports_from_files(
     )
 
 
-@router.get("/reports", response_model=list[ReportOut])
+@router.get("/reports", response_model=ReportListOut)
 def list_reports(
     db: Session = Depends(get_db),
     limit: int = Query(50, ge=1, le=200),
@@ -940,21 +1008,35 @@ def list_reports(
     q: str | None = Query(default=None, max_length=200),
     status: ReportStatus | None = Query(default=None),
     source: IngestSource | None = Query(default=None),
+    classification_code: str | None = Query(default=None, max_length=32),
     _: Principal = Depends(require_permission("reports.read")),
 ):
-    query = select(Report).order_by(Report.created_at.desc(), Report.id.desc())
-    if q:
-        like = f"%{q.lower()}%"
-        query = query.where(
-            or_(func.lower(Report.subject).like(like), func.lower(Report.from_addr).like(like))
+    filtered_query = _apply_report_list_filters(
+        select(Report),
+        q=q,
+        status=status,
+        source=source,
+        classification_code=classification_code,
+    )
+    total = db.execute(
+        _apply_report_list_filters(
+            select(func.count()).select_from(Report),
+            q=q,
+            status=status,
+            source=source,
+            classification_code=classification_code,
         )
-    if status:
-        query = query.where(Report.status == status)
-    if source:
-        query = query.where(Report.ingest_source == source)
-    query = query.offset(offset).limit(limit)
-    reports = db.execute(query).scalars().all()
-    return reports
+    ).scalar_one()
+    reports = db.execute(
+        filtered_query.order_by(Report.created_at.desc(), Report.id.desc()).offset(offset).limit(limit)
+    ).scalars().all()
+    return ReportListOut(
+        items=reports,
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=offset + len(reports) < total,
+    )
 
 
 @router.get("/reports/{report_id}/attachments", response_model=list[AttachmentOut])

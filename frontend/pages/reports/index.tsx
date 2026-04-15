@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileIngestItem, Report, fetchReports, uploadReportFiles } from "../../lib/api";
+import ReportListPagination from "../../components/ReportListPagination";
+import ReportSearchToolbar from "../../components/ReportSearchToolbar";
+import { ClassificationCode, FileIngestItem, Report, fetchReports, uploadReportFiles } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
+
+const PAGE_SIZE = 50;
 
 const statusClass = (status: Report["status"]) => {
   if (status === "PHISHING") return "badge phishing";
@@ -25,7 +29,12 @@ export default function ReportList() {
   const canIngest = hasPermission("reports.ingest");
   const [reports, setReports] = useState<Report[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [draftQuery, setDraftQuery] = useState("");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<Report["status"] | "">("");
+  const [classificationFilter, setClassificationFilter] = useState<ClassificationCode | "">("");
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -61,15 +70,24 @@ export default function ReportList() {
     }
     let active = true;
     setLoading(true);
-    fetchReports(query, undefined, "UPLOAD")
+    fetchReports({
+      query,
+      status: statusFilter || undefined,
+      source: "UPLOAD",
+      classificationCode: classificationFilter || undefined,
+      limit: PAGE_SIZE,
+      offset: page * PAGE_SIZE,
+    })
       .then((data) => {
         if (!active) return;
-        setReports(sortReportsByCreatedAtDesc(data));
+        setReports(sortReportsByCreatedAtDesc(data.items));
+        setTotalCount(data.total);
         setError(null);
       })
       .catch((err) => {
         if (!active) return;
         setError(err.message || "Failed to load reports");
+        setTotalCount(0);
       })
       .finally(() => {
         if (!active) return;
@@ -78,7 +96,7 @@ export default function ReportList() {
     return () => {
       active = false;
     };
-  }, [query, reloadTick, canRead]);
+  }, [query, page, statusFilter, classificationFilter, reloadTick, canRead]);
 
   if (!canRead) {
     return (
@@ -179,48 +197,80 @@ export default function ReportList() {
         </div>
       ) : null}
 
-      <input
-        className="input"
-        placeholder="Search subject or sender"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        style={{ marginTop: 16, width: "100%" }}
+      <ReportSearchToolbar
+        draftQuery={draftQuery}
+        onDraftQueryChange={setDraftQuery}
+        onSubmit={() => {
+          setPage(0);
+          setQuery(draftQuery.trim());
+        }}
+        onClear={() => {
+          setDraftQuery("");
+          setQuery("");
+          setPage(0);
+          setStatusFilter("");
+          setClassificationFilter("");
+        }}
+        status={statusFilter}
+        onStatusChange={(value) => {
+          setPage(0);
+          setStatusFilter(value);
+        }}
+        classification={classificationFilter}
+        onClassificationChange={(value) => {
+          setPage(0);
+          setClassificationFilter(value);
+        }}
+        resultCount={totalCount}
+        resultLabel={totalCount === 1 ? "upload" : "uploads"}
       />
 
       <section className="card report-table">
         <h2>Uploads</h2>
         {loading ? <p>Loading...</p> : null}
         {error ? <p>{error}</p> : null}
-        {!loading && reports.length === 0 ? <p>No uploads yet.</p> : null}
+        {!loading && reports.length === 0 ? <p>No uploads match the current search.</p> : null}
         {!loading && reports.length > 0 ? (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>From</th>
-                <th>To</th>
-                <th>Subject</th>
-                <th>Status</th>
-                <th>Date uploaded</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reports.map((report) => (
-                <tr key={report.id}>
-                  <td>{report.from_addr || "-"}</td>
-                  <td>{report.to_addrs?.join(", ") || "-"}</td>
-                  <td>
-                    <Link href={`/reports/${report.id}`}>
-                      {report.subject || "(no subject)"}
-                    </Link>
-                  </td>
-                  <td>
-                    <span className={statusClass(report.status)}>{report.status}</span>
-                  </td>
-                  <td>{new Date(report.created_at).toLocaleString()}</td>
+          <>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>Date uploaded</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {reports.map((report) => (
+                  <tr key={report.id}>
+                    <td>{report.from_addr || "-"}</td>
+                    <td>{report.to_addrs?.join(", ") || "-"}</td>
+                    <td>
+                      <Link href={`/reports/${report.id}`}>
+                        {report.subject || "(no subject)"}
+                      </Link>
+                    </td>
+                    <td>
+                      <span className={statusClass(report.status)}>{report.status}</span>
+                    </td>
+                    <td>{new Date(report.created_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <ReportListPagination
+              total={totalCount}
+              offset={page * PAGE_SIZE}
+              limit={PAGE_SIZE}
+              itemLabel={totalCount === 1 ? "upload" : "uploads"}
+              onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+              onNext={() => setPage((current) => current + 1)}
+              hasPrevious={page > 0}
+              hasNext={(page + 1) * PAGE_SIZE < totalCount}
+            />
+          </>
         ) : null}
       </section>
     </main>

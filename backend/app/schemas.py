@@ -310,6 +310,14 @@ class ReportOut(BaseModel):
     created_at: datetime
 
 
+class ReportListOut(BaseModel):
+    items: List[ReportOut] = Field(default_factory=list)
+    total: int
+    limit: int
+    offset: int
+    has_more: bool = False
+
+
 class AttachmentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

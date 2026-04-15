@@ -381,6 +381,14 @@ export type Report = {
   created_at: string;
 };
 
+export type ReportListResponse = {
+  items: Report[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
+};
+
 export type Attachment = {
   id: number;
   report_id: number;
@@ -567,16 +575,24 @@ export async function authLogout(): Promise<void> {
   );
 }
 
-export async function fetchReports(
-  query?: string,
-  status?: Report["status"],
-  source?: Report["ingest_source"]
-): Promise<Report[]> {
-  const params = new URLSearchParams();
-  if (query) params.set("q", query);
-  if (status) params.set("status", status);
-  if (source) params.set("source", source);
-  return request<Report[]>(`/api/reports?${params.toString()}`);
+export async function fetchReports(params: {
+  query?: string;
+  status?: Report["status"];
+  source?: Report["ingest_source"];
+  classificationCode?: ClassificationCode;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<ReportListResponse> {
+  const { query, status, source, classificationCode, limit, offset } = params;
+  const searchParams = new URLSearchParams();
+  if (query) searchParams.set("q", query);
+  if (status) searchParams.set("status", status);
+  if (source) searchParams.set("source", source);
+  if (classificationCode) searchParams.set("classification_code", classificationCode);
+  if (typeof limit === "number") searchParams.set("limit", String(limit));
+  if (typeof offset === "number") searchParams.set("offset", String(offset));
+  const suffix = searchParams.toString();
+  return request<ReportListResponse>(suffix ? `/api/reports?${suffix}` : "/api/reports");
 }
 
 export async function fetchReport(id: string | number): Promise<Report> {
