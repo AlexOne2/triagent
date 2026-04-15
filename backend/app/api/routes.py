@@ -45,13 +45,17 @@ from app.schemas import (
     FileIngestResult,
     FlaggedArtifactIn,
     FlaggedArtifactOut,
+    AttackMappingOut,
+    LookalikeAnalysisOut,
     ReportCreate,
+    ReportAuthSummaryOut,
     ReportListOut,
     ReportOut,
     ReportResolutionOut,
     ReportResult,
     ReportUpdate,
     ResolveReportRequest,
+    UrlAnalysisOut,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
 from app.services.attack_mapping import AttackMappingInput, build_attack_mapping
@@ -475,15 +479,20 @@ def _serialize_resolution(event: ReportResolution) -> ReportResolutionOut:
 
 def _serialize_report(report: Report) -> ReportOut:
     payload = ReportOut.model_validate(report)
-    url_analysis = report.url_analysis_json or build_static_url_analysis(report.urls_json or [])
-    auth_summary = build_auth_summary(report)
-    lookalike_analysis = build_lookalike_analysis(
+    raw_url_analysis = report.url_analysis_json or build_static_url_analysis(report.urls_json or [])
+    url_analysis = [UrlAnalysisOut.model_validate(item) for item in raw_url_analysis]
+    auth_summary = ReportAuthSummaryOut.model_validate(build_auth_summary(report))
+    raw_lookalike_analysis = build_lookalike_analysis(
         mailbox_domain=report.mailbox_domain,
         from_addr=report.from_addr,
         reply_to=list(report.reply_to or []),
         return_path=report.return_path,
     )
-    attack_mapping = build_attack_mapping(
+    lookalike_analysis = (
+        LookalikeAnalysisOut.model_validate(raw_lookalike_analysis) if raw_lookalike_analysis else None
+    )
+    attack_mapping = AttackMappingOut.model_validate(
+        build_attack_mapping(
         AttackMappingInput(
             classification_code=report.classification_code,
             status=report.status.value,
@@ -493,22 +502,22 @@ def _serialize_report(report: Report) -> ReportOut:
             urls=[item for item in (report.urls_json or []) if item],
             url_analysis=[
                 {
-                    "original_url": item.get("original_url"),
-                    "normalized_url": item.get("normalized_url"),
-                    "final_url": item.get("final_url"),
-                    "final_domain": item.get("final_domain"),
-                    "domain_changed": bool(item.get("domain_changed")),
-                    "is_shortener": bool(item.get("is_shortener")),
-                    "suspicious_redirect": bool(item.get("suspicious_redirect")),
+                    "original_url": item.original_url,
+                    "normalized_url": item.normalized_url,
+                    "final_url": item.final_url,
+                    "final_domain": item.final_domain,
+                    "domain_changed": item.domain_changed,
+                    "is_shortener": item.is_shortener,
+                    "suspicious_redirect": item.suspicious_redirect,
                 }
                 for item in url_analysis
             ],
             attachment_names=[item.filename for item in report.attachments if item.filename],
-            auth_spf_result=str((auth_summary.get("spf") or {}).get("result") or "unknown"),
-            auth_dkim_result=str((auth_summary.get("dkim") or {}).get("result") or "unknown"),
-            auth_dmarc_result=str((auth_summary.get("dmarc") or {}).get("result") or "unknown"),
+            auth_spf_result=str(auth_summary.spf.result or "unknown"),
+            auth_dkim_result=str(auth_summary.dkim.result or "unknown"),
+            auth_dmarc_result=str(auth_summary.dmarc.result or "unknown"),
         )
-    )
+    ))
     return payload.model_copy(
         update={
             "auth_summary": auth_summary,
