@@ -2252,29 +2252,44 @@ p {
 .settings-sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .settings-side-link {
+  position: relative;
   display: block;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 8px 0 8px 18px;
   color: var(--text-muted);
   font-weight: 600;
-  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
-  border: 1px solid transparent;
+  transition: color 0.16s ease, transform 0.16s ease;
+}
+
+.settings-side-link::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  transform: translateY(-50%);
+  transition: height 0.16s ease, opacity 0.16s ease;
+  opacity: 0;
 }
 
 .settings-side-link:hover {
-  background: var(--surface);
   color: var(--text);
-  border-color: var(--border);
+  transform: translateX(2px);
 }
 
 .settings-side-link.active {
-  background: var(--primary-soft);
   color: var(--primary);
-  border-color: transparent;
+}
+
+.settings-side-link.active::before {
+  height: 22px;
+  opacity: 1;
 }
 
 .settings-content {
