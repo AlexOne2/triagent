@@ -1,4 +1,5 @@
 from collections import Counter
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from email.utils import parseaddr
 from urllib.parse import quote
@@ -492,32 +493,35 @@ def _serialize_report(report: Report) -> ReportOut:
         LookalikeAnalysisOut.model_validate(raw_lookalike_analysis) if raw_lookalike_analysis else None
     )
     attack_mapping = AttackMappingOut.model_validate(
-        build_attack_mapping(
-        AttackMappingInput(
-            classification_code=report.classification_code,
-            status=report.status.value,
-            from_addr=report.from_addr,
-            reply_to=list(report.reply_to or []),
-            return_path=report.return_path,
-            urls=[item for item in (report.urls_json or []) if item],
-            url_analysis=[
-                {
-                    "original_url": item.original_url,
-                    "normalized_url": item.normalized_url,
-                    "final_url": item.final_url,
-                    "final_domain": item.final_domain,
-                    "domain_changed": item.domain_changed,
-                    "is_shortener": item.is_shortener,
-                    "suspicious_redirect": item.suspicious_redirect,
-                }
-                for item in url_analysis
-            ],
-            attachment_names=[item.filename for item in report.attachments if item.filename],
-            auth_spf_result=str(auth_summary.spf.result or "unknown"),
-            auth_dkim_result=str(auth_summary.dkim.result or "unknown"),
-            auth_dmarc_result=str(auth_summary.dmarc.result or "unknown"),
+        asdict(
+            build_attack_mapping(
+                AttackMappingInput(
+                    classification_code=report.classification_code,
+                    status=report.status.value,
+                    from_addr=report.from_addr,
+                    reply_to=list(report.reply_to or []),
+                    return_path=report.return_path,
+                    urls=[item for item in (report.urls_json or []) if item],
+                    url_analysis=[
+                        {
+                            "original_url": item.original_url,
+                            "normalized_url": item.normalized_url,
+                            "final_url": item.final_url,
+                            "final_domain": item.final_domain,
+                            "domain_changed": item.domain_changed,
+                            "is_shortener": item.is_shortener,
+                            "suspicious_redirect": item.suspicious_redirect,
+                        }
+                        for item in url_analysis
+                    ],
+                    attachment_names=[item.filename for item in report.attachments if item.filename],
+                    auth_spf_result=str(auth_summary.spf.result or "unknown"),
+                    auth_dkim_result=str(auth_summary.dkim.result or "unknown"),
+                    auth_dmarc_result=str(auth_summary.dmarc.result or "unknown"),
+                )
+            )
         )
-    ))
+    )
     return payload.model_copy(
         update={
             "auth_summary": auth_summary,
