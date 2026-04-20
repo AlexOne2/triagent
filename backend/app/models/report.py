@@ -98,6 +98,14 @@ class Report(Base):
     original_sha256: Mapped[str | None] = mapped_column(String(64), nullable=True)
     original_s3_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     risk_score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    triage_bucket: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    triage_threat_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    triage_bulk_benign_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    triage_investigation_priority_score: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    triage_automation_confidence_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    triage_analyst_worthy: Mapped[bool | None] = mapped_column(nullable=True)
+    triage_assessment_version: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    triage_assessment_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     status: Mapped[ReportStatus] = mapped_column(
         Enum(ReportStatus, name="report_status"), default=ReportStatus.OPEN, nullable=False
     )

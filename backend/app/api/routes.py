@@ -55,6 +55,7 @@ from app.schemas import (
     ReportOut,
     ReportResolutionOut,
     ReportResult,
+    ReportTriageAssessmentOut,
     ReportUpdate,
     ResolveReportRequest,
     UrlAnalysisOut,
@@ -71,6 +72,11 @@ from app.services.lookalike_detection import build_lookalike_analysis
 from app.services.msg_parser import MsgParseError, parse_msg
 from app.services.object_storage import ObjectStorageError, ObjectStorageService, normalize_filename, sanitize_filename
 from app.services.report_assist import AssistArtifactOption, ReportAssistInput, build_report_assist_draft
+from app.services.triage_scoring import (
+    TRIAGE_SCORING_VERSION,
+    ReportTriageAssessmentResult,
+    build_report_triage_assessment_for_report,
+)
 from app.services.url_resolution import build_static_url_analysis, build_url_analysis, extract_url_domain, resolved_urls_for_scoring
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -600,17 +606,82 @@ def _serialize_report(report: Report) -> ReportOut:
             )
         )
     )
+    triage_assessment = _build_triage_assessment(
+        report,
+        auth_summary=auth_summary.model_dump(mode="python"),
+        raw_url_analysis=raw_url_analysis,
+        raw_lookalike_analysis=raw_lookalike_analysis,
+    )
     return payload.model_copy(
         update={
             "auth_summary": auth_summary,
             "url_analysis_json": url_analysis,
             "attack_mapping": attack_mapping,
             "lookalike_analysis": lookalike_analysis,
+            "triage_assessment": triage_assessment,
         }
     )
 
 
-def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSource) -> tuple[Report, int]:
+def _persist_triage_assessment(report: Report, assessment: ReportTriageAssessmentResult) -> None:
+    report.triage_bucket = assessment.bucket
+    report.triage_threat_score = assessment.threat_score
+    report.triage_bulk_benign_score = assessment.bulk_benign_score
+    report.triage_investigation_priority_score = assessment.investigation_priority_score
+    report.triage_automation_confidence_score = assessment.automation_confidence_score
+    report.triage_analyst_worthy = assessment.analyst_worthy
+    report.triage_assessment_version = TRIAGE_SCORING_VERSION
+    report.triage_assessment_json = asdict(assessment)
+
+
+def _compute_triage_assessment(
+    report: Report,
+    *,
+    auth_summary: dict | None = None,
+    raw_url_analysis: list[dict] | None = None,
+    raw_lookalike_analysis: dict | None = None,
+    attachment_names: list[str] | None = None,
+) -> ReportTriageAssessmentResult:
+    return build_report_triage_assessment_for_report(
+        report,
+        attachment_names=attachment_names,
+        auth_summary=auth_summary,
+        raw_url_analysis=raw_url_analysis,
+        raw_lookalike_analysis=raw_lookalike_analysis,
+    )
+
+
+def _build_triage_assessment(
+    report: Report,
+    *,
+    auth_summary: dict | None = None,
+    raw_url_analysis: list[dict] | None = None,
+    raw_lookalike_analysis: dict | None = None,
+) -> ReportTriageAssessmentOut:
+    if report.triage_assessment_json and report.triage_assessment_version == TRIAGE_SCORING_VERSION:
+        return ReportTriageAssessmentOut.model_validate(report.triage_assessment_json)
+    triage = _compute_triage_assessment(
+        report,
+        auth_summary=auth_summary,
+        raw_url_analysis=raw_url_analysis,
+        raw_lookalike_analysis=raw_lookalike_analysis,
+    )
+    return ReportTriageAssessmentOut.model_validate(asdict(triage))
+
+
+def _serialize_report_list_item(report: Report) -> ReportOut:
+    payload = ReportOut.model_validate(report)
+    triage_assessment = _build_triage_assessment(report)
+    return payload.model_copy(update={"triage_assessment": triage_assessment})
+
+
+def _create_report(
+    payload: ReportCreate,
+    db: Session,
+    ingest_source: IngestSource,
+    *,
+    attachment_names: list[str] | None = None,
+) -> tuple[Report, int]:
     settings = get_settings()
     now = datetime.now(timezone.utc)
 
@@ -662,6 +733,8 @@ def _create_report(payload: ReportCreate, db: Session, ingest_source: IngestSour
         originating_ip=payload.originating_ip,
         originating_rdns=payload.originating_rdns,
     )
+    triage_assessment = _compute_triage_assessment(report, raw_url_analysis=url_analysis, attachment_names=attachment_names)
+    _persist_triage_assessment(report, triage_assessment)
     db.add(report)
     db.flush()
     return report, risk_score
@@ -719,7 +792,12 @@ async def create_report_from_eml(
     try:
         parsed_report, parsed_attachments = parse_eml(raw_bytes)
         payload = ReportCreate(**parsed_report)
-        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        report, risk_score = _create_report(
+            payload,
+            db,
+            IngestSource.UPLOAD,
+            attachment_names=[item.filename for item in parsed_attachments if item.filename],
+        )
         storage = ObjectStorageService()
         original_s3_key = None
         attachment_s3_keys: list[str] = []
@@ -790,7 +868,12 @@ async def create_report_from_msg(
     try:
         parsed_report, parsed_attachments = parse_msg(raw_bytes)
         payload = ReportCreate(**parsed_report)
-        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        report, risk_score = _create_report(
+            payload,
+            db,
+            IngestSource.UPLOAD,
+            attachment_names=[item.filename for item in parsed_attachments if item.filename],
+        )
 
         storage = ObjectStorageService()
         original_s3_key = None
@@ -867,7 +950,12 @@ def _ingest_uploaded_bytes(
     if lowered_name.endswith(".eml"):
         parsed_report, parsed_attachments = parse_eml(raw_bytes)
         payload = ReportCreate(**parsed_report)
-        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        report, risk_score = _create_report(
+            payload,
+            db,
+            IngestSource.UPLOAD,
+            attachment_names=[item.filename for item in parsed_attachments if item.filename],
+        )
         storage = ObjectStorageService()
         original_s3_key = None
         attachment_s3_keys: list[str] = []
@@ -918,7 +1006,12 @@ def _ingest_uploaded_bytes(
     if lowered_name.endswith(".msg"):
         parsed_report, parsed_attachments = parse_msg(raw_bytes)
         payload = ReportCreate(**parsed_report)
-        report, risk_score = _create_report(payload, db, IngestSource.UPLOAD)
+        report, risk_score = _create_report(
+            payload,
+            db,
+            IngestSource.UPLOAD,
+            attachment_names=[item.filename for item in parsed_attachments if item.filename],
+        )
         storage = ObjectStorageService()
         original_s3_key = None
         attachment_s3_keys: list[str] = []
@@ -1142,7 +1235,7 @@ def list_reports(
         filtered_query.order_by(Report.created_at.desc(), Report.id.desc()).offset(offset).limit(limit)
     ).scalars().all()
     return ReportListOut(
-        items=reports,
+        items=[_serialize_report_list_item(report) for report in reports],
         total=total,
         limit=limit,
         offset=offset,

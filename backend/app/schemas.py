@@ -238,6 +238,7 @@ class AttackMappingOut(BaseModel):
 LookalikeField = Literal["from_addr", "reply_to", "return_path"]
 LookalikeMatchType = Literal["brand_affix", "deceptive_subdomain", "edit_distance", "homoglyph"]
 LookalikeConfidence = Literal["high", "medium", "low"]
+TriageBucket = Literal["NEEDS_INVESTIGATION", "AUTOMATION_READY", "BULK_SPAM", "LIKELY_BENIGN", "UNCERTAIN"]
 
 
 class LookalikeMatchOut(BaseModel):
@@ -259,6 +260,18 @@ class LookalikeAnalysisOut(BaseModel):
     has_suspected_lookalikes: bool = False
     matches: List[LookalikeMatchOut] = Field(default_factory=list)
     summary: str
+
+
+class ReportTriageAssessmentOut(BaseModel):
+    threat_score: int = Field(ge=0, le=100)
+    bulk_benign_score: int = Field(ge=0, le=100)
+    investigation_priority_score: int = Field(ge=0, le=100)
+    automation_confidence_score: int = Field(ge=0, le=100)
+    bucket: TriageBucket
+    analyst_worthy: bool = False
+    summary: str
+    reason_codes: List[str] = Field(default_factory=list)
+    reasons: List[str] = Field(default_factory=list)
 
 
 class ReportOut(BaseModel):
@@ -307,6 +320,7 @@ class ReportOut(BaseModel):
     auth_summary: Optional[ReportAuthSummaryOut] = None
     attack_mapping: Optional[AttackMappingOut] = None
     lookalike_analysis: Optional[LookalikeAnalysisOut] = None
+    triage_assessment: Optional[ReportTriageAssessmentOut] = None
     created_at: datetime
 
 
