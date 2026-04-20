@@ -2624,17 +2624,7 @@ p {
 }
 
 .resolve-assist-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
   margin-bottom: 10px;
-}
-
-.resolve-assist-head-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .resolve-assist-card {

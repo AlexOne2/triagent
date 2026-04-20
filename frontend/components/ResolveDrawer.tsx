@@ -190,13 +190,6 @@ export default function ResolveDrawer({
           <section className="resolve-section">
             <div className="resolve-assist-head">
               <h3>Assist draft</h3>
-              <div className="resolve-assist-head-actions">
-                {assistDraft ? (
-                  <button className="resolve-link" type="button" onClick={() => applyAssistDraft(assistDraft)}>
-                    Apply assist draft
-                  </button>
-                ) : null}
-              </div>
             </div>
             {assistLoading ? <p>Generating assist draft...</p> : null}
             {assistError ? <p className="resolve-error">{assistError}</p> : null}
