@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import ReportListPagination from "../../components/ReportListPagination";
 import ReportSearchToolbar from "../../components/ReportSearchToolbar";
@@ -41,6 +41,7 @@ export default function ReportList() {
   const [uploadResults, setUploadResults] = useState<FileIngestItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const uploadFiles = async (files: File[]) => {
     if (files.length === 0) {
@@ -140,6 +141,7 @@ export default function ReportList() {
         >
           <p>Upload .eml or .msg files to ingest reported mail.</p>
           <input
+            ref={fileInputRef}
             type="file"
             accept=".eml,.msg"
             multiple
@@ -164,8 +166,7 @@ export default function ReportList() {
               type="button"
               className="tab"
               onClick={() => {
-                const input = document.querySelector<HTMLInputElement>(".upload-zone input[type='file']");
-                input?.click();
+                fileInputRef.current?.click();
               }}
             >
               {uploading ? "Uploading..." : "Choose file"}

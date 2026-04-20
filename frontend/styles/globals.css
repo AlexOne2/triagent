@@ -154,17 +154,17 @@ body {
 
 .queue-page .upload-zone {
   margin-top: 12px;
-  padding: 0 0 18px;
-  border: 0;
-  border-bottom: 1px dashed var(--border);
+  padding: 12px 0 14px;
+  border-top: 1px solid #dbe4ec;
+  border-bottom: 1px solid #dbe4ec;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
 }
 
 .queue-page .upload-zone.active {
-  background: transparent;
-  border-bottom-color: var(--primary);
+  border-top-color: rgba(29, 95, 122, 0.35);
+  border-bottom-color: rgba(29, 95, 122, 0.35);
 }
 
 .queue-page .search-toolbar {
@@ -2829,6 +2829,11 @@ p {
 
   .dashboard-table-grid {
     grid-template-columns: 1fr;
+  }
+
+  .upload-actions {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .report-detail-page {
