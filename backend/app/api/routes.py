@@ -48,6 +48,7 @@ from app.schemas import (
     FlaggedArtifactOut,
     AttackMappingOut,
     LookalikeAnalysisOut,
+    ReportAssistDraftOut,
     ReportCreate,
     ReportAuthSummaryOut,
     ReportListOut,
@@ -69,6 +70,7 @@ from app.services.evidence_export import EvidenceExportService
 from app.services.lookalike_detection import build_lookalike_analysis
 from app.services.msg_parser import MsgParseError, parse_msg
 from app.services.object_storage import ObjectStorageError, ObjectStorageService, normalize_filename, sanitize_filename
+from app.services.report_assist import AssistArtifactOption, ReportAssistInput, build_report_assist_draft
 from app.services.url_resolution import build_static_url_analysis, build_url_analysis, extract_url_domain, resolved_urls_for_scoring
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -420,6 +422,82 @@ def _available_artifacts(report: Report) -> dict[ArtifactKind, set[str]]:
                     _normalize_artifact_value(ArtifactKind.ATTACHMENT_SHA256, attachment.sha256)
                 )
     return available
+
+
+def _artifact_options(report: Report, auth_summary: dict | None = None) -> list[AssistArtifactOption]:
+    auth_summary = auth_summary or build_auth_summary(report)
+    items: list[AssistArtifactOption] = []
+    seen: set[tuple[ArtifactKind, str]] = set()
+
+    def push(kind: ArtifactKind, value: str | None, label: str | None) -> None:
+        if not value or not label:
+            return
+        normalized_value = _normalize_artifact_value(kind, value)
+        key = (kind, normalized_value)
+        if key in seen:
+            return
+        seen.add(key)
+        items.append(AssistArtifactOption(kind=kind, value=normalized_value, label=label))
+
+    if report.from_addr:
+        push(ArtifactKind.FROM_ADDR, report.from_addr, f"From email address - {report.from_addr}")
+        from_domain = _extract_email_domain(report.from_addr)
+        if from_domain:
+            push(ArtifactKind.FROM_DOMAIN, from_domain, f"From domain - {from_domain}")
+
+    for reply_to in report.reply_to or []:
+        push(ArtifactKind.REPLY_TO, reply_to, f"Reply-To - {reply_to}")
+
+    if report.return_path:
+        push(ArtifactKind.RETURN_PATH, report.return_path, f"Return-Path email address - {report.return_path}")
+        return_path_domain = _extract_email_domain(report.return_path)
+        if return_path_domain:
+            push(ArtifactKind.RETURN_PATH_DOMAIN, return_path_domain, f"Return-Path domain - {return_path_domain}")
+
+    if report.originating_ip:
+        label = f"Originating IP - {report.originating_ip}"
+        if report.originating_rdns:
+            label += f" ({report.originating_rdns})"
+        push(ArtifactKind.ORIGINATING_IP, report.originating_ip, label)
+
+    auth_spf = auth_summary.get("spf") or {}
+    if auth_spf.get("originating_ip"):
+        label = f"Originating IP - {auth_spf['originating_ip']}"
+        if auth_spf.get("originating_rdns"):
+            label += f" ({auth_spf['originating_rdns']})"
+        push(ArtifactKind.ORIGINATING_IP, auth_spf["originating_ip"], label)
+    if auth_spf.get("return_path_domain"):
+        push(
+            ArtifactKind.RETURN_PATH_DOMAIN,
+            auth_spf["return_path_domain"],
+            f"Return-Path domain - {auth_spf['return_path_domain']}",
+        )
+
+    auth_dmarc = auth_summary.get("dmarc") or {}
+    if auth_dmarc.get("header_from"):
+        push(ArtifactKind.FROM_DOMAIN, auth_dmarc["header_from"], f"From domain - {auth_dmarc['header_from']}")
+
+    for item in report.urls_json or []:
+        push(ArtifactKind.URL, item, f"Message URL - {item}")
+        url_domain = _extract_url_domain(item)
+        if url_domain:
+            push(ArtifactKind.URL_DOMAIN, url_domain, f"Message URL domain - {url_domain}")
+
+    for item in report.url_analysis_json or []:
+        final_url = item.get("final_url")
+        if final_url and final_url != item.get("original_url"):
+            push(ArtifactKind.URL, final_url, f"Resolved URL - {final_url}")
+        final_domain = item.get("final_domain")
+        if final_domain:
+            push(ArtifactKind.URL_DOMAIN, final_domain, f"Resolved URL domain - {final_domain}")
+
+    for attachment in report.attachments or []:
+        if attachment.filename:
+            push(ArtifactKind.ATTACHMENT_NAME, attachment.filename, f"Attachment file name - {attachment.filename}")
+        if attachment.sha256:
+            push(ArtifactKind.ATTACHMENT_SHA256, attachment.sha256, f"Attachment SHA-256 - {attachment.sha256}")
+
+    return items
 
 
 def _validate_flagged_artifacts(report: Report, flagged_artifacts: list[FlaggedArtifactIn]) -> list[dict]:
@@ -1605,6 +1683,98 @@ def get_report(
     if report is None:
         raise HTTPException(status_code=404, detail="Report not found")
     return _serialize_report(report)
+
+
+@router.post("/reports/{report_id}/assist/draft", response_model=ReportAssistDraftOut)
+def generate_report_assist_draft_endpoint(
+    request: Request,
+    report_id: int,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission("reports.resolve")),
+):
+    report = db.get(Report, report_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    auth_summary = build_auth_summary(report)
+    raw_url_analysis = report.url_analysis_json or build_static_url_analysis(report.urls_json or [])
+    lookalike_analysis = build_lookalike_analysis(
+        mailbox_domain=report.mailbox_domain,
+        from_addr=report.from_addr,
+        reply_to=list(report.reply_to or []),
+        return_path=report.return_path,
+    )
+    attack_mapping = asdict(
+        build_attack_mapping(
+            AttackMappingInput(
+                classification_code=report.classification_code,
+                status=report.status.value,
+                from_addr=report.from_addr,
+                reply_to=list(report.reply_to or []),
+                return_path=report.return_path,
+                urls=[item for item in (report.urls_json or []) if item],
+                url_analysis=[
+                    {
+                        "original_url": item.get("original_url"),
+                        "normalized_url": item.get("normalized_url"),
+                        "final_url": item.get("final_url"),
+                        "final_domain": item.get("final_domain"),
+                        "domain_changed": item.get("domain_changed"),
+                        "is_shortener": item.get("is_shortener"),
+                        "suspicious_redirect": item.get("suspicious_redirect"),
+                    }
+                    for item in raw_url_analysis
+                ],
+                attachment_names=[item.filename for item in report.attachments if item.filename],
+                auth_spf_result=str((auth_summary.get("spf") or {}).get("result") or "unknown"),
+                auth_dkim_result=str((auth_summary.get("dkim") or {}).get("result") or "unknown"),
+                auth_dmarc_result=str((auth_summary.get("dmarc") or {}).get("result") or "unknown"),
+            )
+        )
+    )
+    report_input = ReportAssistInput(
+        report_id=report.id,
+        risk_score=report.risk_score,
+        status=report.status.value,
+        subject=report.subject,
+        body_excerpt=((report.body_text or report.body_html or "")[:1800] or None),
+        from_addr=report.from_addr,
+        from_display_name=report.from_display_name,
+        reply_to=list(report.reply_to or []),
+        return_path=report.return_path,
+        mailbox_domain=report.mailbox_domain,
+        in_reply_to=report.in_reply_to,
+        urls=[item for item in (report.urls_json or []) if item],
+        url_analysis=raw_url_analysis,
+        attachment_names=[item.filename for item in report.attachments if item.filename],
+        auth_summary=auth_summary,
+        lookalike_analysis=lookalike_analysis,
+        attack_mapping=attack_mapping,
+        artifact_options=_artifact_options(report, auth_summary),
+    )
+    draft = build_report_assist_draft(report_input)
+
+    create_security_audit_event(
+        db,
+        action="REPORT_ASSIST_DRAFT_GENERATED",
+        outcome="SUCCESS",
+        target_type="report",
+        target_id=str(report.id),
+        metadata={
+            "provider": draft.provider,
+            "model": draft.model,
+            "confidence": draft.confidence,
+            "recommended_disposition": draft.recommended_disposition.value,
+            "recommended_classification_code": draft.recommended_classification_code,
+            "flagged_artifacts_count": len(draft.flagged_artifacts),
+        },
+        actor_user_id=principal.user_id,
+        actor_api_key_id=principal.api_key_id,
+        actor_type=_principal_actor_type(principal),
+        request_meta=request_meta(request),
+    )
+    db.commit()
+    return ReportAssistDraftOut.model_validate(asdict(draft))
 
 
 @router.get("/reports/{report_id}/evidence.json")

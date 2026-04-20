@@ -188,6 +188,27 @@ export type ReportResolutionEvent = {
   created_at: string;
 };
 
+export type ReportAssistConfidence = "high" | "medium" | "low";
+
+export type ReportAssistDraftArtifact = FlaggedArtifact & {
+  rationale?: string | null;
+};
+
+export type ReportAssistDraft = {
+  provider: string;
+  model: string;
+  generated_at: string;
+  recommended_disposition: ResolutionDisposition;
+  recommended_classification_code?: ClassificationCode | null;
+  confidence: ReportAssistConfidence;
+  summary: string;
+  recommended_note: string;
+  reasons: string[];
+  missing_evidence: string[];
+  review_warnings: string[];
+  flagged_artifacts: ReportAssistDraftArtifact[];
+};
+
 export type ReportAuthDkimSignature = {
   result: AuthStatus;
   signing_domain?: string | null;
@@ -642,6 +663,12 @@ export async function deleteReport(id: number): Promise<void> {
 
 export async function fetchReportResolutions(id: number): Promise<ReportResolutionEvent[]> {
   return request<ReportResolutionEvent[]>(`/api/reports/${id}/resolutions`);
+}
+
+export async function generateReportAssistDraft(id: number): Promise<ReportAssistDraft> {
+  return request<ReportAssistDraft>(`/api/reports/${id}/assist/draft`, {
+    method: "POST",
+  });
 }
 
 export async function uploadEml(file: File): Promise<{ report_id: number; risk_score: number }> {

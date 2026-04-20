@@ -2623,6 +2623,76 @@ p {
   font-size: 22px;
 }
 
+.resolve-assist-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.resolve-assist-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resolve-assist-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.resolve-assist-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.resolve-assist-caption {
+  margin: -2px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 72ch;
+}
+
+.resolve-assist-summary {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.resolve-assist-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resolve-assist-block strong {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.resolve-assist-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.resolve-assist-list li + li {
+  margin-top: 4px;
+}
+
 .resolve-disposition {
   display: flex;
   gap: 10px;

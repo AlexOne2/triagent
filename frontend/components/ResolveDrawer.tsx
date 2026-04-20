@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Attachment,
@@ -6,7 +6,10 @@ import {
   ClassificationCode,
   fetchReportResolutions,
   FlaggedArtifact,
+  generateReportAssistDraft,
   Report,
+  ReportAssistDraft,
+  ReportAssistConfidence,
   ReportResolutionEvent,
   resolveReport,
   ResolutionDisposition,
@@ -38,20 +41,69 @@ export default function ResolveDrawer({
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<ReportResolutionEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [assistDraft, setAssistDraft] = useState<ReportAssistDraft | null>(null);
+  const [assistLoading, setAssistLoading] = useState(false);
+  const [assistError, setAssistError] = useState<string | null>(null);
+  const userEditedRef = useRef(false);
 
   const availableArtifacts = useMemo(() => buildReportArtifacts(report, attachments), [report, attachments]);
 
+  const baseSelectedArtifacts = () =>
+    Array.from(
+      new Set([
+        ...(report.flagged_artifacts_json || []).map((artifact) => artifactKey(artifact)),
+        ...preselectedArtifactKeys,
+      ]),
+    );
+
+  function applyAssistDraft(draft: ReportAssistDraft) {
+    setDisposition(draft.recommended_disposition);
+    setClassificationCode(draft.recommended_classification_code || "UNCLASSIFIED");
+    setNote(draft.recommended_note || "");
+    setSelectedArtifacts(
+      Array.from(
+        new Set([...baseSelectedArtifacts(), ...draft.flagged_artifacts.map((artifact) => artifactKey(artifact))]),
+      ),
+    );
+  }
+
   useEffect(() => {
     if (!open) return;
+    userEditedRef.current = false;
     setDisposition("MALICIOUS");
     setClassificationCode(report.classification_code || "UNCLASSIFIED");
     setNote(report.resolution_note || "");
-    setSelectedArtifacts(Array.from(new Set([
-      ...(report.flagged_artifacts_json || []).map((artifact) => artifactKey(artifact)),
-      ...preselectedArtifactKeys,
-    ])));
+    setSelectedArtifacts(baseSelectedArtifacts());
     setError(null);
+    setAssistDraft(null);
+    setAssistError(null);
   }, [open, report, preselectedArtifactKeys]);
+
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    setAssistLoading(true);
+    setAssistError(null);
+    generateReportAssistDraft(report.id)
+      .then((draft) => {
+        if (!active) return;
+        setAssistDraft(draft);
+        if (!userEditedRef.current) {
+          applyAssistDraft(draft);
+        }
+      })
+      .catch((err) => {
+        if (!active) return;
+        setAssistError(err instanceof Error ? err.message : "Failed to generate assist draft.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setAssistLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [open, report.id]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,6 +135,10 @@ export default function ResolveDrawer({
     selectedArtifacts.includes(artifactKey(artifact))
   );
 
+  const markEdited = () => {
+    userEditedRef.current = true;
+  };
+
   async function handleResolve() {
     if (disposition === "MALICIOUS" && classificationCode === "UNCLASSIFIED") {
       setError("Classification is required for malicious disposition.");
@@ -107,6 +163,16 @@ export default function ResolveDrawer({
     }
   }
 
+  function confidenceTone(confidence: ReportAssistConfidence): "good" | "warn" | "neutral" {
+    if (confidence === "high") return "good";
+    if (confidence === "medium") return "warn";
+    return "neutral";
+  }
+
+  function confidenceLabel(confidence: ReportAssistConfidence): string {
+    return `${confidence} evidence support`;
+  }
+
   return (
     <div className="resolve-backdrop" onClick={onClose}>
       <aside className="resolve-drawer" onClick={(event) => event.stopPropagation()}>
@@ -122,19 +188,93 @@ export default function ResolveDrawer({
 
         <div className="resolve-content">
           <section className="resolve-section">
+            <div className="resolve-assist-head">
+              <h3>Assist draft</h3>
+              <div className="resolve-assist-head-actions">
+                {assistDraft ? (
+                  <button className="resolve-link" type="button" onClick={() => applyAssistDraft(assistDraft)}>
+                    Apply assist draft
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            {assistLoading ? <p>Generating assist draft...</p> : null}
+            {assistError ? <p className="resolve-error">{assistError}</p> : null}
+            {assistDraft ? (
+              <div className="resolve-assist-card">
+                <div className="resolve-assist-meta">
+                  <span className={`url-badge url-badge-${confidenceTone(assistDraft.confidence)}`}>
+                    {confidenceLabel(assistDraft.confidence)}
+                  </span>
+                  <span>
+                    {assistDraft.recommended_disposition}
+                    {assistDraft.recommended_classification_code
+                      ? ` · ${assistDraft.recommended_classification_code}`
+                      : ""}
+                  </span>
+                  <span>
+                    {assistDraft.provider}
+                    {assistDraft.model ? ` · ${assistDraft.model}` : ""}
+                  </span>
+                </div>
+                <p className="resolve-assist-caption">
+                  Confidence reflects how strongly the observed evidence supports this draft recommendation, not whether the report is automatically resolved.
+                </p>
+                <p className="resolve-assist-summary">{assistDraft.summary}</p>
+                {assistDraft.reasons.length > 0 ? (
+                  <div className="resolve-assist-block">
+                    <strong>Why</strong>
+                    <ul className="resolve-assist-list">
+                      {assistDraft.reasons.map((reason, index) => (
+                        <li key={`${reason}-${index}`}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {assistDraft.missing_evidence.length > 0 ? (
+                  <div className="resolve-assist-block">
+                    <strong>Missing evidence</strong>
+                    <ul className="resolve-assist-list">
+                      {assistDraft.missing_evidence.map((item, index) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {assistDraft.review_warnings.length > 0 ? (
+                  <div className="resolve-assist-block">
+                    <strong>Review warnings</strong>
+                    <ul className="resolve-assist-list">
+                      {assistDraft.review_warnings.map((item, index) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+
+          <section className="resolve-section">
             <h3>Disposition</h3>
             <div className="resolve-disposition">
               <button
                 type="button"
                 className={`resolve-pill ${disposition === "MALICIOUS" ? "active malicious" : ""}`.trim()}
-                onClick={() => setDisposition("MALICIOUS")}
+                onClick={() => {
+                  markEdited();
+                  setDisposition("MALICIOUS");
+                }}
               >
                 Malicious
               </button>
               <button
                 type="button"
                 className={`resolve-pill ${disposition === "SAFE" ? "active safe" : ""}`.trim()}
-                onClick={() => setDisposition("SAFE")}
+                onClick={() => {
+                  markEdited();
+                  setDisposition("SAFE");
+                }}
               >
                 Safe
               </button>
@@ -153,6 +293,7 @@ export default function ResolveDrawer({
                       type="checkbox"
                       checked={selectedArtifacts.includes(key)}
                       onChange={(event) => {
+                        markEdited();
                         setSelectedArtifacts((current) =>
                           event.target.checked ? [...current, key] : current.filter((item) => item !== key)
                         );
@@ -170,9 +311,10 @@ export default function ResolveDrawer({
             <select
               className="select"
               value={classificationCode}
-              onChange={(event) =>
-                setClassificationCode(event.target.value as ClassificationCode | "UNCLASSIFIED")
-              }
+              onChange={(event) => {
+                markEdited();
+                setClassificationCode(event.target.value as ClassificationCode | "UNCLASSIFIED");
+              }}
             >
               <option value="UNCLASSIFIED">UNCLASSIFIED</option>
               {CLASSIFICATION_CODES.map((code) => (
@@ -188,7 +330,10 @@ export default function ResolveDrawer({
             <textarea
               className="resolve-note"
               value={note}
-              onChange={(event) => setNote(event.target.value)}
+              onChange={(event) => {
+                markEdited();
+                setNote(event.target.value);
+              }}
               placeholder="Enter notes here..."
             />
           </section>
@@ -217,7 +362,7 @@ export default function ResolveDrawer({
             ) : null}
           </section>
 
-          {error ? <p className="auth-error">{error}</p> : null}
+          {error ? <p className="resolve-error">{error}</p> : null}
 
           <button className="resolve-button" type="button" disabled={submitting} onClick={() => void handleResolve()}>
             {submitting ? "Resolving..." : "Resolve"}

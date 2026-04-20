@@ -377,6 +377,44 @@ class FlaggedArtifactOut(BaseModel):
     label: Optional[str] = None
 
 
+AssistConfidence = Literal["high", "medium", "low"]
+
+
+class ReportAssistArtifactOut(BaseModel):
+    kind: ArtifactKind
+    value: str
+    label: Optional[str] = None
+    rationale: Optional[str] = None
+
+
+class ReportAssistDraftOut(BaseModel):
+    provider: str
+    model: str
+    generated_at: datetime
+    recommended_disposition: ResolutionDisposition
+    recommended_classification_code: Optional[str] = None
+    confidence: AssistConfidence
+    summary: str
+    recommended_note: str
+    reasons: List[str] = Field(default_factory=list)
+    missing_evidence: List[str] = Field(default_factory=list)
+    review_warnings: List[str] = Field(default_factory=list)
+    flagged_artifacts: List[ReportAssistArtifactOut] = Field(default_factory=list)
+
+    @field_validator("recommended_classification_code", mode="before")
+    @classmethod
+    def validate_recommended_classification_code(cls, value):
+        return _validate_classification(value)
+
+    @model_validator(mode="after")
+    def validate_draft_requirements(self):
+        if self.recommended_disposition == ResolutionDisposition.MALICIOUS and not self.recommended_classification_code:
+            raise ValueError("recommended_classification_code is required for MALICIOUS disposition")
+        if self.recommended_disposition == ResolutionDisposition.SAFE:
+            self.recommended_classification_code = None
+        return self
+
+
 class ResolveReportRequest(BaseModel):
     disposition: ResolutionDisposition
     classification_code: Optional[str] = None
