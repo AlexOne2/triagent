@@ -15,9 +15,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { DashboardOverview, TriageBucket, fetchDashboardOverview } from "../lib/api";
+import { DashboardOverview, fetchDashboardOverview } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import { TRIAGE_BUCKET_ORDER, getTriageBucketMeta } from "../lib/triage";
 
 type RangePreset = "all" | "7d" | "30d" | "90d" | "custom";
 
@@ -118,14 +117,6 @@ export default function Dashboard() {
     ],
     [data]
   );
-  const triageCounts = useMemo(() => {
-    const next: Partial<Record<TriageBucket, number>> = {};
-    for (const entry of data?.triage_buckets || []) {
-      next[entry.bucket] = entry.count;
-    }
-    return next;
-  }, [data]);
-
   return (
     <main className="full dashboard-page">
       <header className="dashboard-header">
@@ -197,32 +188,6 @@ export default function Dashboard() {
         <div className="dashboard-kpi-card">
           <h2>{data?.kpis.resolved_safe ?? 0}</h2>
           <p>Resolved safe</p>
-        </div>
-      </section>
-
-      <section className="dashboard-triage-section">
-        <div className="dashboard-section-head">
-          <div>
-            <h2>Auto-reported queue lanes</h2>
-            <p>How the system routed employee-reported mail in the selected window.</p>
-          </div>
-        </div>
-        <div className="dashboard-triage-grid">
-          {TRIAGE_BUCKET_ORDER.map((bucket) => {
-            const meta = getTriageBucketMeta(bucket);
-            const count = triageCounts[bucket] ?? 0;
-            return (
-              <Link
-                key={bucket}
-                href={bucket === "NEEDS_INVESTIGATION" ? "/in-tray" : `/in-tray?bucket=${bucket}`}
-                className={`dashboard-triage-card dashboard-triage-card-${meta.tone}`.trim()}
-              >
-                <span className="dashboard-triage-count">{count}</span>
-                <span className="dashboard-triage-label">{meta.label}</span>
-                <span className="dashboard-triage-copy">{meta.description}</span>
-              </Link>
-            );
-          })}
         </div>
       </section>
 
