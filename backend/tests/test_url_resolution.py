@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from app.api.routes import _available_artifacts
+from app.core.config import get_settings
 from app.models.report import ArtifactKind, Report, ReportStatus
 from app.services.url_resolution import analyze_url, build_url_analysis
 
@@ -38,6 +39,27 @@ class UrlResolutionTests(unittest.TestCase):
         self.assertEqual(analysis[0]["final_url"], "https://example.com/reset")
         self.assertEqual(analysis[0]["resolution_status"], "disabled")
         self.assertEqual(analysis[0]["redirect_chain"], [])
+
+    def test_build_url_analysis_has_no_default_per_report_url_cap(self):
+        urls = [f"https://example.com/item/{index}" for index in range(30)]
+
+        analysis = build_url_analysis(urls, resolve_urls=False)
+
+        self.assertEqual(len(analysis), 30)
+        self.assertTrue(all(item["resolution_status"] == "disabled" for item in analysis))
+
+    def test_build_url_analysis_can_still_apply_optional_cap_when_configured(self):
+        settings = get_settings().model_copy(update={"url_resolution_max_urls": 1})
+
+        analysis = build_url_analysis(
+            ["https://example.com/a", "https://example.com/b"],
+            resolve_urls=False,
+            settings=settings,
+        )
+
+        self.assertEqual(analysis[0]["resolution_status"], "disabled")
+        self.assertEqual(analysis[1]["resolution_status"], "skipped_limit")
+        self.assertEqual(analysis[1]["resolution_error"], "Skipped after 1 URLs")
 
     def test_available_artifacts_include_resolved_final_url_and_domain(self):
         analysis = {

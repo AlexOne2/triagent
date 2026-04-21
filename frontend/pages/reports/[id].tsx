@@ -1067,17 +1067,7 @@ export default function ReportDetailPage() {
               <section className="lookalike-summary-card">
                 <div className="lookalike-summary-header">
                   <div>
-                    <div className="lookalike-title-row">
-                      <h3>Sender-domain impersonation</h3>
-                      <span
-                        className="section-info-badge"
-                        tabIndex={0}
-                        title="Compares sender-controlled domains against the mailbox domain to catch same-org impersonation and near-match lookalikes."
-                        aria-label="Compares sender-controlled domains against the mailbox domain to catch same-org impersonation and near-match lookalikes."
-                      >
-                        i
-                      </span>
-                    </div>
+                    <h3>Sender-domain impersonation</h3>
                   </div>
                   <span
                     className={`url-badge url-badge-${
@@ -1103,10 +1093,6 @@ export default function ReportDetailPage() {
                     <span>high confidence</span>
                   </div>
                 </div>
-                <p className="lookalike-summary-copy">
-                  {lookalikeAnalysis?.summary ||
-                    "Mailbox domain context is unavailable, so same-org sender lookalike detection could not run."}
-                </p>
               </section>
 
               {lookalikeAnalysis?.matches && lookalikeAnalysis.matches.length > 0 ? (
@@ -1169,11 +1155,7 @@ export default function ReportDetailPage() {
                 </div>
               ) : (
                 <section className="lookalike-empty-state">
-                  <h3>No same-org lookalike detected</h3>
-                  <p>
-                    The sender-controlled domains did not resemble the mailbox domain closely enough to assert same-org
-                    impersonation.
-                  </p>
+                  <p>No same-org sender lookalike signals found.</p>
                 </section>
               )}
             </div>

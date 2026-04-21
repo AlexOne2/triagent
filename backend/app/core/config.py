@@ -60,7 +60,7 @@ class Settings(BaseSettings):
     url_resolution_enabled: bool = Field(default=True, alias="URL_RESOLUTION_ENABLED")
     url_resolution_timeout_seconds: float = Field(default=4.0, alias="URL_RESOLUTION_TIMEOUT_SECONDS")
     url_resolution_max_hops: int = Field(default=5, alias="URL_RESOLUTION_MAX_HOPS")
-    url_resolution_max_urls: int = Field(default=25, alias="URL_RESOLUTION_MAX_URLS")
+    url_resolution_max_urls: Optional[int] = Field(default=None, alias="URL_RESOLUTION_MAX_URLS")
     url_resolution_user_agent: str = Field(default="Triagent URL Resolver/0.1", alias="URL_RESOLUTION_USER_AGENT")
     url_resolution_verify_tls: bool = Field(default=True, alias="URL_RESOLUTION_VERIFY_TLS")
 

@@ -252,10 +252,12 @@ def build_url_analysis(
         ordered_urls.append(cleaned)
 
     settings = settings or get_settings()
-    max_urls = max(1, settings.url_resolution_max_urls)
+    max_urls = settings.url_resolution_max_urls
+    if max_urls is not None and max_urls < 1:
+        max_urls = None
     analyses: list[dict[str, Any]] = []
     for index, url in enumerate(ordered_urls):
-        if index >= max_urls:
+        if max_urls is not None and index >= max_urls:
             domain = extract_url_domain(url)
             analyses.append(
                 {
