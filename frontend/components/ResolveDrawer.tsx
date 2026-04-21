@@ -336,9 +336,9 @@ export default function ResolveDrawer({
             {historyLoading ? <p>Loading history...</p> : null}
             {!historyLoading && history.length === 0 ? <p>No resolution history yet.</p> : null}
             {!historyLoading && history.length > 0 ? (
-              <div className="resolve-artifact-list">
+              <div className="resolve-history">
                 {history.map((entry) => (
-                  <div key={entry.id} className="meta-card">
+                  <div key={entry.id} className="resolve-history-item">
                     <strong>{entry.action}</strong>{" "}
                     <span>
                       {entry.status_after}

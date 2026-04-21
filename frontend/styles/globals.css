@@ -2014,13 +2014,6 @@ p {
   border-bottom: 1px solid var(--border);
 }
 
-.lookalike-match-card {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  padding: 16px;
-}
-
 .attack-summary-header,
 .attack-technique-header {
   display: flex;
@@ -2035,6 +2028,34 @@ p {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.lookalike-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-info-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
+}
+
+.section-info-badge:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 95, 122, 0.14);
 }
 
 .attack-summary-header h3,
@@ -2056,7 +2077,6 @@ p {
   line-height: 1.5;
 }
 
-.lookalike-summary-header p,
 .lookalike-match-header p,
 .lookalike-summary-copy {
   margin: 6px 0 0;
@@ -2114,7 +2134,34 @@ p {
 .lookalike-match-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+.lookalike-match-card {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 22px 0;
+}
+
+.lookalike-empty-state {
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 22px 0 0;
+}
+
+.lookalike-empty-state h3 {
+  margin: 0;
+}
+
+.lookalike-empty-state p {
+  margin: 10px 0 0;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 .lookalike-reasons {
@@ -3031,14 +3078,16 @@ p {
 .resolve-history {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+  border-top: 1px solid var(--border);
 }
 
 .resolve-history-item {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: var(--surface-2);
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 0;
+  background: transparent;
   font-size: 13px;
   line-height: 1.45;
 }
