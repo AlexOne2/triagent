@@ -4,7 +4,6 @@ import ReportQueueTable from "../components/ReportQueueTable";
 import ReportSearchToolbar from "../components/ReportSearchToolbar";
 import { Report, TriageBucket, fetchReports } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
-import { getTriageBucketMeta } from "../lib/triage";
 import { usePersistedQueueFilters } from "../lib/use-persisted-queue-filters";
 
 const PAGE_SIZE = 50;
@@ -93,11 +92,6 @@ export default function InTray() {
     );
   }
 
-  const triageSummary =
-    triageFilters.length === 0
-      ? "All auto-reported entries are shown. Use filters to narrow to specific triage lanes."
-      : `Filtered to ${triageFilters.map((bucket) => getTriageBucketMeta(bucket).label).join(", ")}.`;
-
   return (
     <main className="full queue-page">
       <header>
@@ -138,16 +132,6 @@ export default function InTray() {
       />
 
       <section className="card report-table">
-        <div className="queue-section-head">
-          <div>
-            <h2>Auto-reported queue</h2>
-            <p>{triageSummary}</p>
-          </div>
-          <span className="queue-section-count">
-            {totalCount} {totalCount === 1 ? "message" : "messages"}
-          </span>
-        </div>
-
         <ReportQueueTable
           reports={reports}
           loading={loading}

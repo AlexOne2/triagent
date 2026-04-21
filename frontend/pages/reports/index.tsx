@@ -10,7 +10,6 @@ import {
   uploadReportFiles,
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
-import { getTriageBucketMeta } from "../../lib/triage";
 import { usePersistedQueueFilters } from "../../lib/use-persisted-queue-filters";
 
 const PAGE_SIZE = 50;
@@ -134,11 +133,6 @@ export default function ReportList() {
     );
   }
 
-  const triageSummary =
-    triageFilters.length === 0
-      ? "All uploaded entries are shown. Use filters to narrow to specific triage lanes."
-      : `Filtered to ${triageFilters.map((bucket) => getTriageBucketMeta(bucket).label).join(", ")}.`;
-
   return (
     <main className="full queue-page">
       <header>
@@ -260,16 +254,6 @@ export default function ReportList() {
       />
 
       <section className="card report-table">
-        <div className="queue-section-head">
-          <div>
-            <h2>Uploads</h2>
-            <p>{triageSummary}</p>
-          </div>
-          <span className="queue-section-count">
-            {totalCount} {totalCount === 1 ? "upload" : "uploads"}
-          </span>
-        </div>
-
         {error ? <p>{error}</p> : null}
         {!error ? <ReportQueueTable reports={reports} loading={loading} emptyMessage="No uploads match the current search." /> : null}
 
