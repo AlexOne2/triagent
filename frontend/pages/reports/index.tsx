@@ -63,7 +63,7 @@ export default function ReportList() {
     setStatusFilters,
     classificationFilters,
     setClassificationFilters,
-  } = usePersistedQueueFilters();
+  } = usePersistedQueueFilters("uploads");
 
   const uploadFiles = async (files: File[]) => {
     if (files.length === 0) {

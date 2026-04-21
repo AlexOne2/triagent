@@ -49,7 +49,7 @@ export default function InTray() {
     setStatusFilters,
     classificationFilters,
     setClassificationFilters,
-  } = usePersistedQueueFilters();
+  } = usePersistedQueueFilters("in-tray");
 
   useEffect(() => {
     if (!canRead) {

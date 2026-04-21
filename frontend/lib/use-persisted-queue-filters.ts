@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CLASSIFICATION_CODES, ClassificationCode, Report, TriageBucket } from "./api";
 import { TRIAGE_BUCKET_ORDER } from "./triage";
 
-const STORAGE_KEY = "triagent.queueFilters.v1";
+const STORAGE_KEY_PREFIX = "triagent.queueFilters.v1";
 const STATUS_VALUES: Report["status"][] = ["OPEN", "PHISHING", "BENIGN"];
 
 type StoredQueueFilters = {
@@ -36,7 +36,8 @@ function normalizeStoredFilters(value: unknown): Required<StoredQueueFilters> {
   };
 }
 
-export function usePersistedQueueFilters() {
+export function usePersistedQueueFilters(scope: string) {
+  const storageKey = `${STORAGE_KEY_PREFIX}.${scope}`;
   const [ready, setReady] = useState(false);
   const [draftQuery, setDraftQuery] = useState("");
   const [query, setQuery] = useState("");
@@ -50,7 +51,7 @@ export function usePersistedQueueFilters() {
       return;
     }
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
+      const raw = window.localStorage.getItem(storageKey);
       if (!raw) {
         setReady(true);
         return;
@@ -62,11 +63,11 @@ export function usePersistedQueueFilters() {
       setTriageFilters(stored.triageBuckets);
       setClassificationFilters(stored.classifications);
     } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(storageKey);
     } finally {
       setReady(true);
     }
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     if (!ready || typeof window === "undefined") {
@@ -78,8 +79,8 @@ export function usePersistedQueueFilters() {
       triageBuckets: triageFilters,
       classifications: classificationFilters,
     };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [ready, query, statusFilters, triageFilters, classificationFilters]);
+    window.localStorage.setItem(storageKey, JSON.stringify(payload));
+  }, [ready, query, statusFilters, triageFilters, classificationFilters, storageKey]);
 
   const applyDraftQuery = () => {
     const normalized = draftQuery.trim();
