@@ -20,6 +20,7 @@
   --muted: var(--text-muted);
   --accent: var(--primary);
   --header-bg: var(--accent);
+  --token-radius: 6px;
 }
 
 * {
@@ -188,7 +189,7 @@ body {
   width: fit-content;
   min-width: 74px;
   padding: 5px 10px;
-  border-radius: 10px;
+  border-radius: var(--token-radius);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -293,7 +294,7 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 5px 8px;
-  border-radius: 10px;
+  border-radius: var(--token-radius);
   background: var(--surface-2);
   color: var(--text-muted);
   font-size: 12px;
@@ -587,7 +588,7 @@ p {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  border-radius: 10px;
+  border-radius: var(--token-radius);
   font-size: 12px;
   font-weight: 600;
   background: var(--success-soft);
@@ -907,7 +908,7 @@ p {
   align-items: center;
   gap: 8px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   background: var(--surface);
   padding: 8px 12px;
   color: var(--text);
@@ -981,7 +982,7 @@ p {
 
 .url-pill {
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   background: var(--info-soft);
   color: var(--info);
   font-size: 12px;
@@ -1057,7 +1058,7 @@ p {
   display: inline-flex;
   align-items: center;
   padding: 4px 9px;
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1526,7 +1527,7 @@ p {
 
 .tab {
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   border: 1px solid var(--border);
   background: var(--surface);
   font-size: 12px;
@@ -1782,7 +1783,7 @@ p {
   width: fit-content;
   min-width: 72px;
   padding: 5px 10px;
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -2128,7 +2129,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   border: 1px solid #cbd5e1;
   background: #f8fafc;
   color: #334155;
@@ -2173,7 +2174,7 @@ p {
   align-items: center;
   justify-content: center;
   min-width: 74px;
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   border: 1px solid var(--border);
   padding: 6px 10px;
   font-size: 12px;
@@ -2933,7 +2934,7 @@ p {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-muted);
-  border-radius: 999px;
+  border-radius: var(--token-radius);
   padding: 6px 14px;
   font-size: 14px;
   font-weight: 600;
