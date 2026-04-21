@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { CLASSIFICATION_CODES, ClassificationCode, Report } from "../lib/api";
+import { CLASSIFICATION_CODES, ClassificationCode, Report, TriageBucket } from "../lib/api";
+import { TRIAGE_BUCKET_ORDER, getTriageBucketMeta } from "../lib/triage";
 
 const STATUS_OPTIONS: Array<{ value: Report["status"]; label: string }> = [
   { value: "OPEN", label: "Open" },
@@ -14,6 +15,8 @@ type ReportSearchToolbarProps = {
   onClear: () => void;
   statuses: Report["status"][];
   onStatusesChange: (value: Report["status"][]) => void;
+  triageBuckets: TriageBucket[];
+  onTriageBucketsChange: (value: TriageBucket[]) => void;
   classifications: ClassificationCode[];
   onClassificationsChange: (value: ClassificationCode[]) => void;
   resultCount: number;
@@ -27,6 +30,8 @@ export default function ReportSearchToolbar({
   onClear,
   statuses,
   onStatusesChange,
+  triageBuckets,
+  onTriageBucketsChange,
   classifications,
   onClassificationsChange,
   resultCount,
@@ -34,7 +39,7 @@ export default function ReportSearchToolbar({
 }: ReportSearchToolbarProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterAnchorRef = useRef<HTMLDivElement | null>(null);
-  const activeFilterCount = statuses.length + classifications.length;
+  const activeFilterCount = statuses.length + triageBuckets.length + classifications.length;
   const hasSearchState = Boolean(draftQuery.trim()) || activeFilterCount > 0;
 
   useEffect(() => {
@@ -71,14 +76,19 @@ export default function ReportSearchToolbar({
     onClassificationsChange([...classifications, value]);
   };
 
+  const toggleTriageBucket = (value: TriageBucket) => {
+    if (triageBuckets.includes(value)) {
+      onTriageBucketsChange(triageBuckets.filter((item) => item !== value));
+      return;
+    }
+    onTriageBucketsChange([...triageBuckets, value]);
+  };
+
   return (
     <section className="card search-toolbar">
       <div className="search-toolbar-header">
         <div>
           <div className="search-toolbar-kicker">Queue Search</div>
-          <div className="search-toolbar-description">
-            Search subject, sender, recipient, domain, IP, URL, attachment name, or SHA-256.
-          </div>
         </div>
         <div className="search-toolbar-meta">
           <span className="search-toolbar-results">
@@ -154,6 +164,33 @@ export default function ReportSearchToolbar({
                   </div>
                 </div>
 
+                <div className="search-toolbar-filter-column">
+                  <div className="search-toolbar-filter-column-header">
+                    <span>Triage ({triageBuckets.length})</span>
+                    {triageBuckets.length > 0 ? (
+                      <button
+                        type="button"
+                        className="search-toolbar-filter-clear"
+                        onClick={() => onTriageBucketsChange([])}
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="search-toolbar-filter-list">
+                    {TRIAGE_BUCKET_ORDER.map((bucket) => (
+                      <label key={bucket} className="search-toolbar-filter-option">
+                        <input
+                          type="checkbox"
+                          checked={triageBuckets.includes(bucket)}
+                          onChange={() => toggleTriageBucket(bucket)}
+                        />
+                        <span>{getTriageBucketMeta(bucket).label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="search-toolbar-filter-column search-toolbar-filter-column-scroll">
                   <div className="search-toolbar-filter-column-header">
                     <span>Classification ({classifications.length})</span>
@@ -191,6 +228,12 @@ export default function ReportSearchToolbar({
           {statuses.map((status) => (
             <button key={status} type="button" className="search-toolbar-chip" onClick={() => toggleStatus(status)}>
               Status: {STATUS_OPTIONS.find((item) => item.value === status)?.label || status}
+              <span aria-hidden="true">×</span>
+            </button>
+          ))}
+          {triageBuckets.map((bucket) => (
+            <button key={bucket} type="button" className="search-toolbar-chip" onClick={() => toggleTriageBucket(bucket)}>
+              Queue: {getTriageBucketMeta(bucket).label}
               <span aria-hidden="true">×</span>
             </button>
           ))}

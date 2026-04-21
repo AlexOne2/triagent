@@ -1,14 +1,25 @@
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import ReportListPagination from "../components/ReportListPagination";
+import ReportQueueTable from "../components/ReportQueueTable";
 import ReportSearchToolbar from "../components/ReportSearchToolbar";
-import { ClassificationCode, Report, fetchReports } from "../lib/api";
+import { ClassificationCode, Report, TriageBucket, fetchReports } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { getTriageBucketMeta } from "../lib/triage";
 
 const PAGE_SIZE = 50;
 
-const sortReportsByCreatedAtDesc = (items: Report[]) =>
+const sortReports = (items: Report[], triageBuckets: TriageBucket[]) =>
   [...items].sort((left, right) => {
+    if (
+      triageBuckets.length === 1 &&
+      triageBuckets[0] === "NEEDS_INVESTIGATION"
+    ) {
+      const leftPriority = left.triage_assessment?.investigation_priority_score || 0;
+      const rightPriority = right.triage_assessment?.investigation_priority_score || 0;
+      if (leftPriority !== rightPriority) {
+        return rightPriority - leftPriority;
+      }
+    }
     const leftTime = new Date(left.created_at).getTime();
     const rightTime = new Date(right.created_at).getTime();
     if (leftTime !== rightTime) {
@@ -25,6 +36,7 @@ export default function InTray() {
   const [draftQuery, setDraftQuery] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [triageFilters, setTriageFilters] = useState<TriageBucket[]>([]);
   const [statusFilters, setStatusFilters] = useState<Report["status"][]>([]);
   const [classificationFilters, setClassificationFilters] = useState<ClassificationCode[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -41,12 +53,13 @@ export default function InTray() {
       statuses: statusFilters.length > 0 ? statusFilters : undefined,
       source: "AUTO",
       classificationCodes: classificationFilters.length > 0 ? classificationFilters : undefined,
+      triageBuckets: triageFilters.length > 0 ? triageFilters : undefined,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     })
       .then((data) => {
         if (!active) return;
-        setReports(sortReportsByCreatedAtDesc(data.items));
+        setReports(sortReports(data.items, triageFilters));
         setTotalCount(data.total);
       })
       .finally(() => {
@@ -56,7 +69,7 @@ export default function InTray() {
     return () => {
       active = false;
     };
-  }, [query, page, statusFilters, classificationFilters, canRead]);
+  }, [query, page, triageFilters, statusFilters, classificationFilters, canRead]);
 
   if (!canRead) {
     return (
@@ -66,6 +79,11 @@ export default function InTray() {
       </main>
     );
   }
+
+  const triageSummary =
+    triageFilters.length === 0
+      ? "All auto-reported entries are shown. Use filters to narrow to specific triage lanes."
+      : `Filtered to ${triageFilters.map((bucket) => getTriageBucketMeta(bucket).label).join(", ")}.`;
 
   return (
     <main className="full queue-page">
@@ -87,6 +105,7 @@ export default function InTray() {
           setDraftQuery("");
           setQuery("");
           setPage(0);
+          setTriageFilters([]);
           setStatusFilters([]);
           setClassificationFilters([]);
         }}
@@ -94,6 +113,11 @@ export default function InTray() {
         onStatusesChange={(value) => {
           setPage(0);
           setStatusFilters(value);
+        }}
+        triageBuckets={triageFilters}
+        onTriageBucketsChange={(value) => {
+          setPage(0);
+          setTriageFilters(value);
         }}
         classifications={classificationFilters}
         onClassificationsChange={(value) => {
@@ -104,52 +128,34 @@ export default function InTray() {
         resultLabel={totalCount === 1 ? "message" : "messages"}
       />
 
-      <section className="card report-table" style={{ marginTop: 16 }}>
-        {loading ? <p>Loading...</p> : null}
-        {!loading && reports.length === 0 ? <p>No auto-ingested reports match the current search.</p> : null}
+      <section className="card report-table">
+        <div className="queue-section-head">
+          <div>
+            <h2>Auto-reported queue</h2>
+            <p>{triageSummary}</p>
+          </div>
+          <span className="queue-section-count">
+            {totalCount} {totalCount === 1 ? "message" : "messages"}
+          </span>
+        </div>
+
+        <ReportQueueTable
+          reports={reports}
+          loading={loading}
+          emptyMessage="No auto-reported reports match the current search."
+        />
+
         {reports.length > 0 ? (
-          <>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Subject</th>
-                  <th>Status</th>
-                  <th>Date uploaded</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map((report) => (
-                  <tr key={report.id}>
-                    <td>{report.from_addr || "-"}</td>
-                    <td>{report.to_addrs?.join(", ") || "-"}</td>
-                    <td>
-                      <Link href={`/reports/${report.id}`}>
-                        {report.subject || "(no subject)"}
-                      </Link>
-                    </td>
-                    <td>
-                      <span className={report.status === "PHISHING" ? "badge phishing" : "badge"}>
-                        {report.status}
-                      </span>
-                    </td>
-                    <td>{new Date(report.created_at).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <ReportListPagination
-              total={totalCount}
-              offset={page * PAGE_SIZE}
-              limit={PAGE_SIZE}
-              itemLabel={totalCount === 1 ? "message" : "messages"}
-              onPrevious={() => setPage((current) => Math.max(0, current - 1))}
-              onNext={() => setPage((current) => current + 1)}
-              hasPrevious={page > 0}
-              hasNext={(page + 1) * PAGE_SIZE < totalCount}
-            />
-          </>
+          <ReportListPagination
+            total={totalCount}
+            offset={page * PAGE_SIZE}
+            limit={PAGE_SIZE}
+            itemLabel={totalCount === 1 ? "message" : "messages"}
+            onPrevious={() => setPage((current) => Math.max(0, current - 1))}
+            onNext={() => setPage((current) => current + 1)}
+            hasPrevious={page > 0}
+            hasNext={(page + 1) * PAGE_SIZE < totalCount}
+          />
         ) : null}
       </section>
     </main>

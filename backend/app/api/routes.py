@@ -42,6 +42,7 @@ from app.schemas import (
     DashboardMaliciousSafe,
     DashboardOverviewOut,
     DashboardResolutionPoint,
+    DashboardTriageBucketPoint,
     FileIngestBatchResult,
     FileIngestResult,
     FlaggedArtifactIn,
@@ -58,6 +59,7 @@ from app.schemas import (
     ReportTriageAssessmentOut,
     ReportUpdate,
     ResolveReportRequest,
+    TriageBucket,
     UrlAnalysisOut,
 )
 from app.services.analysis import calculate_risk, extract_urls, hash_reporter
@@ -80,6 +82,14 @@ from app.services.triage_scoring import (
 from app.services.url_resolution import build_static_url_analysis, build_url_analysis, extract_url_domain, resolved_urls_for_scoring
 
 router = APIRouter(prefix="/api", tags=["api"])
+
+TRIAGE_BUCKET_ORDER: tuple[TriageBucket, ...] = (
+    "NEEDS_INVESTIGATION",
+    "AUTOMATION_READY",
+    "BULK_SPAM",
+    "LIKELY_BENIGN",
+    "UNCERTAIN",
+)
 
 
 def _principal_actor_type(principal: Principal) -> AuditActorType:
@@ -232,6 +242,7 @@ def _apply_report_list_filters(
     statuses: list[ReportStatus] | None,
     source: IngestSource | None,
     classification_codes: list[str] | None,
+    triage_buckets: list[TriageBucket] | None,
 ):
     if q and q.strip():
         query = query.where(_build_report_search_predicate(q))
@@ -242,6 +253,8 @@ def _apply_report_list_filters(
     normalized_classifications = _normalize_classification_filters(classification_codes)
     if normalized_classifications:
         query = query.where(Report.classification_code.in_(normalized_classifications))
+    if triage_buckets:
+        query = query.where(Report.triage_bucket.in_(triage_buckets))
     return query
 
 
@@ -1213,6 +1226,7 @@ def list_reports(
     status: list[ReportStatus] | None = Query(default=None),
     source: IngestSource | None = Query(default=None),
     classification_code: list[str] | None = Query(default=None),
+    triage_bucket: list[TriageBucket] | None = Query(default=None),
     _: Principal = Depends(require_permission("reports.read")),
 ):
     filtered_query = _apply_report_list_filters(
@@ -1221,6 +1235,7 @@ def list_reports(
         statuses=status,
         source=source,
         classification_codes=classification_code,
+        triage_buckets=triage_bucket,
     )
     total = db.execute(
         _apply_report_list_filters(
@@ -1229,6 +1244,7 @@ def list_reports(
             statuses=status,
             source=source,
             classification_codes=classification_code,
+            triage_buckets=triage_bucket,
         )
     ).scalar_one()
     reports = db.execute(
@@ -1667,6 +1683,8 @@ def dashboard_overview(
             Report.classification_code,
             Report.to_addrs,
             Report.from_addr,
+            Report.ingest_source,
+            Report.triage_bucket,
         ).where(Report.created_at >= start_utc, Report.created_at <= end_utc)
     ).all()
 
@@ -1678,6 +1696,7 @@ def dashboard_overview(
     classification_counter: Counter[str] = Counter()
     to_counter: Counter[str] = Counter()
     from_counter: Counter[str] = Counter()
+    triage_counter: Counter[str] = Counter()
 
     start_local = start_utc.astimezone(tzinfo).date()
     end_local = end_utc.astimezone(tzinfo).date()
@@ -1689,7 +1708,7 @@ def dashboard_overview(
         timeseries_map[key] = {"resolved_total": 0, "resolved_malicious": 0, "resolved_safe": 0}
         cursor += timedelta(days=1)
 
-    for created_at, status_value, classification_code, to_addrs, from_addr in rows:
+    for created_at, status_value, classification_code, to_addrs, from_addr, ingest_source, triage_bucket in rows:
         if created_at is None:
             continue
         local_key = created_at.astimezone(tzinfo).date().isoformat()
@@ -1715,6 +1734,8 @@ def dashboard_overview(
                 normalized_to = _normalize_email(addr)
                 if normalized_to:
                     to_counter[normalized_to] += 1
+        if ingest_source == IngestSource.AUTO:
+            triage_counter[(triage_bucket or "UNCERTAIN")] += 1
 
     timeseries = [
         DashboardResolutionPoint(
@@ -1730,6 +1751,10 @@ def dashboard_overview(
         DashboardClassificationPoint(code=code, count=count)
         for code, count in sorted(classification_counter.items(), key=lambda item: (-item[1], item[0]))
     ]
+    triage_buckets = [
+        DashboardTriageBucketPoint(bucket=bucket, count=triage_counter.get(bucket, 0))
+        for bucket in TRIAGE_BUCKET_ORDER
+    ]
 
     return DashboardOverviewOut(
         kpis=DashboardKpis(
@@ -1741,6 +1766,7 @@ def dashboard_overview(
         resolutions_timeseries=timeseries,
         malicious_safe=DashboardMaliciousSafe(malicious=resolved_malicious, safe=resolved_safe),
         classifications=classifications,
+        triage_buckets=triage_buckets,
         top_to_addresses=_ranked_counts(to_counter),
         top_from_addresses=_ranked_counts(from_counter),
     )

@@ -355,6 +355,25 @@ export type LookalikeAnalysis = {
   summary: string;
 };
 
+export type TriageBucket =
+  | "NEEDS_INVESTIGATION"
+  | "AUTOMATION_READY"
+  | "BULK_SPAM"
+  | "LIKELY_BENIGN"
+  | "UNCERTAIN";
+
+export type ReportTriageAssessment = {
+  threat_score: number;
+  bulk_benign_score: number;
+  investigation_priority_score: number;
+  automation_confidence_score: number;
+  bucket: TriageBucket;
+  analyst_worthy: boolean;
+  summary: string;
+  reason_codes: string[];
+  reasons: string[];
+};
+
 export type Report = {
   id: number;
   message_id?: string | null;
@@ -399,6 +418,7 @@ export type Report = {
   auth_summary?: ReportAuthSummary | null;
   attack_mapping?: AttackMapping | null;
   lookalike_analysis?: LookalikeAnalysis | null;
+  triage_assessment?: ReportTriageAssessment | null;
   created_at: string;
 };
 
@@ -511,6 +531,10 @@ export type DashboardOverview = {
     code: string;
     count: number;
   }>;
+  triage_buckets: Array<{
+    bucket: TriageBucket;
+    count: number;
+  }>;
   top_to_addresses: Array<{
     rank: number;
     email: string;
@@ -601,10 +625,11 @@ export async function fetchReports(params: {
   statuses?: Report["status"][];
   source?: Report["ingest_source"];
   classificationCodes?: ClassificationCode[];
+  triageBuckets?: TriageBucket[];
   limit?: number;
   offset?: number;
 } = {}): Promise<ReportListResponse> {
-  const { query, statuses, source, classificationCodes, limit, offset } = params;
+  const { query, statuses, source, classificationCodes, triageBuckets, limit, offset } = params;
   const searchParams = new URLSearchParams();
   if (query) searchParams.set("q", query);
   for (const status of statuses || []) {
@@ -613,6 +638,9 @@ export async function fetchReports(params: {
   if (source) searchParams.set("source", source);
   for (const classificationCode of classificationCodes || []) {
     searchParams.append("classification_code", classificationCode);
+  }
+  for (const triageBucket of triageBuckets || []) {
+    searchParams.append("triage_bucket", triageBucket);
   }
   if (typeof limit === "number") searchParams.set("limit", String(limit));
   if (typeof offset === "number") searchParams.set("offset", String(offset));

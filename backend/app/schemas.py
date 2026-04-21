@@ -660,11 +660,17 @@ class DashboardAddressPoint(BaseModel):
     count: int
 
 
+class DashboardTriageBucketPoint(BaseModel):
+    bucket: TriageBucket
+    count: int
+
+
 class DashboardOverviewOut(BaseModel):
     kpis: DashboardKpis
     resolutions_timeseries: List[DashboardResolutionPoint]
     malicious_safe: DashboardMaliciousSafe
     classifications: List[DashboardClassificationPoint]
+    triage_buckets: List[DashboardTriageBucketPoint] = Field(default_factory=list)
     top_to_addresses: List[DashboardAddressPoint]
     top_from_addresses: List[DashboardAddressPoint]
 
