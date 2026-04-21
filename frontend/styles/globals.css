@@ -2570,17 +2570,17 @@ p {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   gap: 0;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  overflow: hidden;
-  background: var(--surface);
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
 }
 
 .settings-sidebar {
   padding: 28px 20px 28px 22px;
   border-right: 1px solid var(--border);
-  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  background: transparent;
 }
 
 .settings-sidebar-head {
