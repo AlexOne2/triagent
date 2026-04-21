@@ -23,7 +23,7 @@ function statusLabel(status: Report["status"]) {
 function formatRecipientSummary(report: Report) {
   const recipients = report.to_addrs?.filter(Boolean) || [];
   if (recipients.length === 0) {
-    return null;
+    return "To -";
   }
   if (recipients.length === 1) {
     return `To ${recipients[0]}`;
@@ -63,7 +63,8 @@ export default function ReportQueueTable({ reports, loading, emptyMessage }: Rep
     <table className="table queue-table">
       <thead>
         <tr>
-          <th>Message</th>
+          <th>Addresses</th>
+          <th>Subject</th>
           <th>Signals</th>
           <th>Queue</th>
           <th>Resolution</th>
@@ -79,14 +80,16 @@ export default function ReportQueueTable({ reports, loading, emptyMessage }: Rep
           const recipientSummary = formatRecipientSummary(report);
           return (
             <tr key={report.id}>
-              <td className="queue-message-cell">
+              <td className="queue-address-cell">
+                <div className="queue-address-stack">
+                  <span className="queue-address-line">{formatSenderSummary(report)}</span>
+                  <span className="queue-address-line">{recipientSummary}</span>
+                </div>
+              </td>
+              <td className="queue-subject-cell">
                 <Link href={`/reports/${report.id}`} className="queue-message-link">
                   {report.subject || "(no subject)"}
                 </Link>
-                <div className="queue-message-meta">
-                  <span>{formatSenderSummary(report)}</span>
-                  {recipientSummary ? <span>{recipientSummary}</span> : null}
-                </div>
               </td>
               <td className="queue-signal-cell">
                 {reasonCodes.length > 0 ? (

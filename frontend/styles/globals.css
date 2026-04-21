@@ -227,30 +227,35 @@ body {
 }
 
 .queue-table th:nth-child(1) {
-  width: 36%;
-}
-
-.queue-table th:nth-child(2) {
   width: 24%;
 }
 
+.queue-table th:nth-child(2) {
+  width: 28%;
+}
+
 .queue-table th:nth-child(3) {
-  width: 14%;
+  width: 18%;
 }
 
 .queue-table th:nth-child(4) {
-  width: 14%;
+  width: 12%;
 }
 
 .queue-table th:nth-child(5) {
-  width: 12%;
+  width: 10%;
+}
+
+.queue-table th:nth-child(6) {
+  width: 8%;
 }
 
 .queue-table tbody tr:hover {
   background: rgba(241, 245, 249, 0.58);
 }
 
-.queue-message-cell {
+.queue-subject-cell,
+.queue-address-cell {
   min-width: 0;
   vertical-align: top;
 }
@@ -267,11 +272,13 @@ body {
   text-decoration: underline;
 }
 
-.queue-message-meta {
-  margin-top: 6px;
+.queue-address-stack {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.queue-address-line {
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.45;
@@ -315,6 +322,7 @@ body {
   font-size: 13px;
 }
 
+.queue-lane-cell,
 .queue-status-cell,
 .queue-date-cell {
   vertical-align: top;
@@ -3099,8 +3107,8 @@ p {
     grid-template-columns: 1fr;
   }
 
-  .queue-table th:nth-child(5),
-  .queue-table td:nth-child(5) {
+  .queue-table th:nth-child(6),
+  .queue-table td:nth-child(6) {
     display: none;
   }
 
