@@ -3,7 +3,6 @@ import ReportListPagination from "../../components/ReportListPagination";
 import ReportQueueTable from "../../components/ReportQueueTable";
 import ReportSearchToolbar from "../../components/ReportSearchToolbar";
 import {
-  ClassificationCode,
   FileIngestItem,
   Report,
   TriageBucket,
@@ -12,6 +11,7 @@ import {
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
 import { getTriageBucketMeta } from "../../lib/triage";
+import { usePersistedQueueFilters } from "../../lib/use-persisted-queue-filters";
 
 const PAGE_SIZE = 50;
 
@@ -41,12 +41,7 @@ export default function ReportList() {
   const canIngest = hasPermission("reports.ingest");
   const [reports, setReports] = useState<Report[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  const [draftQuery, setDraftQuery] = useState("");
-  const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
-  const [triageFilters, setTriageFilters] = useState<TriageBucket[]>([]);
-  const [statusFilters, setStatusFilters] = useState<Report["status"][]>([]);
-  const [classificationFilters, setClassificationFilters] = useState<ClassificationCode[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +50,20 @@ export default function ReportList() {
   const [uploading, setUploading] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const {
+    ready,
+    draftQuery,
+    setDraftQuery,
+    query,
+    applyDraftQuery,
+    clearFilters,
+    triageFilters,
+    setTriageFilters,
+    statusFilters,
+    setStatusFilters,
+    classificationFilters,
+    setClassificationFilters,
+  } = usePersistedQueueFilters();
 
   const uploadFiles = async (files: File[]) => {
     if (files.length === 0) {
@@ -80,6 +89,9 @@ export default function ReportList() {
   useEffect(() => {
     if (!canRead) {
       setLoading(false);
+      return;
+    }
+    if (!ready) {
       return;
     }
     let active = true;
@@ -111,7 +123,7 @@ export default function ReportList() {
     return () => {
       active = false;
     };
-  }, [query, page, triageFilters, statusFilters, classificationFilters, reloadTick, canRead]);
+  }, [query, page, triageFilters, statusFilters, classificationFilters, reloadTick, canRead, ready]);
 
   if (!canRead) {
     return (
@@ -222,15 +234,11 @@ export default function ReportList() {
         onDraftQueryChange={setDraftQuery}
         onSubmit={() => {
           setPage(0);
-          setQuery(draftQuery.trim());
+          applyDraftQuery();
         }}
         onClear={() => {
-          setDraftQuery("");
-          setQuery("");
           setPage(0);
-          setTriageFilters([]);
-          setStatusFilters([]);
-          setClassificationFilters([]);
+          clearFilters();
         }}
         statuses={statusFilters}
         onStatusesChange={(value) => {

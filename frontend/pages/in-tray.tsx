@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import ReportListPagination from "../components/ReportListPagination";
 import ReportQueueTable from "../components/ReportQueueTable";
 import ReportSearchToolbar from "../components/ReportSearchToolbar";
-import { ClassificationCode, Report, TriageBucket, fetchReports } from "../lib/api";
+import { Report, TriageBucket, fetchReports } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import { getTriageBucketMeta } from "../lib/triage";
+import { usePersistedQueueFilters } from "../lib/use-persisted-queue-filters";
 
 const PAGE_SIZE = 50;
 
@@ -33,17 +34,29 @@ export default function InTray() {
   const canRead = hasPermission("reports.read");
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [draftQuery, setDraftQuery] = useState("");
-  const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
-  const [triageFilters, setTriageFilters] = useState<TriageBucket[]>([]);
-  const [statusFilters, setStatusFilters] = useState<Report["status"][]>([]);
-  const [classificationFilters, setClassificationFilters] = useState<ClassificationCode[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const {
+    ready,
+    draftQuery,
+    setDraftQuery,
+    query,
+    applyDraftQuery,
+    clearFilters,
+    triageFilters,
+    setTriageFilters,
+    statusFilters,
+    setStatusFilters,
+    classificationFilters,
+    setClassificationFilters,
+  } = usePersistedQueueFilters();
 
   useEffect(() => {
     if (!canRead) {
       setLoading(false);
+      return;
+    }
+    if (!ready) {
       return;
     }
     let active = true;
@@ -69,7 +82,7 @@ export default function InTray() {
     return () => {
       active = false;
     };
-  }, [query, page, triageFilters, statusFilters, classificationFilters, canRead]);
+  }, [query, page, triageFilters, statusFilters, classificationFilters, canRead, ready]);
 
   if (!canRead) {
     return (
@@ -99,15 +112,11 @@ export default function InTray() {
         onDraftQueryChange={setDraftQuery}
         onSubmit={() => {
           setPage(0);
-          setQuery(draftQuery.trim());
+          applyDraftQuery();
         }}
         onClear={() => {
-          setDraftQuery("");
-          setQuery("");
           setPage(0);
-          setTriageFilters([]);
-          setStatusFilters([]);
-          setClassificationFilters([]);
+          clearFilters();
         }}
         statuses={statusFilters}
         onStatusesChange={(value) => {
