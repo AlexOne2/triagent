@@ -162,6 +162,16 @@ class ObjectStorageService:
         except Exception as exc:
             raise ObjectStorageError("Artifact storage is unavailable") from exc
 
+    def remove_prefix(self, prefix: str) -> int:
+        self._ensure_bucket()
+        try:
+            objects = list(self.client.list_objects(self.bucket, prefix=prefix, recursive=True))
+            for item in objects:
+                self.client.remove_object(self.bucket, item.object_name)
+            return len(objects)
+        except Exception as exc:
+            raise ObjectStorageError("Artifact storage is unavailable") from exc
+
     def get_attachment(self, object_name: str | None) -> bytes:
         if not object_name:
             raise ObjectStorageError("Attachment is unavailable")
