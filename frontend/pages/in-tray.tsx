@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import ReportListPagination from "../components/ReportListPagination";
 import ReportQueueTable from "../components/ReportQueueTable";
 import ReportSearchToolbar from "../components/ReportSearchToolbar";
-import { Report, TriageBucket, fetchReports } from "../lib/api";
+import { Report, fetchReports } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
+import { VisibleTriageBucket, expandVisibleTriageBuckets } from "../lib/triage";
 import { usePersistedQueueFilters } from "../lib/use-persisted-queue-filters";
 
 const PAGE_SIZE = 50;
 
-const sortReports = (items: Report[], triageBuckets: TriageBucket[]) =>
+const sortReports = (items: Report[], triageBuckets: VisibleTriageBucket[]) =>
   [...items].sort((left, right) => {
     if (
       triageBuckets.length === 1 &&
@@ -60,12 +61,13 @@ export default function InTray() {
     }
     let active = true;
     setLoading(true);
+    const expandedTriageBuckets = expandVisibleTriageBuckets(triageFilters);
     fetchReports({
       query,
       statuses: statusFilters.length > 0 ? statusFilters : undefined,
       source: "AUTO",
       classificationCodes: classificationFilters.length > 0 ? classificationFilters : undefined,
-      triageBuckets: triageFilters.length > 0 ? triageFilters : undefined,
+      triageBuckets: expandedTriageBuckets.length > 0 ? expandedTriageBuckets : undefined,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     })

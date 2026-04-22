@@ -356,6 +356,7 @@ def build_report_triage_assessment(report_input: ReportTriageInput) -> ReportTri
         suspicious_attachments=bool(suspicious_attachments),
         thread_signal=thread_signal and (has_links or bool(suspicious_attachments)),
         has_deception=bool(lookalike_matches or mismatch_signals or auth_failures),
+        finance_theme=finance_theme,
     )
 
     summary = _build_summary(bucket=bucket, reasons=reasons, analyst_worthy=analyst_worthy)
@@ -453,6 +454,7 @@ def _select_bucket(
     suspicious_attachments: bool,
     thread_signal: bool,
     has_deception: bool,
+    finance_theme: bool,
 ) -> str:
     if analyst_worthy and threat_score >= 35:
         return "NEEDS_INVESTIGATION"
@@ -464,8 +466,11 @@ def _select_bucket(
         threat_score <= 20
         and bulk_benign_score < 70
         and not has_deception
+        and not finance_theme
     ):
         return "LIKELY_BENIGN"
+    if has_deception and threat_score >= 20 and bulk_benign_score < 40:
+        return "NEEDS_INVESTIGATION"
     if threat_score >= 65 and automation_confidence_score >= 65 and investigation_priority_score < 60:
         return "AUTOMATION_READY"
     if threat_score >= 55:

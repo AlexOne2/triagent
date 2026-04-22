@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { CLASSIFICATION_CODES, ClassificationCode, Report, TriageBucket } from "../lib/api";
-import { TRIAGE_BUCKET_ORDER, getTriageBucketMeta } from "../lib/triage";
+import { CLASSIFICATION_CODES, ClassificationCode, Report } from "../lib/api";
+import { TRIAGE_BUCKET_ORDER, VisibleTriageBucket, getTriageBucketMeta } from "../lib/triage";
 
 const STATUS_OPTIONS: Array<{ value: Report["status"]; label: string }> = [
   { value: "OPEN", label: "Open" },
@@ -15,8 +15,8 @@ type ReportSearchToolbarProps = {
   onClear: () => void;
   statuses: Report["status"][];
   onStatusesChange: (value: Report["status"][]) => void;
-  triageBuckets: TriageBucket[];
-  onTriageBucketsChange: (value: TriageBucket[]) => void;
+  triageBuckets: VisibleTriageBucket[];
+  onTriageBucketsChange: (value: VisibleTriageBucket[]) => void;
   classifications: ClassificationCode[];
   onClassificationsChange: (value: ClassificationCode[]) => void;
   resultCount: number;
@@ -76,7 +76,7 @@ export default function ReportSearchToolbar({
     onClassificationsChange([...classifications, value]);
   };
 
-  const toggleTriageBucket = (value: TriageBucket) => {
+  const toggleTriageBucket = (value: VisibleTriageBucket) => {
     if (triageBuckets.includes(value)) {
       onTriageBucketsChange(triageBuckets.filter((item) => item !== value));
       return;

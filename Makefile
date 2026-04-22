@@ -81,4 +81,4 @@ reset-data: wait-db
 
 demo-reset: migrate
 	$(COMPOSE) build backend
-	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.demo_reset --corpus-root "/workspace/$(or $(CORPUS_ROOT),test_data/synthetic-corpus)" --split "$(or $(SPLIT),gold)" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(INCLUDE_SEED),--include-seed,) $(if $(KEEP_AUDIT),--keep-audit,) $(if $(RESOLVED),--apply-expected-resolution,)
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.demo_reset --corpus-root "/workspace/$(or $(CORPUS_ROOT),test_data/synthetic-corpus)" --split "$(or $(SPLIT),demo)" --state "$(or $(STATE),$(if $(RESOLVED),resolved,mixed))" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(INCLUDE_SEED),--include-seed,) $(if $(KEEP_AUDIT),--keep-audit,) $(foreach id,$(OPEN_SAMPLE_IDS),--leave-open-sample-id "$(id)")

@@ -1,9 +1,17 @@
 import { TriageBucket } from "./api";
 
-export const TRIAGE_BUCKET_ORDER: TriageBucket[] = [
+export type VisibleTriageBucket = Extract<TriageBucket, "NEEDS_INVESTIGATION" | "LIKELY_BENIGN" | "UNCERTAIN">;
+
+export const ALL_TRIAGE_BUCKET_ORDER: TriageBucket[] = [
   "NEEDS_INVESTIGATION",
   "AUTOMATION_READY",
   "BULK_SPAM",
+  "LIKELY_BENIGN",
+  "UNCERTAIN",
+];
+
+export const TRIAGE_BUCKET_ORDER: VisibleTriageBucket[] = [
+  "NEEDS_INVESTIGATION",
   "LIKELY_BENIGN",
   "UNCERTAIN",
 ];
@@ -13,35 +21,21 @@ type TriageBucketMeta = {
   shortLabel: string;
   description: string;
   emptyState: string;
-  tone: "focus" | "automation" | "spam" | "benign" | "uncertain";
+  tone: "focus" | "benign" | "uncertain";
 };
 
-export const TRIAGE_BUCKET_META: Record<TriageBucket, TriageBucketMeta> = {
+const TRIAGE_BUCKET_META: Record<VisibleTriageBucket, TriageBucketMeta> = {
   NEEDS_INVESTIGATION: {
     label: "Needs investigation",
     shortLabel: "Needs review",
-    description: "High-value cases that warrant analyst attention.",
+    description: "Messages that deserve analyst attention.",
     emptyState: "No analyst-worthy reports match the current search.",
     tone: "focus",
-  },
-  AUTOMATION_READY: {
-    label: "Automation-ready",
-    shortLabel: "Automation",
-    description: "Likely malicious, but commodity enough for automation-first handling.",
-    emptyState: "No automation-ready reports match the current search.",
-    tone: "automation",
-  },
-  BULK_SPAM: {
-    label: "Spam / graymail",
-    shortLabel: "Spam",
-    description: "Bulk or nuisance mail that does not justify human investigation.",
-    emptyState: "No spam or graymail reports match the current search.",
-    tone: "spam",
   },
   LIKELY_BENIGN: {
     label: "Likely benign",
     shortLabel: "Benign",
-    description: "Routine operational mail that currently looks low risk.",
+    description: "Likely safe or low-value mail that should not consume analyst time.",
     emptyState: "No likely benign reports match the current search.",
     tone: "benign",
   },
@@ -52,6 +46,14 @@ export const TRIAGE_BUCKET_META: Record<TriageBucket, TriageBucketMeta> = {
     emptyState: "No uncertain reports match the current search.",
     tone: "uncertain",
   },
+};
+
+const DISPLAY_BUCKET_MAP: Record<TriageBucket, VisibleTriageBucket> = {
+  NEEDS_INVESTIGATION: "NEEDS_INVESTIGATION",
+  AUTOMATION_READY: "NEEDS_INVESTIGATION",
+  BULK_SPAM: "LIKELY_BENIGN",
+  LIKELY_BENIGN: "LIKELY_BENIGN",
+  UNCERTAIN: "UNCERTAIN",
 };
 
 const TRIAGE_REASON_LABELS: Record<string, string> = {
@@ -75,12 +77,34 @@ const TRIAGE_REASON_LABELS: Record<string, string> = {
   CONFLICTING_SIGNALS: "Mixed signals",
 };
 
-export function getTriageBucketMeta(bucket: TriageBucket): TriageBucketMeta {
-  return TRIAGE_BUCKET_META[bucket];
+export function getTriageBucketMeta(bucket: TriageBucket | VisibleTriageBucket): TriageBucketMeta {
+  return TRIAGE_BUCKET_META[toVisibleTriageBucket(bucket)];
 }
 
-export function isTriageBucket(value: unknown): value is TriageBucket {
-  return typeof value === "string" && TRIAGE_BUCKET_ORDER.includes(value as TriageBucket);
+export function isVisibleTriageBucket(value: unknown): value is VisibleTriageBucket {
+  return typeof value === "string" && TRIAGE_BUCKET_ORDER.includes(value as VisibleTriageBucket);
+}
+
+export function toVisibleTriageBucket(bucket: TriageBucket | VisibleTriageBucket): VisibleTriageBucket {
+  return DISPLAY_BUCKET_MAP[bucket as TriageBucket] || (bucket as VisibleTriageBucket);
+}
+
+export function expandVisibleTriageBuckets(buckets: VisibleTriageBucket[]): TriageBucket[] {
+  const expanded = new Set<TriageBucket>();
+  for (const bucket of buckets) {
+    if (bucket === "NEEDS_INVESTIGATION") {
+      expanded.add("NEEDS_INVESTIGATION");
+      expanded.add("AUTOMATION_READY");
+      continue;
+    }
+    if (bucket === "LIKELY_BENIGN") {
+      expanded.add("BULK_SPAM");
+      expanded.add("LIKELY_BENIGN");
+      continue;
+    }
+    expanded.add("UNCERTAIN");
+  }
+  return Array.from(expanded);
 }
 
 export function formatTriageReasonCode(code: string): string {

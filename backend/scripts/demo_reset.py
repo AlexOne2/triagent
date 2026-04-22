@@ -12,6 +12,20 @@ from app.services.object_storage import ObjectStorageError, ObjectStorageService
 from scripts.import_synthetic_corpus import DEFAULT_CORPUS_ROOT, import_synthetic_corpus
 from scripts.seed import seed
 
+DEMO_RESET_STATES = ("open", "resolved", "mixed")
+DEFAULT_MIXED_OPEN_SAMPLE_IDS_BY_SPLIT = {
+    "demo": (
+        "benign_vendor_portal_notice_001",
+        "display_name_bec_replyto_001",
+        "cred_harvest_shortener_001",
+    ),
+    "gold": (
+        "cred_harvest_shortener_001",
+        "malicious_attachment_zip_001",
+        "benign_vendor_portal_notice_001",
+    ),
+}
+
 
 INGEST_TABLES = (
     "attachments",
@@ -69,9 +83,10 @@ def demo_reset(
     *,
     corpus_root: Path,
     split: str,
+    state: str,
+    leave_open_sample_ids: set[str] | None,
     include_seed: bool,
     keep_audit: bool,
-    apply_expected_resolution: bool,
     limit: int | None,
 ) -> dict[str, int]:
     _truncate_tables(keep_audit=keep_audit)
@@ -82,14 +97,25 @@ def demo_reset(
     if include_seed:
         seed()
 
+    if state not in DEMO_RESET_STATES:
+        raise ValueError(f"Unsupported demo reset state: {state}")
+
+    resolved = state in {"resolved", "mixed"}
+    effective_leave_open_sample_ids = set(leave_open_sample_ids or [])
+    if state == "mixed" and not effective_leave_open_sample_ids:
+        effective_leave_open_sample_ids = set(DEFAULT_MIXED_OPEN_SAMPLE_IDS_BY_SPLIT.get(split, ()))
+
     summary = import_synthetic_corpus(
         corpus_root=corpus_root,
         split=split,
-        apply_expected_resolution=apply_expected_resolution,
+        apply_expected_resolution=resolved,
+        leave_open_sample_ids=effective_leave_open_sample_ids,
         dry_run=False,
         limit=limit,
         refresh_existing=False,
     )
+    if state == "open":
+        summary["left_open"] = summary["imported"] + summary["refreshed"]
     summary["removed_artifacts"] = removed_artifacts
     summary["removed_audit_exports"] = removed_audit_exports
     summary["seeded"] = 1 if include_seed else 0
@@ -99,8 +125,14 @@ def demo_reset(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Reset the demo dataset and reload a deterministic synthetic corpus.")
     parser.add_argument("--corpus-root", type=Path, default=DEFAULT_CORPUS_ROOT, help="Synthetic corpus root directory.")
-    parser.add_argument("--split", default="gold", help="Corpus split to import, for example gold.")
+    parser.add_argument("--split", default="demo", help="Corpus split to import, for example demo or gold.")
     parser.add_argument("--limit", type=int, default=None, help="Optional max number of samples to import from the split.")
+    parser.add_argument(
+        "--state",
+        choices=DEMO_RESET_STATES,
+        default="mixed",
+        help="Desired demo state: all OPEN, all resolved, or a mixed walkthrough state.",
+    )
     parser.add_argument(
         "--include-seed",
         action="store_true",
@@ -112,9 +144,10 @@ def main() -> int:
         help="Preserve audit events and export manifests instead of clearing them during the reset.",
     )
     parser.add_argument(
-        "--apply-expected-resolution",
-        action="store_true",
-        help="Apply expected synthetic resolutions instead of leaving imported reports OPEN for demo walkthroughs.",
+        "--leave-open-sample-id",
+        action="append",
+        default=[],
+        help="Sample ID to leave OPEN in mixed/resolved states. Can be repeated.",
     )
     args = parser.parse_args()
 
@@ -122,9 +155,10 @@ def main() -> int:
         summary = demo_reset(
             corpus_root=args.corpus_root,
             split=args.split,
+            state=args.state,
+            leave_open_sample_ids=set(args.leave_open_sample_id or []),
             include_seed=args.include_seed,
             keep_audit=args.keep_audit,
-            apply_expected_resolution=args.apply_expected_resolution,
             limit=args.limit,
         )
     except ObjectStorageError as exc:
@@ -134,6 +168,7 @@ def main() -> int:
         "demo-reset summary: "
         f"imported={summary['imported']} "
         f"resolved={summary['resolved']} "
+        f"left_open={summary['left_open']} "
         f"removed_artifacts={summary['removed_artifacts']} "
         f"removed_audit_exports={summary['removed_audit_exports']} "
         f"seeded={summary['seeded']}"

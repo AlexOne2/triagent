@@ -1,0 +1,10 @@
+{
+  "split": "demo",
+  "sample_ids": [
+    "benign_internal_it_notice_001",
+    "malicious_attachment_zip_001",
+    "benign_vendor_portal_notice_001",
+    "display_name_bec_replyto_001",
+    "cred_harvest_shortener_001"
+  ]
+}

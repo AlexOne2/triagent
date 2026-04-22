@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { CLASSIFICATION_CODES, ClassificationCode, Report, TriageBucket } from "./api";
-import { TRIAGE_BUCKET_ORDER } from "./triage";
+import { CLASSIFICATION_CODES, ClassificationCode, Report } from "./api";
+import { VisibleTriageBucket, isVisibleTriageBucket } from "./triage";
 
-const STORAGE_KEY_PREFIX = "triagent.queueFilters.v1";
+const STORAGE_KEY_PREFIX = "triagent.queueFilters.v2";
 const STATUS_VALUES: Report["status"][] = ["OPEN", "PHISHING", "BENIGN"];
 
 type StoredQueueFilters = {
   query?: string;
   statuses?: Report["status"][];
-  triageBuckets?: TriageBucket[];
+  triageBuckets?: VisibleTriageBucket[];
   classifications?: ClassificationCode[];
 };
 
@@ -20,16 +20,12 @@ function isClassification(value: unknown): value is ClassificationCode {
   return typeof value === "string" && CLASSIFICATION_CODES.includes(value as ClassificationCode);
 }
 
-function isTriageBucket(value: unknown): value is TriageBucket {
-  return typeof value === "string" && TRIAGE_BUCKET_ORDER.includes(value as TriageBucket);
-}
-
 function normalizeStoredFilters(value: unknown): Required<StoredQueueFilters> {
   const parsed = typeof value === "object" && value !== null ? (value as StoredQueueFilters) : {};
   return {
     query: typeof parsed.query === "string" ? parsed.query : "",
     statuses: Array.isArray(parsed.statuses) ? parsed.statuses.filter(isStatus) : [],
-    triageBuckets: Array.isArray(parsed.triageBuckets) ? parsed.triageBuckets.filter(isTriageBucket) : [],
+    triageBuckets: Array.isArray(parsed.triageBuckets) ? parsed.triageBuckets.filter(isVisibleTriageBucket) : [],
     classifications: Array.isArray(parsed.classifications)
       ? parsed.classifications.filter(isClassification)
       : [],
@@ -41,7 +37,7 @@ export function usePersistedQueueFilters(scope: string) {
   const [ready, setReady] = useState(false);
   const [draftQuery, setDraftQuery] = useState("");
   const [query, setQuery] = useState("");
-  const [triageFilters, setTriageFilters] = useState<TriageBucket[]>([]);
+  const [triageFilters, setTriageFilters] = useState<VisibleTriageBucket[]>([]);
   const [statusFilters, setStatusFilters] = useState<Report["status"][]>([]);
   const [classificationFilters, setClassificationFilters] = useState<ClassificationCode[]>([]);
 

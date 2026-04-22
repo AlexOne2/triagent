@@ -20,7 +20,7 @@ valid email artifact that can drive some combination of:
 - `specs/canonical-scenarios.json`: source-of-truth sample catalog
 - `samples/`: generated `.eml` artifacts
 - `expected/`: per-sample expected outcomes used by validation
-- `splits/`: curated subsets such as `gold` and `clustering`
+- `splits/`: curated subsets such as `demo`, `gold`, and `clustering`
 - `redirect-fixtures.json`: deterministic redirect chains for validation
 - `manifest.json`: generated sample index with hashes and expectations
 - `manifest.schema.json`: JSON Schema for the generated manifest
@@ -46,10 +46,16 @@ cd backend
 python -m unittest tests.test_synthetic_corpus_ingest
 ```
 
-Import the gold split into a local demo stack on demand:
+Import the gold split into a local stack on demand:
 
 ```bash
 make import-synthetic SPLIT=gold
+```
+
+Reset the curated demo walkthrough dataset:
+
+```bash
+make demo-reset
 ```
 
 Leave imported cases open instead of auto-resolving them:
@@ -80,7 +86,17 @@ make remove-synthetic SPLIT=gold
 
 ## Current Scope
 
-The initial scaffold ships a `gold` subset of twelve canonical samples covering:
+The scaffold currently ships two human-oriented subsets:
+
+- `demo`: a five-sample walkthrough set with:
+  - one obvious phishing case
+  - one spoof / BEC-style case
+  - one clearly benign control
+  - one already-resolved malicious example
+  - one already-resolved safe example
+- `gold`: the broader regression/evaluation set
+
+The `gold` subset covers:
 
 - credential-harvest links
 - shortener and redirect chains

@@ -39,7 +39,7 @@ class ReportTriageScoringTests(unittest.TestCase):
         self.assertLessEqual(assessment.threat_score, 25)
         self.assertFalse(assessment.analyst_worthy)
 
-    def test_credential_harvest_routes_to_automation_ready(self):
+    def test_credential_harvest_with_auth_failures_routes_to_needs_investigation(self):
         assessment = build_report_triage_assessment(
             ReportTriageInput(
                 risk_score=82,
@@ -66,10 +66,9 @@ class ReportTriageScoringTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(assessment.bucket, "AUTOMATION_READY")
+        self.assertEqual(assessment.bucket, "NEEDS_INVESTIGATION")
         self.assertGreaterEqual(assessment.threat_score, 65)
-        self.assertGreaterEqual(assessment.automation_confidence_score, 65)
-        self.assertFalse(assessment.analyst_worthy)
+        self.assertIn("AUTH_FAILURES", assessment.reason_codes)
 
     def test_finance_impersonation_routes_to_needs_investigation(self):
         assessment = build_report_triage_assessment(
@@ -122,6 +121,44 @@ class ReportTriageScoringTests(unittest.TestCase):
         self.assertEqual(assessment.bucket, "LIKELY_BENIGN")
         self.assertLessEqual(assessment.threat_score, 20)
         self.assertFalse(assessment.analyst_worthy)
+
+    def test_finance_language_without_other_signals_does_not_route_to_likely_benign(self):
+        assessment = build_report_triage_assessment(
+            ReportTriageInput(
+                risk_score=12,
+                subject="Urgent payment confirmation",
+                body_text="Please confirm the wire details and remittance amount today.",
+                from_addr="billing@vendor.example",
+                mailbox_domain="contoso.example",
+                auth_summary={
+                    "spf": {"result": "pass"},
+                    "dkim": {"result": "pass"},
+                    "dmarc": {"result": "pass"},
+                },
+            )
+        )
+
+        self.assertEqual(assessment.bucket, "UNCERTAIN")
+        self.assertIn("FINANCE_LANGUAGE", assessment.reason_codes)
+
+    def test_auth_failures_without_bulk_signals_route_to_needs_investigation(self):
+        assessment = build_report_triage_assessment(
+            ReportTriageInput(
+                risk_score=18,
+                subject="Scan to restore your mobile access",
+                body_text="Restore access to your account immediately.",
+                from_addr="mobile-access@webmail-auth.example",
+                mailbox_domain="contoso.example",
+                auth_summary={
+                    "spf": {"result": "fail"},
+                    "dkim": {"result": "fail"},
+                    "dmarc": {"result": "fail"},
+                },
+            )
+        )
+
+        self.assertEqual(assessment.bucket, "NEEDS_INVESTIGATION")
+        self.assertIn("AUTH_FAILURES", assessment.reason_codes)
 
 
 if __name__ == "__main__":

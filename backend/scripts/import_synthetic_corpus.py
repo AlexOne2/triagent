@@ -250,6 +250,7 @@ def import_synthetic_corpus(
     corpus_root: Path,
     split: str,
     apply_expected_resolution: bool,
+    leave_open_sample_ids: set[str] | None,
     dry_run: bool,
     limit: int | None,
     refresh_existing: bool,
@@ -263,7 +264,15 @@ def import_synthetic_corpus(
     if limit is not None:
         sample_ids = sample_ids[:limit]
 
-    summary = {"considered": 0, "imported": 0, "refreshed": 0, "skipped_existing": 0, "resolved": 0}
+    leave_open_sample_ids = leave_open_sample_ids or set()
+    summary = {
+        "considered": 0,
+        "imported": 0,
+        "refreshed": 0,
+        "skipped_existing": 0,
+        "resolved": 0,
+        "left_open": 0,
+    }
 
     if dry_run:
         for sample_id in sample_ids:
@@ -379,7 +388,9 @@ def import_synthetic_corpus(
                 actor_type=AuditActorType.SYSTEM,
             )
 
-            if apply_expected_resolution:
+            should_apply_expected_resolution = apply_expected_resolution and sample_id not in leave_open_sample_ids
+
+            if should_apply_expected_resolution:
                 _apply_expected_resolution(
                     db,
                     report,
@@ -389,6 +400,8 @@ def import_synthetic_corpus(
                 )
                 if entry.get("disposition"):
                     summary["resolved"] += 1
+            elif sample_id in leave_open_sample_ids:
+                summary["left_open"] += 1
 
             db.commit()
             if is_refresh:
@@ -425,12 +438,19 @@ def main() -> int:
         action="store_true",
         help="Update matching synthetic reports in place instead of skipping them.",
     )
+    parser.add_argument(
+        "--leave-open-sample-id",
+        action="append",
+        default=[],
+        help="Sample ID to leave OPEN even when expected synthetic resolutions are being applied. Can be repeated.",
+    )
     args = parser.parse_args()
 
     summary = import_synthetic_corpus(
         corpus_root=args.corpus_root,
         split=args.split,
         apply_expected_resolution=not args.open_only,
+        leave_open_sample_ids=set(args.leave_open_sample_id or []),
         dry_run=args.dry_run,
         limit=args.limit,
         refresh_existing=args.refresh_existing,
@@ -441,7 +461,8 @@ def main() -> int:
         f"imported={summary['imported']} "
         f"refreshed={summary['refreshed']} "
         f"skipped_existing={summary['skipped_existing']} "
-        f"resolved={summary['resolved']}"
+        f"resolved={summary['resolved']} "
+        f"left_open={summary['left_open']}"
     )
     return 0
 

@@ -5,16 +5,16 @@ import ReportSearchToolbar from "../../components/ReportSearchToolbar";
 import {
   FileIngestItem,
   Report,
-  TriageBucket,
   fetchReports,
   uploadReportFiles,
 } from "../../lib/api";
 import { useAuth } from "../../lib/auth-context";
+import { VisibleTriageBucket, expandVisibleTriageBuckets } from "../../lib/triage";
 import { usePersistedQueueFilters } from "../../lib/use-persisted-queue-filters";
 
 const PAGE_SIZE = 50;
 
-const sortReports = (items: Report[], triageBuckets: TriageBucket[]) =>
+const sortReports = (items: Report[], triageBuckets: VisibleTriageBucket[]) =>
   [...items].sort((left, right) => {
     if (
       triageBuckets.length === 1 &&
@@ -95,12 +95,13 @@ export default function ReportList() {
     }
     let active = true;
     setLoading(true);
+    const expandedTriageBuckets = expandVisibleTriageBuckets(triageFilters);
     fetchReports({
       query,
       statuses: statusFilters.length > 0 ? statusFilters : undefined,
       source: "UPLOAD",
       classificationCodes: classificationFilters.length > 0 ? classificationFilters : undefined,
-      triageBuckets: triageFilters.length > 0 ? triageFilters : undefined,
+      triageBuckets: expandedTriageBuckets.length > 0 ? expandedTriageBuckets : undefined,
       limit: PAGE_SIZE,
       offset: page * PAGE_SIZE,
     })

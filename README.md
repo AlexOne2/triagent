@@ -49,19 +49,19 @@ make dev
 make seed
 ```
 
-5) (Optional) Import the synthetic gold corpus as ready-to-review demo cases:
+5) (Optional) Import the synthetic gold corpus as ready-to-review evaluation cases:
 
 ```bash
 make import-synthetic SPLIT=gold
 ```
 
-Reset the local demo state to a known synthetic walkthrough dataset:
+Reset the local demo state to a known curated walkthrough dataset:
 
 ```bash
 make demo-reset
 ```
 
-By default, `make demo-reset` clears existing report/campaign demo data, removes stored report artifacts, clears audit history, and imports the synthetic `gold` split as **OPEN** reports so the triage and resolution flow is ready to demo live. Set `RESOLVED=1` if you want the importer to apply the expected synthetic resolutions instead.
+By default, `make demo-reset` clears existing report/campaign demo data, removes stored report artifacts, clears audit history, and imports the synthetic `demo` split into a **mixed** walkthrough state: three intentionally chosen cases stay **OPEN** for live triage, while one malicious and one safe case arrive already resolved so you can show auditability and evidence export without extra clicks. Use `SPLIT=gold` when you want the broader evaluation set instead.
 
 Open:
 - Dashboard: `http://localhost:${FRONTEND_PORT}` (default `http://localhost:3000`)
@@ -124,13 +124,13 @@ Validate the generated samples against their manifest:
 python3 backend/scripts/validate_synthetic_corpus.py
 ```
 
-Import the gold split into a local demo environment on demand:
+Import the gold split into a local environment on demand:
 
 ```bash
 make import-synthetic SPLIT=gold
 ```
 
-Reset the demo stack to a deterministic state using the gold split:
+Reset the demo stack to a deterministic state using the curated demo split:
 
 ```bash
 make demo-reset
@@ -139,9 +139,13 @@ make demo-reset
 Useful options:
 
 ```bash
+make demo-reset
+make demo-reset SPLIT=gold
+make demo-reset SPLIT=gold STATE=open
 make demo-reset SPLIT=gold RESOLVED=1
 make demo-reset SPLIT=gold KEEP_AUDIT=1
 make demo-reset SPLIT=gold INCLUDE_SEED=1
+make demo-reset SPLIT=gold OPEN_SAMPLE_IDS="cred_harvest_shortener_001 benign_vendor_portal_notice_001"
 ```
 
 Refresh previously imported synthetic reports in place:
