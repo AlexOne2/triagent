@@ -55,6 +55,14 @@ make seed
 make import-synthetic SPLIT=gold
 ```
 
+Reset the local demo state to a known synthetic walkthrough dataset:
+
+```bash
+make demo-reset
+```
+
+By default, `make demo-reset` clears existing report/campaign demo data, removes stored report artifacts, clears audit history, and imports the synthetic `gold` split as **OPEN** reports so the triage and resolution flow is ready to demo live. Set `RESOLVED=1` if you want the importer to apply the expected synthetic resolutions instead.
+
 Open:
 - Dashboard: `http://localhost:${FRONTEND_PORT}` (default `http://localhost:3000`)
 - Login: `http://localhost:${FRONTEND_PORT}/login`
@@ -120,6 +128,20 @@ Import the gold split into a local demo environment on demand:
 
 ```bash
 make import-synthetic SPLIT=gold
+```
+
+Reset the demo stack to a deterministic state using the gold split:
+
+```bash
+make demo-reset
+```
+
+Useful options:
+
+```bash
+make demo-reset SPLIT=gold RESOLVED=1
+make demo-reset SPLIT=gold KEEP_AUDIT=1
+make demo-reset SPLIT=gold INCLUDE_SEED=1
 ```
 
 Refresh previously imported synthetic reports in place:
@@ -302,4 +324,7 @@ make reset-data
 
 ## License
 
-This project is licensed under the MIT License. See [`LICENSE`](./LICENSE).
+This project is proprietary and all rights are reserved. No permission is
+granted to use, copy, modify, distribute, or create derivative works from
+this repository except with prior written permission from the copyright
+holder. See [`LICENSE`](./LICENSE).
