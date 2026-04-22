@@ -302,6 +302,8 @@ export type UrlAnalysis = {
   used_redirector: boolean;
   domain_changed: boolean;
   suspicious_redirect: boolean;
+  redirect_risk_score: number;
+  redirect_risk_reasons: string[];
   resolution_status: UrlResolutionStatus;
   resolution_error?: string | null;
   redirect_chain: UrlRedirectHop[];

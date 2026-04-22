@@ -207,6 +207,8 @@ class UrlAnalysisOut(BaseModel):
     used_redirector: bool = False
     domain_changed: bool = False
     suspicious_redirect: bool = False
+    redirect_risk_score: int = 0
+    redirect_risk_reasons: List[str] = Field(default_factory=list)
     resolution_status: UrlResolutionStatus = "disabled"
     resolution_error: Optional[str] = None
     redirect_chain: List[UrlRedirectHopOut] = Field(default_factory=list)

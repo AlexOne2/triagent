@@ -219,6 +219,8 @@ type UrlRecord = {
   isShortener: boolean;
   domainChanged: boolean;
   suspiciousRedirect: boolean;
+  redirectRiskScore: number;
+  redirectRiskReasons: string[];
   resolutionStatus: UrlResolutionStatus;
   resolutionError?: string | null;
   redirectChain: UrlAnalysis["redirect_chain"];
@@ -255,6 +257,27 @@ function urlResolutionTone(status?: UrlResolutionStatus | null): "good" | "warn"
   if (status === "max_hops_exceeded" || status === "loop_detected") return "warn";
   if (status === "error") return "bad";
   return "neutral";
+}
+
+function redirectRiskReasonLabel(reason: string): string {
+  switch (reason) {
+    case "redirector_origin":
+      return "Redirector or shortener origin";
+    case "multi_domain_chain":
+      return "Multiple unrelated domains";
+    case "ip_literal_final_host":
+      return "Final host is an IP";
+    case "punycode_final_host":
+      return "Punycode final host";
+    case "suspicious_tld":
+      return "Suspicious TLD";
+    case "unusual_final_host_shape":
+      return "Unusual final host shape";
+    case "credential_url_signals":
+      return "Credential or login URL pattern";
+    default:
+      return reason.replace(/_/g, " ");
+  }
 }
 
 function lookalikeConfidenceLabel(confidence?: LookalikeConfidence | null): string {
@@ -592,6 +615,8 @@ export default function ReportDetailPage() {
                 used_redirector: false,
                 domain_changed: false,
                 suspicious_redirect: false,
+                redirect_risk_score: 0,
+                redirect_risk_reasons: [],
                 resolution_status: "disabled",
                 resolution_error: null,
                 redirect_chain: [],
@@ -612,6 +637,8 @@ export default function ReportDetailPage() {
           isShortener: !!entry.is_shortener,
           domainChanged: !!entry.domain_changed,
           suspiciousRedirect: !!entry.suspicious_redirect,
+          redirectRiskScore: entry.redirect_risk_score || 0,
+          redirectRiskReasons: entry.redirect_risk_reasons || [],
           resolutionStatus: entry.resolution_status,
           resolutionError: entry.resolution_error,
           redirectChain: entry.redirect_chain || [],
@@ -1400,6 +1427,18 @@ export default function ReportDetailPage() {
                           )}
                           {renderFieldRow("Redirect Count", String(record.redirectCount))}
                           {renderFieldRow("Resolution Status", urlResolutionLabel(record.resolutionStatus))}
+                          {record.redirectRiskReasons.length > 0
+                            ? renderFieldRow(
+                                "Why flagged",
+                                <div className="url-risk-reasons">
+                                  {record.redirectRiskReasons.map((reason) => (
+                                    <span key={reason} className="url-risk-chip">
+                                      {redirectRiskReasonLabel(reason)}
+                                    </span>
+                                  ))}
+                                </div>,
+                              )
+                            : null}
                           {record.resolutionError ? renderFieldRow("Resolution Error", record.resolutionError) : null}
                         </div>
                         {record.redirectChain.length > 0 ? (

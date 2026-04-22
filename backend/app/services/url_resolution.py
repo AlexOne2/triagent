@@ -1,19 +1,68 @@
 from __future__ import annotations
 
+import ipaddress
 import ssl
 from typing import Any, Callable, Sequence
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import parse_qsl, unquote_plus, urljoin, urlsplit
 from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, Request, build_opener
 
 from app.core.config import Settings, get_settings
-from app.services.analysis import URL_SHORTENERS
+from app.services.analysis import SUSPICIOUS_TLDS, URL_SHORTENERS
 
 KNOWN_REDIRECTOR_SUFFIXES = {
     "1drv.ms",
     "onedrive.live.com",
     "safelinks.protection.outlook.com",
     "urldefense.com",
+}
+BENIGN_SHARE_DESTINATION_SUFFIXES = {
+    "facebook.com",
+    "instagram.com",
+    "linkedin.com",
+    "twitter.com",
+    "x.com",
+}
+BENIGN_SHARE_PATH_MARKERS = (
+    "/dialog/share",
+    "/intent/tweet",
+    "/share",
+    "/share_channel",
+    "/sharearticle",
+    "/sharing/share-offsite",
+    "/sharer",
+)
+CREDENTIAL_URL_KEYWORDS = {
+    "account",
+    "auth",
+    "credential",
+    "login",
+    "logon",
+    "mfa",
+    "oauth",
+    "password",
+    "reset",
+    "secure",
+    "session",
+    "signin",
+    "token",
+    "unlock",
+    "validate",
+    "verify",
+    "webmail",
+}
+RISKY_QUERY_KEYS = {
+    "continue",
+    "email",
+    "login_hint",
+    "next",
+    "redirect",
+    "redirect_uri",
+    "return",
+    "return_to",
+    "session",
+    "token",
+    "user",
 }
 MULTIPART_PUBLIC_SUFFIXES = {
     "ac.uk",
@@ -79,6 +128,116 @@ def registrable_domain(domain: str | None) -> str | None:
 
 def _normalize_url(value: str) -> str:
     return value.strip().strip("'\"()[]{}.,;:")
+
+
+def _is_ip_literal_host(domain: str | None) -> bool:
+    if not domain:
+        return False
+    try:
+        ipaddress.ip_address(domain.strip("[]"))
+    except ValueError:
+        return False
+    return True
+
+
+def _has_punycode_label(domain: str | None) -> bool:
+    if not domain:
+        return False
+    return any(part.startswith("xn--") for part in domain.lower().split("."))
+
+
+def _has_suspicious_tld(domain: str | None) -> bool:
+    registrable = registrable_domain(domain)
+    if not registrable or "." not in registrable:
+        return False
+    return registrable.rsplit(".", 1)[-1] in SUSPICIOUS_TLDS
+
+
+def _has_unusual_host_shape(domain: str | None) -> bool:
+    registrable = registrable_domain(domain)
+    if not registrable or "." not in registrable:
+        return False
+    label = registrable.split(".", 1)[0]
+    if len(label) >= 24:
+        return True
+    if label.count("-") >= 2:
+        return True
+    digit_count = sum(1 for char in label if char.isdigit())
+    return bool(label) and digit_count / len(label) >= 0.35
+
+
+def _url_keyword_blob(url: str | None) -> str:
+    if not url:
+        return ""
+    parsed = urlsplit(url)
+    parts = [parsed.path or "", parsed.query or "", parsed.fragment or ""]
+    return unquote_plus(" ".join(parts)).lower()
+
+
+def _has_credential_url_signals(url: str | None) -> bool:
+    if not url:
+        return False
+    text = _url_keyword_blob(url)
+    if any(keyword in text for keyword in CREDENTIAL_URL_KEYWORDS):
+        return True
+
+    parsed = urlsplit(url)
+    return any(key.lower() in RISKY_QUERY_KEYS for key, _ in parse_qsl(parsed.query, keep_blank_values=True))
+
+
+def _is_benign_share_destination(url: str | None, domain: str | None) -> bool:
+    registrable = registrable_domain(domain)
+    if not registrable or registrable not in BENIGN_SHARE_DESTINATION_SUFFIXES:
+        return False
+    path = (urlsplit(url).path or "").lower() if url else ""
+    return any(marker in path for marker in BENIGN_SHARE_PATH_MARKERS)
+
+
+def _redirect_risk_reasons(
+    *,
+    final_url: str | None,
+    initial_domain: str | None,
+    final_domain: str | None,
+    redirect_chain: Sequence[dict[str, Any]],
+    redirect_count: int,
+    used_redirector: bool,
+    is_shortener: bool,
+    domain_changed: bool,
+) -> list[str]:
+    if redirect_count <= 0 or not domain_changed:
+        return []
+
+    reasons: list[str] = []
+    if used_redirector or is_shortener:
+        reasons.append("redirector_origin")
+
+    hop_registrable_domains = {
+        registrable_domain(str(item.get("domain") or "").strip().lower())
+        for item in redirect_chain
+        if item.get("domain")
+    }
+    final_registrable = registrable_domain(final_domain)
+    if final_registrable:
+        hop_registrable_domains.add(final_registrable)
+    hop_registrable_domains.discard(None)
+    if len(hop_registrable_domains) >= 3:
+        reasons.append("multi_domain_chain")
+
+    if _is_ip_literal_host(final_domain):
+        reasons.append("ip_literal_final_host")
+    if _has_punycode_label(final_domain):
+        reasons.append("punycode_final_host")
+    if _has_suspicious_tld(final_domain):
+        reasons.append("suspicious_tld")
+    if _has_unusual_host_shape(final_domain):
+        reasons.append("unusual_final_host_shape")
+    if _has_credential_url_signals(final_url):
+        reasons.append("credential_url_signals")
+
+    if _is_benign_share_destination(final_url, final_domain):
+        return []
+
+    return reasons
 
 
 def _build_opener(settings: Settings):
@@ -214,6 +373,16 @@ def analyze_url(
         and registrable_domain(initial_domain) != registrable_domain(final_domain)
     )
     redirect_count = sum(1 for item in redirect_chain if item.get("location"))
+    redirect_risk_reasons = _redirect_risk_reasons(
+        final_url=final_url,
+        initial_domain=initial_domain,
+        final_domain=final_domain,
+        redirect_chain=redirect_chain,
+        redirect_count=redirect_count,
+        used_redirector=used_redirector,
+        is_shortener=is_shortener,
+        domain_changed=domain_changed,
+    )
 
     return {
         "original_url": value,
@@ -225,7 +394,9 @@ def analyze_url(
         "is_shortener": is_shortener,
         "used_redirector": used_redirector,
         "domain_changed": domain_changed,
-        "suspicious_redirect": domain_changed and (used_redirector or redirect_count > 0),
+        "suspicious_redirect": bool(redirect_risk_reasons),
+        "redirect_risk_score": len(redirect_risk_reasons),
+        "redirect_risk_reasons": redirect_risk_reasons,
         "resolution_status": resolution_status,
         "resolution_error": resolution_error,
         "redirect_chain": redirect_chain,
@@ -271,6 +442,8 @@ def build_url_analysis(
                     "used_redirector": is_known_redirector(domain),
                     "domain_changed": False,
                     "suspicious_redirect": False,
+                    "redirect_risk_score": 0,
+                    "redirect_risk_reasons": [],
                     "resolution_status": "skipped_limit",
                     "resolution_error": f"Skipped after {max_urls} URLs",
                     "redirect_chain": [],

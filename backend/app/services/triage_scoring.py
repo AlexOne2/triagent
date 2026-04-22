@@ -182,7 +182,7 @@ def build_report_triage_assessment(report_input: ReportTriageInput) -> ReportTri
     suspicious_redirects = [
         item
         for item in report_input.url_analysis
-        if item.get("suspicious_redirect") or item.get("domain_changed") or item.get("is_shortener")
+        if item.get("suspicious_redirect")
     ]
     suspicious_attachments = [
         name for name in report_input.attachment_names if _has_suspicious_attachment_extension(name)

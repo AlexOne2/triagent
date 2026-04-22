@@ -28,9 +28,36 @@ class UrlResolutionTests(unittest.TestCase):
         self.assertTrue(analysis["is_shortener"])
         self.assertTrue(analysis["domain_changed"])
         self.assertTrue(analysis["suspicious_redirect"])
+        self.assertIn("redirector_origin", analysis["redirect_risk_reasons"])
+        self.assertIn("credential_url_signals", analysis["redirect_risk_reasons"])
         self.assertEqual(analysis["resolution_status"], "resolved")
         self.assertEqual(len(analysis["redirect_chain"]), 3)
         self.assertEqual(analysis["redirect_chain"][0]["location"], "https://1drv.ms/u/s!abc")
+
+    def test_analyze_url_does_not_flag_benign_social_share_redirect_as_suspicious(self):
+        steps = {
+            "https://luma.com/social-share?m=join-event&n=Infoabend&pa=ahs7n9xa&p=fb": {
+                "status_code": 302,
+                "location": "https://www.facebook.com/share_channel/?type=reshare&link=https%3A%2F%2Fluma.com%2Fahs7n9xa",
+            },
+            "https://www.facebook.com/share_channel/?type=reshare&link=https%3A%2F%2Fluma.com%2Fahs7n9xa": {
+                "status_code": 200,
+                "location": None,
+            },
+        }
+
+        analysis = analyze_url(
+            "https://luma.com/social-share?m=join-event&n=Infoabend&pa=ahs7n9xa&p=fb",
+            resolve_urls=True,
+            fetcher=lambda current: steps[current],
+        )
+
+        self.assertEqual(analysis["final_domain"], "www.facebook.com")
+        self.assertTrue(analysis["domain_changed"])
+        self.assertEqual(analysis["redirect_count"], 1)
+        self.assertFalse(analysis["suspicious_redirect"])
+        self.assertEqual(analysis["redirect_risk_score"], 0)
+        self.assertEqual(analysis["redirect_risk_reasons"], [])
 
     def test_build_url_analysis_can_skip_network_resolution(self):
         analysis = build_url_analysis(["https://example.com/reset"], resolve_urls=False)

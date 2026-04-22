@@ -182,10 +182,7 @@ def _has_attachment_behaviors(mapping_input: AttackMappingInput) -> bool:
 
 
 def _has_suspicious_redirect(mapping_input: AttackMappingInput) -> bool:
-    return any(
-        bool(item.get("suspicious_redirect") or item.get("domain_changed") or item.get("is_shortener"))
-        for item in mapping_input.url_analysis
-    )
+    return any(bool(item.get("suspicious_redirect")) for item in mapping_input.url_analysis)
 
 
 def _spoofing_evidence(mapping_input: AttackMappingInput) -> list[AttackEvidenceRef]:
