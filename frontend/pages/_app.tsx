@@ -11,18 +11,19 @@ function AppContent({ Component, pageProps }: AppProps) {
   const { loading, isAuthenticated } = useAuth();
 
   const isLoginPage = router.pathname === "/login";
+  const isPublicRoute = router.pathname === "/" || isLoginPage;
 
   useEffect(() => {
     if (loading) return;
-    if (!isAuthenticated && !isLoginPage) {
+    if (!isAuthenticated && !isPublicRoute) {
       router.replace("/login");
     }
     if (isAuthenticated && isLoginPage) {
       router.replace("/reports");
     }
-  }, [loading, isAuthenticated, isLoginPage, router]);
+  }, [loading, isAuthenticated, isLoginPage, isPublicRoute, router]);
 
-  if (loading) {
+  if (loading && !isPublicRoute) {
     return (
       <main className="full">
         <p>Loading...</p>
@@ -30,13 +31,21 @@ function AppContent({ Component, pageProps }: AppProps) {
     );
   }
 
-  if (!isAuthenticated && !isLoginPage) {
+  if (isAuthenticated && isLoginPage) {
     return null;
+  }
+
+  if (!isAuthenticated && !isPublicRoute) {
+    return null;
+  }
+
+  if (isPublicRoute) {
+    return <Component {...pageProps} />;
   }
 
   return (
     <div className="app-shell">
-      {!isLoginPage ? <AppHeader /> : null}
+      <AppHeader />
       <Component {...pageProps} />
     </div>
   );

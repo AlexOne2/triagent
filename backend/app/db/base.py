@@ -7,6 +7,7 @@ from app.models.report import Report
 from app.models.report_resolution import ReportResolution
 from app.models.security_audit import AuditChainState, AuditExport, SecurityAuditEvent
 from app.models.user import Permission, Role, RolePermission, User, UserRole
+from app.models.waitlist_lead import WaitlistLead
 
 __all__ = [
     "Base",
@@ -26,4 +27,5 @@ __all__ = [
     "AuditChainState",
     "AuditExport",
     "SecurityAuditEvent",
+    "WaitlistLead",
 ]

@@ -64,10 +64,13 @@ make demo-reset
 By default, `make demo-reset` clears existing report/campaign demo data, removes stored report artifacts, clears audit history, and imports the synthetic `demo` split into a **mixed** walkthrough state: three intentionally chosen cases stay **OPEN** for live triage, while one malicious and one safe case arrive already resolved so you can show auditability and evidence export without extra clicks. Use `SPLIT=gold` when you want the broader evaluation set instead.
 
 Open:
-- Dashboard: `http://localhost:${FRONTEND_PORT}` (default `http://localhost:3000`)
+- Landing page: `http://localhost:${FRONTEND_PORT}` (default `http://localhost:3000`)
+- Analyst workspace: `http://localhost:${FRONTEND_PORT}/reports`
 - Login: `http://localhost:${FRONTEND_PORT}/login`
 - Backend docs: `http://localhost:${BACKEND_PORT}/docs` (default `http://localhost:8000/docs`)
 - Backend health: `http://localhost:${BACKEND_PORT}/health`
+
+The public landing page includes a persisted waitlist form backed by the `waitlist_leads` table and a `Try demo` CTA that routes into the existing login flow.
 
 If port `3000` is already in use, set a different `FRONTEND_PORT` in `infra/.env` and update `CORS_ORIGINS` accordingly.
 
@@ -102,6 +105,7 @@ The public demo now includes a small operational and security documentation set:
 - [Threat model](./docs/security/threat-model.md)
 - [Deployment hardening guide](./docs/operations/hardening.md)
 - [Rollback runbook](./docs/operations/runbook-rollback.md)
+- [Demo script](./docs/demo-script.md)
 - [Sample investigation scenarios](./docs/evaluation/sample-investigations.md)
 - [Synthetic corpus scaffold](./test_data/synthetic-corpus/README.md)
 

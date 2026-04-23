@@ -80,6 +80,22 @@ export type AuthMeResponse = {
   permissions: string[];
 };
 
+export type WaitlistLeadCreate = {
+  name?: string | null;
+  work_email: string;
+  company?: string | null;
+  role?: string | null;
+  notes?: string | null;
+  source?: string | null;
+};
+
+export type WaitlistLeadSubmitResponse = {
+  id: number;
+  work_email: string;
+  already_exists: boolean;
+  created_at: string;
+};
+
 export type PermissionOut = {
   id: number;
   key: string;
@@ -619,6 +635,17 @@ export async function authLogout(): Promise<void> {
       method: "POST",
     },
     { expectJson: false }
+  );
+}
+
+export async function createWaitlistLead(payload: WaitlistLeadCreate): Promise<WaitlistLeadSubmitResponse> {
+  return request<WaitlistLeadSubmitResponse>(
+    "/api/public/waitlist",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    { auth: false }
   );
 }
 

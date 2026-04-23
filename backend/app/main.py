@@ -6,6 +6,7 @@ from uuid import uuid4
 from app.api.admin_routes import router as admin_router
 from app.api.audit_routes import router as audit_router
 from app.api.auth_routes import router as auth_router
+from app.api.public_routes import router as public_router
 from app.api.routes import router as api_router
 from app.core.config import get_settings
 from app.db.session import SessionLocal
@@ -37,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(admin_router)
     app.include_router(audit_router)
+    app.include_router(public_router)
     app.include_router(api_router)
 
     @app.on_event("startup")
