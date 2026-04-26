@@ -30,6 +30,8 @@ services:
   backend:
     build:
       context: ../backend
+    volumes:
+      - ../test_data:/app/test_data:ro
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://triagent:triagent@postgres:5432/triagent}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -25,16 +26,16 @@ const WORKFLOW_STEPS = [
 
 const WHY_TRIAGENT = [
   {
-    title: "Built for reported-email triage",
-    copy: "Triagent starts where the secure email gateway stops: after a user reports something suspicious.",
+    title: "Auto-categorize low-value reports",
+    copy: "Most user-reported email does not deserve a full investigation. Triagent helps separate likely benign noise before analysts spend time on it.",
   },
   {
-    title: "Analyst in the loop",
-    copy: "The product helps prioritize and package evidence, but the analyst still owns the decision.",
+    title: "Escalate only analyst-worthy cases",
+    copy: "The cases with stronger evidence are routed into analyst review with an assist draft and supporting signals already packaged.",
   },
   {
-    title: "Evidence packaged for action",
-    copy: "Preserve the original message, collect the supporting signals, and export the case without tool-hopping.",
+    title: "Keep the evidence and exports together",
+    copy: "When a case does need review, the original message, supporting artifacts, and exportable case record stay in the same workflow.",
   },
 ];
 
@@ -67,12 +68,12 @@ const FAQS = [
   {
     question: "What does the demo login lead to?",
     answer:
-      "It leads into the current analyst workspace so prospects can see the queue, evidence review, analyst resolution flow, and exports directly.",
+      "It signs you into a shared read-only demo workspace with a seeded dataset, so you can explore the product without credentials or per-visitor provisioning delays.",
   },
 ];
 
 export default function Home() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, roles } = useAuth();
   const [name, setName] = useState("");
   const [workEmail, setWorkEmail] = useState("");
   const [company, setCompany] = useState("");
@@ -83,8 +84,9 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const demoHref = isAuthenticated ? "/reports" : "/login";
-  const demoLabel = isAuthenticated ? "Open analyst workspace" : "Open demo login";
+  const isDemoUser = roles.includes("DEMO");
+  const demoHref = !isAuthenticated ? "/demo" : "/reports";
+  const demoLabel = !isAuthenticated ? "Try it here" : isDemoUser ? "Open demo" : "Open workspace";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,119 +163,57 @@ export default function Home() {
               </a>
             </div>
             <p className="landing-cta-note">
-              Current demo shows queueing, evidence review, analyst resolution, audit history, and PDF / IOC export.
+              The public demo opens a shared read-only workspace and shows queueing, evidence review, assist draft,
+              audit history, and PDF / IOC export.
             </p>
           </div>
         </div>
 
-        <div className="landing-screenshot-frame" aria-hidden="true">
-          <div className="landing-screenshot-bar">
-            <div className="landing-screenshot-brand">Triagent</div>
-            <div className="landing-screenshot-nav">
-              <span>Dashboard</span>
-              <span>Uploads</span>
-              <span>In-tray</span>
-              <span>Audit</span>
-            </div>
-          </div>
-          <div className="landing-screenshot-body">
-            <div className="landing-screenshot-breadcrumb">Uploads &gt; Urgent: Your Microsoft 365 password expires today</div>
-            <div className="landing-screenshot-title-row">
-              <div>
-                <h2 className="landing-screenshot-title">Urgent: Your Microsoft 365 password expires today</h2>
-                <div className="landing-screenshot-badges">
-                  <span className="landing-screenshot-badge landing-screenshot-badge-danger">Needs investigation</span>
-                  <span className="landing-screenshot-badge">Credential lure</span>
-                  <span className="landing-screenshot-badge">Redirect chain</span>
-                </div>
-              </div>
-              <button className="landing-screenshot-resolve">Resolve</button>
-            </div>
-            <div className="landing-screenshot-tabs">
-              <span className="active">Details</span>
-              <span>Authentication</span>
-              <span>URLs</span>
-              <span>Attachments</span>
-              <span>Source</span>
-            </div>
-            <div className="landing-screenshot-split">
-              <div className="landing-screenshot-panel">
-                <div className="landing-screenshot-field">
-                  <label>From</label>
-                  <span>support@microsoft-security-check.example</span>
-                </div>
-                <div className="landing-screenshot-field">
-                  <label>Reply-To</label>
-                  <span>verify@identity-gateway.example</span>
-                </div>
-                <div className="landing-screenshot-field">
-                  <label>Originating IP</label>
-                  <span>185.70.40.18</span>
-                </div>
-                <div className="landing-screenshot-field">
-                  <label>Signals</label>
-                  <span>Lookalike sender, URL-bearing lure, analyst-worthy queue score</span>
-                </div>
-                <div className="landing-screenshot-field">
-                  <label>Exports</label>
-                  <span>PDF evidence package and IOC CSV available from the same case</span>
-                </div>
-              </div>
-              <div className="landing-screenshot-panel landing-screenshot-rendered">
-                <div className="landing-screenshot-rendered-toolbar">
-                  <span className="active">Rendered</span>
-                  <span>HTML</span>
-                  <span>Plaintext</span>
-                  <span>Source</span>
-                </div>
-                <div className="landing-screenshot-message">
-                  <p>Hello,</p>
-                  <p>
-                    Your Microsoft 365 password expires today. Review the account notice and confirm your identity to
-                    avoid interruption.
-                  </p>
-                  <p>
-                    We detected unusual login activity on your mailbox and need immediate verification to keep access
-                    active.
-                  </p>
-                  <p>
-                    <a href="#void">Review sign-in</a>
-                  </p>
-                  <p>Microsoft 365 Security Team</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="landing-screenshot-frame">
+          <Image
+            className="landing-screenshot-image"
+            src="/ResolutionFlow.png"
+            alt="Actual Triagent prototype screenshot showing reported-email triage and the assist draft resolution flow."
+            priority
+            width={2048}
+            height={1200}
+          />
+          <p className="landing-screenshot-note">
+            Actual screenshot from the current prototype. The public demo uses this same read-only workflow surface.
+          </p>
         </div>
       </section>
 
       <section id="why-triagent" className="landing-section landing-story-section">
         <div className="landing-section-copy">
           <span className="landing-kicker">Why Triagent</span>
-          <h2 className="landing-section-title">Reported phishing is one of the most repetitive security workflows, but most teams still work the case by hand.</h2>
+          <h2 className="landing-section-title landing-section-title-compact">Auto-categorize reported email before analysts dig in.</h2>
           <p>
-            Analysts lose time opening headers, checking URLs, comparing sender context, writing notes, and preserving
-            evidence across separate tools. Triagent is designed to tighten that loop without pretending the analyst is
-            unnecessary.
+            The wedge is not just less tool-hopping. It is automatic separation between low-value reported mail and the
+            cases that deserve analyst attention, with the evidence and draft resolution already attached when a human
+            does need to step in.
           </p>
         </div>
         <div className="landing-story-grid">
           <div className="landing-story-visual">
-            <div className="landing-story-card">
-              <div className="landing-story-menu">
-                <span className="landing-story-chip landing-story-chip-alert">Auto-analysis</span>
-                <span>Flag as malicious</span>
-                <span>Flag as safe</span>
-                <span>Open source</span>
-                <span>Copy IOC</span>
+            <article className="landing-story-shot">
+              <div className="landing-story-shot-header">
+                <span className="landing-story-chip landing-story-chip-alert">Needs investigation</span>
+                <p>This real queue view shows only the reports Triagent routes into analyst review.</p>
               </div>
-              <div className="landing-story-code">
-                <span>Received-SPF: fail</span>
-                <span>ARC-Seal: pass</span>
-                <span>Reply-To: external mismatch</span>
-                <span>Final URL: identity-gateway.example</span>
-              </div>
-            </div>
+              <Image
+                className="landing-story-shot-image"
+                src="/QueueNeedsInvestigation.png"
+                alt="Actual Triagent screenshot showing the filtered needs investigation queue with analyst-worthy reported emails."
+                width={1540}
+                height={620}
+              />
+            </article>
+
+            <p className="landing-story-note">
+              Low-value reported mail stays out of this queue and can be handled in a separate likely benign path
+              before an analyst opens the case.
+            </p>
           </div>
           <div className="landing-story-copy">
             {WHY_TRIAGENT.map((item) => (

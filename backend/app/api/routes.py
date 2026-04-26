@@ -92,6 +92,38 @@ TRIAGE_BUCKET_ORDER: tuple[TriageBucket, ...] = (
 )
 
 
+def _is_demo_principal(principal: Principal) -> bool:
+    return bool(principal.role_keys and "DEMO" in principal.role_keys)
+
+
+def _report_scope_predicate(principal: Principal):
+    if _is_demo_principal(principal):
+        if principal.user_id is None:
+            raise HTTPException(status_code=403, detail="Demo session is invalid")
+        return Report.demo_user_id == principal.user_id
+    return Report.demo_user_id.is_(None)
+
+
+def _apply_report_scope(query, principal: Principal):
+    return query.where(_report_scope_predicate(principal))
+
+
+def _scoped_report_or_404(
+    db: Session,
+    report_id: int,
+    principal: Principal,
+    *,
+    for_update: bool = False,
+) -> Report:
+    query = _apply_report_scope(select(Report).where(Report.id == report_id), principal)
+    if for_update:
+        query = query.with_for_update()
+    report = db.execute(query).scalar_one_or_none()
+    if report is None:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+
 def _principal_actor_type(principal: Principal) -> AuditActorType:
     if principal.kind == "user":
         return AuditActorType.USER
@@ -694,6 +726,7 @@ def _create_report(
     ingest_source: IngestSource,
     *,
     attachment_names: list[str] | None = None,
+    demo_user_id: int | None = None,
 ) -> tuple[Report, int]:
     settings = get_settings()
     now = datetime.now(timezone.utc)
@@ -745,6 +778,7 @@ def _create_report(
         return_path=payload.return_path,
         originating_ip=payload.originating_ip,
         originating_rdns=payload.originating_rdns,
+        demo_user_id=demo_user_id,
     )
     triage_assessment = _compute_triage_assessment(report, raw_url_analysis=url_analysis, attachment_names=attachment_names)
     _persist_triage_assessment(report, triage_assessment)
@@ -1227,10 +1261,10 @@ def list_reports(
     source: IngestSource | None = Query(default=None),
     classification_code: list[str] | None = Query(default=None),
     triage_bucket: list[TriageBucket] | None = Query(default=None),
-    _: Principal = Depends(require_permission("reports.read")),
+    principal: Principal = Depends(require_permission("reports.read")),
 ):
     filtered_query = _apply_report_list_filters(
-        select(Report),
+        _apply_report_scope(select(Report), principal),
         q=q,
         statuses=status,
         source=source,
@@ -1239,7 +1273,7 @@ def list_reports(
     )
     total = db.execute(
         _apply_report_list_filters(
-            select(func.count()).select_from(Report),
+            _apply_report_scope(select(func.count()).select_from(Report), principal),
             q=q,
             statuses=status,
             source=source,
@@ -1263,11 +1297,9 @@ def list_reports(
 def list_report_attachments(
     report_id: int,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("reports.read")),
+    principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    _scoped_report_or_404(db, report_id, principal)
     return (
         db.execute(
             select(Attachment)
@@ -1284,8 +1316,9 @@ def download_report_attachment(
     report_id: int,
     attachment_id: int,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("reports.read")),
+    principal: Principal = Depends(require_permission("reports.read")),
 ):
+    _scoped_report_or_404(db, report_id, principal)
     attachment = db.execute(
         select(Attachment).where(Attachment.id == attachment_id, Attachment.report_id == report_id)
     ).scalar_one_or_none()
@@ -1311,11 +1344,9 @@ def download_report_attachment(
 def download_report_original_message(
     report_id: int,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("reports.read")),
+    principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
     if not report.original_s3_key:
         raise HTTPException(status_code=404, detail="Original message not found")
 
@@ -1668,7 +1699,7 @@ def dashboard_overview(
     start: datetime | None = Query(default=None),
     end: datetime | None = Query(default=None),
     tz: str = Query(default="UTC"),
-    _: Principal = Depends(require_permission("dashboard.read")),
+    principal: Principal = Depends(require_permission("dashboard.read")),
 ):
     start_utc, end_utc = _resolve_window(start, end)
     try:
@@ -1685,7 +1716,11 @@ def dashboard_overview(
             Report.from_addr,
             Report.ingest_source,
             Report.triage_bucket,
-        ).where(Report.created_at >= start_utc, Report.created_at <= end_utc)
+        ).where(
+            Report.created_at >= start_utc,
+            Report.created_at <= end_utc,
+            _report_scope_predicate(principal),
+        )
     ).all()
 
     total_ingested = len(rows)
@@ -1775,14 +1810,14 @@ def dashboard_overview(
 @router.get("/reports/stats")
 def report_stats(
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("dashboard.read")),
+    principal: Principal = Depends(require_permission("dashboard.read")),
 ):
     stmt = select(
         func.count(Report.id).label("total"),
         func.sum(case((Report.status == ReportStatus.OPEN, 1), else_=0)).label("open"),
         func.sum(case((Report.status == ReportStatus.BENIGN, 1), else_=0)).label("benign"),
         func.sum(case((Report.status == ReportStatus.PHISHING, 1), else_=0)).label("phishing"),
-    )
+    ).where(_report_scope_predicate(principal))
     row = db.execute(stmt).one()
     return {
         "total": int(row.total or 0),
@@ -1796,11 +1831,9 @@ def report_stats(
 def get_report(
     report_id: int,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("reports.read")),
+    principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
     return _serialize_report(report)
 
 
@@ -1811,9 +1844,7 @@ def generate_report_assist_draft_endpoint(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.resolve")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
 
     auth_summary = build_auth_summary(report)
     raw_url_analysis = report.url_analysis_json or build_static_url_analysis(report.urls_json or [])
@@ -1903,9 +1934,7 @@ def export_report_evidence_json(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
 
     service = EvidenceExportService(db)
     bundle = service.build_bundle(report)
@@ -1946,9 +1975,7 @@ def export_report_evidence_markdown(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
 
     service = EvidenceExportService(db)
     bundle = service.build_bundle(report)
@@ -1987,9 +2014,7 @@ def export_report_evidence_pdf(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
 
     service = EvidenceExportService(db)
     bundle = service.build_bundle(report)
@@ -2028,9 +2053,7 @@ def export_report_iocs_json(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
 
     service = EvidenceExportService(db)
     bundle = service.build_bundle(report)
@@ -2068,9 +2091,7 @@ def export_report_iocs_csv(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
 
     service = EvidenceExportService(db)
     bundle = service.build_bundle(report)
@@ -2191,9 +2212,7 @@ def resolve_report(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.resolve")),
 ):
-    report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal, for_update=True)
     if report.status != ReportStatus.OPEN:
         raise HTTPException(status_code=409, detail="Report is already resolved; reopen before resolving again")
 
@@ -2252,9 +2271,7 @@ def reopen_report(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.reopen")),
 ):
-    report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal, for_update=True)
     if report.status == ReportStatus.OPEN:
         raise HTTPException(status_code=409, detail="Report is already open")
 
@@ -2304,9 +2321,7 @@ def delete_report(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.admin_override")),
 ):
-    report = db.execute(select(Report).where(Report.id == report_id).with_for_update()).scalar_one_or_none()
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal, for_update=True)
 
     attachment_count = len(report.attachments or [])
     has_original_message = bool(report.original_s3_key)
@@ -2344,11 +2359,9 @@ def delete_report(
 def list_report_resolutions(
     report_id: int,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission("resolutions.read")),
+    principal: Principal = Depends(require_permission("resolutions.read")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    _scoped_report_or_404(db, report_id, principal)
 
     events = (
         db.execute(
@@ -2370,9 +2383,7 @@ def update_report(
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission("reports.admin_override")),
 ):
-    report = db.get(Report, report_id)
-    if report is None:
-        raise HTTPException(status_code=404, detail="Report not found")
+    report = _scoped_report_or_404(db, report_id, principal)
 
     if "status" in payload.model_fields_set:
         if payload.status is None:

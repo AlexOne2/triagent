@@ -624,6 +624,16 @@ export async function authLogin(payload: { username: string; password: string })
   );
 }
 
+export async function authDemoLogin(): Promise<AuthLoginResponse> {
+  return request<AuthLoginResponse>(
+    "/api/auth/demo-login",
+    {
+      method: "POST",
+    },
+    { auth: false }
+  );
+}
+
 export async function authMe(): Promise<AuthMeResponse> {
   return request<AuthMeResponse>("/api/auth/me");
 }

@@ -17,6 +17,7 @@ from app.services.ldap_auth import LdapAuthenticatedUser, ldap_fallback_password
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 AUTH_SOURCE_LOCAL = "LOCAL"
 AUTH_SOURCE_LDAP = "LDAP"
+AUTH_SOURCE_DEMO = "DEMO"
 
 
 def utcnow() -> datetime:
@@ -104,6 +105,12 @@ def is_ldap_user(user: User | None) -> bool:
     if user is None:
         return False
     return (user.auth_source or AUTH_SOURCE_LOCAL).upper() == AUTH_SOURCE_LDAP
+
+
+def is_demo_user(user: User | None) -> bool:
+    if user is None:
+        return False
+    return (user.auth_source or AUTH_SOURCE_LOCAL).upper() == AUTH_SOURCE_DEMO
 
 
 def load_roles_by_keys(db: Session, role_keys: list[str]) -> list[Role]:
