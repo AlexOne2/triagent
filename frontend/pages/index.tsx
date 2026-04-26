@@ -43,7 +43,7 @@ const FAQS = [
   {
     question: "What does Triagent actually do today?",
     answer:
-      "The current product demonstrates reported-email triage, evidence review, analyst resolution, audit history, and PDF / IOC export on a curated demo dataset.",
+      "Triagent currently supports reported-email triage, evidence review, analyst resolution, audit history, and PDF / IOC export in a working demo environment.",
   },
   {
     question: "How is this different from a spam filter or SEG?",
@@ -53,17 +53,17 @@ const FAQS = [
   {
     question: "Who is this for right now?",
     answer:
-      "The current wedge is internal SOC / SecOps teams and MSSPs that repeatedly handle phishing reports and need a tighter investigation and case-close workflow.",
+      "Triagent is built for internal SOC / SecOps teams and MSSPs that repeatedly handle phishing reports and need a tighter investigation and case-close workflow.",
   },
   {
     question: "Is it suitable for MSSPs?",
     answer:
-      "Yes. MSSP handling is part of the target wedge because the same repetitive review and evidence-packaging burden shows up even more strongly in service environments.",
+      "Yes. MSSPs face the same repetitive review and evidence-packaging work, often across multiple customer environments.",
   },
   {
     question: "What is automated versus analyst-reviewed?",
     answer:
-      "Prioritization, evidence gathering, and packaging are assisted. The final disposition and classification remain analyst-controlled in the current product story.",
+      "Triagent assists with prioritization, evidence gathering, and packaging. The final disposition and classification stay analyst-controlled.",
   },
   {
     question: "What does the demo login lead to?",
@@ -189,9 +189,8 @@ export default function Home() {
           <span className="landing-kicker">Why Triagent</span>
           <h2 className="landing-section-title landing-section-title-compact">Auto-categorize reported email before analysts dig in.</h2>
           <p>
-            The wedge is not just less tool-hopping. It is automatic separation between low-value reported mail and the
-            cases that deserve analyst attention, with the evidence and draft resolution already attached when a human
-            does need to step in.
+            Triagent automatically separates low-value reported mail from the cases that deserve analyst attention, so
+            analysts start from a tighter queue with the evidence and draft resolution already attached.
           </p>
         </div>
         <div className="landing-story-grid">
@@ -205,8 +204,8 @@ export default function Home() {
                 className="landing-story-shot-image"
                 src="/QueueNeedsInvestigation.png"
                 alt="Actual Triagent screenshot showing the filtered needs investigation queue with analyst-worthy reported emails."
-                width={1540}
-                height={620}
+                width={3080}
+                height={1320}
               />
             </article>
 
@@ -229,10 +228,9 @@ export default function Home() {
       <section id="how-it-works" className="landing-section">
         <div className="landing-section-copy landing-section-copy-wide">
           <span className="landing-kicker">How it works</span>
-          <h2 className="landing-section-title">Triagent fits the existing reported-email workflow instead of forcing a new one.</h2>
+          <h2 className="landing-section-title">Triagent fits the reported-email workflow teams already have.</h2>
           <p>
-            The current product story is intentionally narrow: start from reported mail, package the evidence, help the
-            analyst decide faster, and close the case cleanly.
+            Start from reported mail, package the evidence, help the analyst decide faster, and close the case cleanly.
           </p>
         </div>
         <div className="landing-workflow-grid">
@@ -249,7 +247,7 @@ export default function Home() {
       <section id="mssps" className="landing-section">
         <div className="landing-section-copy landing-section-copy-wide">
           <span className="landing-kicker">Internal teams and MSSPs</span>
-          <h2 className="landing-section-title">The wedge works for internal SOCs and service teams, but the buying language is slightly different.</h2>
+          <h2 className="landing-section-title">Built for internal SOCs and MSSP teams.</h2>
         </div>
         <div className="landing-fit-grid">
           <article className="landing-fit-card">
@@ -273,8 +271,8 @@ export default function Home() {
 
       <section className="landing-proof-grid">
         <article className="landing-proof-card">
-          <span className="landing-kicker">What the demo proves</span>
-          <h2 className="landing-proof-title">Show the workflow, not just the verdict.</h2>
+          <span className="landing-kicker">In the demo</span>
+          <h2 className="landing-proof-title">See how a reported email becomes a decision.</h2>
           <ul className="landing-list">
             <li>Queue reported emails by analyst priority instead of treating every report as equal.</li>
             <li>Review auth, URLs, attachments, raw source, and analyst notes in the same case workspace.</li>
@@ -282,12 +280,12 @@ export default function Home() {
           </ul>
         </article>
         <article className="landing-proof-card">
-          <span className="landing-kicker">Current product line</span>
-          <h2 className="landing-proof-title">Narrow wedge first, broader workflow later.</h2>
+          <span className="landing-kicker">What Triagent is today</span>
+          <h2 className="landing-proof-title">Focused reported-email triage for analyst teams.</h2>
           <ul className="landing-list">
-            <li>Current story: evidence-first phishing triage for analyst teams.</li>
-            <li>Current proof: validation-grade analyst workflow, not a production-wide platform claim.</li>
-            <li>Current CTA: demo login and waitlist, not a broad self-serve pricing motion.</li>
+            <li>Evidence-first phishing triage, not a full email-security suite.</li>
+            <li>Analyst workflow with queueing, assist draft, audit history, and case exports.</li>
+            <li>Built for teams that want faster handling of user-reported suspicious email.</li>
           </ul>
         </article>
       </section>
@@ -295,7 +293,7 @@ export default function Home() {
       <section id="faq" className="landing-section">
         <div className="landing-section-copy landing-section-copy-wide">
           <span className="landing-kicker">Frequently asked questions</span>
-          <h2 className="landing-section-title">Handle the buyer objections on the page instead of leaving them for the call.</h2>
+          <h2 className="landing-section-title">Questions security teams usually ask.</h2>
         </div>
         <div className="landing-faq-list">
           {FAQS.map((item) => (
@@ -311,7 +309,7 @@ export default function Home() {
         <div className="landing-waitlist-copy">
           <span className="landing-kicker">Request early access</span>
           <h2 className="landing-section-title">Start with your work email. Add more context only if you want a more tailored follow-up.</h2>
-          <p>We’ll use this for early demos, design-partner discussions, and product validation follow-up.</p>
+          <p>We use this to coordinate demo access and follow up with teams that want to talk through their workflow.</p>
         </div>
         <form className="landing-form" onSubmit={onSubmit}>
           <div className="landing-form-primary">
