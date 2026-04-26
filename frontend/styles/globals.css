@@ -2683,14 +2683,14 @@ p {
 .landing-section-title,
 .landing-proof-title {
   margin: 12px 0 0;
-  font-size: clamp(34px, 4.8vw, 56px);
-  line-height: 1.02;
+  font-size: clamp(28px, 3.8vw, 44px);
+  line-height: 1.06;
   letter-spacing: -0.05em;
 }
 
 .landing-section-title-compact {
-  font-size: clamp(26px, 3.6vw, 40px);
-  line-height: 1.08;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.1;
   letter-spacing: -0.04em;
 }
 
@@ -2898,9 +2898,9 @@ p {
 }
 
 .landing-waitlist-section {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.82fr) minmax(0, 1fr);
-  gap: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
   padding: 28px 0 0;
   border-top: 1px solid #dbe4ec;
   border-radius: 0;
@@ -2918,38 +2918,16 @@ p {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.landing-form-primary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: stretch;
-}
-
-.landing-form-primary .input {
-  min-width: 0;
-  width: 100%;
+  max-width: 1120px;
 }
 
 .landing-form-submit {
-  min-width: 176px;
-}
-
-.landing-details-toggle {
-  width: fit-content;
-  border: 0;
-  background: transparent;
-  color: var(--primary);
-  padding: 0;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
+  min-width: 220px;
 }
 
 .landing-form-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -2990,7 +2968,9 @@ p {
 
 .landing-form-actions {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -3984,8 +3964,7 @@ p {
   .landing-fit-grid,
   .landing-proof-grid,
   .landing-waitlist-section,
-  .landing-form-grid,
-  .landing-form-primary {
+  .landing-form-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4010,6 +3989,7 @@ p {
 
   .landing-form-submit {
     min-width: 0;
+    width: 100%;
   }
 
   .resolve-drawer {

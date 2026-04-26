@@ -58,7 +58,12 @@ const FAQS = [
   {
     question: "Is it suitable for MSSPs?",
     answer:
-      "Yes. MSSPs face the same repetitive review and evidence-packaging work, often across multiple customer environments.",
+      "Yes. MSSPs face the same repetitive review and evidence-packaging work, often across multiple customer environments, and Triagent is designed to fit that repeatable service workflow.",
+  },
+  {
+    question: "Do you support on-prem deployment?",
+    answer:
+      "Yes. On-prem and private deployment support are part of the product direction because many regulated teams and MSSPs do not want reported email content and evidence to leave their environment.",
   },
   {
     question: "What is automated versus analyst-reviewed?",
@@ -79,7 +84,6 @@ export default function Home() {
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
   const [notes, setNotes] = useState("");
-  const [showDetails, setShowDetails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -113,7 +117,6 @@ export default function Home() {
       setCompany("");
       setRole("");
       setNotes("");
-      setShowDetails(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Waitlist signup failed";
       setError(message);
@@ -187,7 +190,7 @@ export default function Home() {
       <section id="why-triagent" className="landing-section landing-story-section">
         <div className="landing-section-copy">
           <span className="landing-kicker">Why Triagent</span>
-          <h2 className="landing-section-title landing-section-title-compact">Auto-categorize reported email before analysts dig in.</h2>
+          <h2 className="landing-section-title">Auto-categorize reported email before analysts dig in.</h2>
           <p>
             Triagent automatically separates low-value reported mail from the cases that deserve analyst attention, so
             analysts start from a tighter queue with the evidence and draft resolution already attached.
@@ -308,86 +311,76 @@ export default function Home() {
       <section id="waitlist" className="landing-waitlist-section">
         <div className="landing-waitlist-copy">
           <span className="landing-kicker">Request early access</span>
-          <h2 className="landing-section-title">Start with your work email. Add more context only if you want a more tailored follow-up.</h2>
-          <p>We use this to coordinate demo access and follow up with teams that want to talk through their workflow.</p>
+          <h2 className="landing-section-title">Request demo access.</h2>
+          <p>Share your work email and a bit of context. Required fields are marked with a star.</p>
         </div>
         <form className="landing-form" onSubmit={onSubmit}>
-          <div className="landing-form-primary">
-            <input
-              id="waitlist-email"
-              className="input"
-              type="email"
-              value={workEmail}
-              onChange={(event) => setWorkEmail(event.target.value)}
-              autoComplete="email"
-              placeholder="Work email"
-              required
-            />
-            <button className="resolve-button landing-form-submit" type="submit" disabled={submitting}>
-              {submitting ? "Joining..." : "Join waitlist"}
-            </button>
+          <div className="landing-form-grid">
+            <div className="landing-form-field">
+              <label htmlFor="waitlist-email">Work email *</label>
+              <input
+                id="waitlist-email"
+                className="input"
+                type="email"
+                value={workEmail}
+                onChange={(event) => setWorkEmail(event.target.value)}
+                autoComplete="email"
+                placeholder="you@company.com"
+                required
+              />
+            </div>
+            <div className="landing-form-field">
+              <label htmlFor="waitlist-name">Name</label>
+              <input
+                id="waitlist-name"
+                className="input"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete="name"
+                placeholder="Your name"
+              />
+            </div>
+            <div className="landing-form-field">
+              <label htmlFor="waitlist-company">Company</label>
+              <input
+                id="waitlist-company"
+                className="input"
+                value={company}
+                onChange={(event) => setCompany(event.target.value)}
+                autoComplete="organization"
+                placeholder="Company"
+              />
+            </div>
+            <div className="landing-form-field">
+              <label htmlFor="waitlist-role">Role</label>
+              <input
+                id="waitlist-role"
+                className="input"
+                value={role}
+                onChange={(event) => setRole(event.target.value)}
+                autoComplete="organization-title"
+                placeholder="SOC manager, analyst, MSSP lead..."
+              />
+            </div>
           </div>
-
-          <button
-            className="landing-details-toggle"
-            type="button"
-            onClick={() => setShowDetails((value) => !value)}
-            aria-expanded={showDetails}
-          >
-            {showDetails ? "Hide extra context" : "Add name, company, role, and notes"}
-          </button>
-
-          {showDetails ? (
-            <>
-              <div className="landing-form-grid">
-                <div className="landing-form-field">
-                  <label htmlFor="waitlist-name">Name</label>
-                  <input
-                    id="waitlist-name"
-                    className="input"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    autoComplete="name"
-                  />
-                </div>
-                <div className="landing-form-field">
-                  <label htmlFor="waitlist-company">Company</label>
-                  <input
-                    id="waitlist-company"
-                    className="input"
-                    value={company}
-                    onChange={(event) => setCompany(event.target.value)}
-                    autoComplete="organization"
-                  />
-                </div>
-                <div className="landing-form-field">
-                  <label htmlFor="waitlist-role">Role</label>
-                  <input
-                    id="waitlist-role"
-                    className="input"
-                    value={role}
-                    onChange={(event) => setRole(event.target.value)}
-                    autoComplete="organization-title"
-                  />
-                </div>
-              </div>
-              <div className="landing-form-field">
-                <label htmlFor="waitlist-notes">What are you trying to improve?</label>
-                <textarea
-                  id="waitlist-notes"
-                  className="landing-textarea"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  placeholder="Examples: phishing mailbox backlog, MSSP customer handling, evidence export, or auditability."
-                />
-              </div>
-            </>
-          ) : null}
+          <div className="landing-form-field">
+            <label htmlFor="waitlist-notes">What are you trying to improve?</label>
+            <textarea
+              id="waitlist-notes"
+              className="landing-textarea"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Examples: phishing mailbox backlog, MSSP customer handling, evidence export, or auditability."
+            />
+          </div>
 
           {error ? <p className="auth-error">{error}</p> : null}
           {success ? <p className="landing-success">{success}</p> : null}
 
           <div className="landing-form-actions">
+            <button className="resolve-button landing-form-submit" type="submit" disabled={submitting}>
+              {submitting ? "Joining..." : "Join waitlist"}
+            </button>
             <span className="landing-form-note">No spam. We’ll only use this to coordinate access and follow-up.</span>
           </div>
         </form>
