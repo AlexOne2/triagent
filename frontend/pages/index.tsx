@@ -8,15 +8,15 @@ import { useAuth } from "../lib/auth-context";
 const WORKFLOW_STEPS = [
   {
     title: "Email ingestion",
-    copy: "Start from the original reported message, preserve the source, and normalize the evidence immediately.",
+    copy: "Start from the original reported message through manual upload or the Outlook add-in, preserve the source, and normalize the evidence immediately.",
   },
   {
     title: "Analyst-first prioritization",
-    copy: "Separate routine benign noise from the cases that deserve real analyst time and deeper review.",
+    copy: "Triagent sorts reported mail into a likely benign path or an analyst-review path, so only the stronger cases reach the In-tray.",
   },
   {
     title: "Evidence-first console",
-    copy: "Authentication, URLs, attachments, raw source, and notes stay together in the same investigation surface.",
+    copy: "Uploads preserve the original message and evidence, while the In-tray surfaces the cases that need analyst attention with auth, URLs, attachments, raw source, and notes together.",
   },
   {
     title: "Resolution and export",
@@ -43,7 +43,12 @@ const FAQS = [
   {
     question: "What does Triagent actually do today?",
     answer:
-      "Triagent currently supports reported-email triage, evidence review, analyst resolution, audit history, and PDF / IOC export in a working demo environment.",
+      "Triagent currently supports reported-email triage, evidence review, analyst resolution, audit history, PDF / IOC export, and intake through manual uploads and the Outlook add-in in a working demo environment.",
+  },
+  {
+    question: "What is the difference between Uploads and In-tray?",
+    answer:
+      "Uploads is the intake and evidence workspace for reported emails. In-tray is the analyst queue that shows the cases Triagent routes into review after categorization and prioritization.",
   },
   {
     question: "How is this different from a spam filter or SEG?",
@@ -64,6 +69,11 @@ const FAQS = [
     question: "Do you support on-prem deployment?",
     answer:
       "Yes. On-prem and private deployment support are part of the product direction because many regulated teams and MSSPs do not want reported email content and evidence to leave their environment.",
+  },
+  {
+    question: "Is the Outlook add-in part of the product?",
+    answer:
+      "Yes. Triagent includes an Outlook add-in path for reporting suspicious email into the workflow, alongside manual upload for demo and analyst-driven investigation scenarios.",
   },
   {
     question: "What is automated versus analyst-reviewed?",
