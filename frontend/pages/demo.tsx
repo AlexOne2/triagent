@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "../lib/auth-context";
 
@@ -24,6 +24,7 @@ export default function DemoPage() {
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const launchRef = useRef(0);
 
   useEffect(() => {
     void router.prefetch("/reports");
@@ -48,36 +49,38 @@ export default function DemoPage() {
   const slowLoad = elapsedMs > 9000;
 
   useEffect(() => {
-    if (loading || started) {
+    if (loading) {
       return;
     }
     if (isAuthenticated) {
       window.location.replace("/reports");
       return;
     }
+    if (started) {
+      return;
+    }
 
+    const launchId = launchRef.current + 1;
+    launchRef.current = launchId;
     setStarted(true);
     setElapsedMs(0);
-    let cancelled = false;
     void (async () => {
       try {
         await loginDemo();
-        if (!cancelled) {
+        if (launchRef.current === launchId) {
           window.location.replace("/reports");
         }
       } catch (err) {
-        if (!cancelled) {
+        if (launchRef.current === launchId) {
           setError(err instanceof Error ? err.message : "Demo login failed");
+          setStarted(false);
         }
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, loading, loginDemo, roles, router, started]);
+  }, [isAuthenticated, loading, loginDemo, started]);
 
   function retry() {
+    launchRef.current += 1;
     setError(null);
     setElapsedMs(0);
     setStarted(false);

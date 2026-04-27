@@ -5,12 +5,13 @@ import { useAuth } from "../lib/auth-context";
 export default function AppHeader() {
   const router = useRouter();
   const path = router.pathname;
-  const { hasPermission, logout, user } = useAuth();
+  const { hasPermission, logout, roles, user } = useAuth();
 
   const isDashboard = path.startsWith("/dashboard");
   const isInTray = path.startsWith("/in-tray");
   const isUploads = path === "/" || path.startsWith("/reports");
   const isSettings = path.startsWith("/settings") || path.startsWith("/admin");
+  const isDemoUser = roles.includes("DEMO");
 
   const canReadReports = hasPermission("reports.read");
   const canReadDashboard = hasPermission("dashboard.read");
@@ -39,6 +40,11 @@ export default function AppHeader() {
         {canAdminUsers ? (
           <Link href="/settings" className={`nav-button ${isSettings ? "active" : ""}`.trim()}>
             Settings
+          </Link>
+        ) : null}
+        {isDemoUser ? (
+          <Link href="/#waitlist" className="nav-button">
+            Join waitlist
           </Link>
         ) : null}
         <button className="nav-button" type="button" onClick={() => void logout()}>
