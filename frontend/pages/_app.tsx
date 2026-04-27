@@ -12,7 +12,9 @@ function AppContent({ Component, pageProps }: AppProps) {
 
   const isLoginPage = router.pathname === "/login";
   const isCapturePage = router.pathname === "/demo-capture";
-  const isPublicRoute = router.pathname === "/" || router.pathname === "/demo" || isCapturePage || isLoginPage;
+  const isLegalPage = router.pathname === "/imprint" || router.pathname === "/privacy";
+  const isPublicRoute =
+    router.pathname === "/" || router.pathname === "/demo" || isCapturePage || isLoginPage || isLegalPage;
 
   useEffect(() => {
     if (loading) return;

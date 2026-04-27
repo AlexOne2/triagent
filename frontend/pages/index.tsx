@@ -395,6 +395,37 @@ export default function Home() {
           </div>
         </form>
       </section>
+
+      <footer className="landing-footer">
+        <div className="landing-footer-grid">
+          <div className="landing-footer-brand">
+            <strong>Triagent</strong>
+            <p>Reported-email triage for SOC teams and MSSPs.</p>
+          </div>
+          <div className="landing-footer-column">
+            <p className="landing-footer-label">Product</p>
+            <a href="#why-triagent">Why Triagent</a>
+            <a href="#how-it-works">How it works</a>
+            <a href="#mssps">MSSPs</a>
+            <Link href={demoHref}>Try the demo</Link>
+          </div>
+          <div className="landing-footer-column">
+            <p className="landing-footer-label">Contact</p>
+            <a href="#waitlist">Join waitlist</a>
+            <a href="mailto:alexanderxhuelsmann@gmail.com">alexanderxhuelsmann@gmail.com</a>
+            <a href="tel:+4915787351124">+49 157 87351124</a>
+          </div>
+          <div className="landing-footer-column">
+            <p className="landing-footer-label">Legal</p>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/imprint">Imprint</Link>
+          </div>
+        </div>
+        <div className="landing-footer-meta">
+          <span>Operated by Alexander Huelsmann, Muenster, Germany.</span>
+          <span>No company formed yet.</span>
+        </div>
+      </footer>
     </main>
   );
 }
