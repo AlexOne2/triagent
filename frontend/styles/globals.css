@@ -3597,6 +3597,13 @@ p {
   max-width: 72ch;
 }
 
+.resolve-readonly-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .resolve-assist-summary {
   color: var(--text);
   font-size: 14px;
@@ -3644,6 +3651,11 @@ p {
   cursor: pointer;
 }
 
+.resolve-pill:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
 .resolve-pill.active.malicious {
   border-color: var(--danger);
   background: var(--danger-soft);
@@ -3679,6 +3691,12 @@ p {
   font-size: 14px;
   resize: vertical;
   font-family: inherit;
+}
+
+.resolve-note:disabled,
+.resolve-artifact-item input:disabled,
+.resolve-section .select:disabled {
+  cursor: not-allowed;
 }
 
 .resolve-error {

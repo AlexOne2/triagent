@@ -370,11 +370,13 @@ function parseReceivedHeader(raw: string, index: number): TransmissionHop {
 }
 
 export default function ReportDetailPage() {
-  const { hasPermission } = useAuth();
+  const { hasPermission, roles } = useAuth();
   const canRead = hasPermission("reports.read");
   const canResolve = hasPermission("reports.resolve");
   const canReopen = hasPermission("reports.reopen");
   const canDelete = hasPermission("reports.admin_override");
+  const isDemoUser = roles.includes("DEMO");
+  const canPreviewResolve = canResolve || isDemoUser;
   const router = useRouter();
   const { id } = router.query;
   const [report, setReport] = useState<Report | null>(null);
@@ -897,7 +899,7 @@ export default function ReportDetailPage() {
           <h1>{report.subject || "(no subject)"}</h1>
         </div>
         <div className="report-detail-actions">
-          {report.status === "OPEN" && canResolve ? (
+          {report.status === "OPEN" && canPreviewResolve ? (
             <button className="resolve-button" type="button" onClick={() => setDrawerOpen(true)} disabled={updating || deleting}>
               Resolve
             </button>
@@ -1777,10 +1779,11 @@ export default function ReportDetailPage() {
       </section>
 
       <ResolveDrawer
-        open={drawerOpen && canResolve}
+        open={drawerOpen && canPreviewResolve}
         report={report}
         attachments={attachments}
         preselectedArtifactKeys={stagedArtifactKeys}
+        readOnly={isDemoUser && !canResolve}
         onClose={() => setDrawerOpen(false)}
         onResolved={(updatedReport) => {
           setReport(updatedReport);

@@ -47,9 +47,11 @@ export default function AppHeader() {
             Join waitlist
           </Link>
         ) : null}
-        <button className="nav-button" type="button" onClick={() => void logout()}>
-          Logout{user?.username ? ` (${user.username})` : ""}
-        </button>
+        {!isDemoUser ? (
+          <button className="nav-button" type="button" onClick={() => void logout()}>
+            Logout{user?.username ? ` (${user.username})` : ""}
+          </button>
+        ) : null}
       </div>
     </div>
   );

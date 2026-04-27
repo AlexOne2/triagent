@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
+from app.services.demo_workspace import ensure_shared_demo_workspace
 from app.services.object_storage import ObjectStorageError, ObjectStorageService
 from scripts.import_synthetic_corpus import DEFAULT_CORPUS_ROOT, import_synthetic_corpus
 from scripts.seed import seed
@@ -89,6 +90,7 @@ def demo_reset(
     keep_audit: bool,
     limit: int | None,
 ) -> dict[str, int]:
+    settings = get_settings()
     _truncate_tables(keep_audit=keep_audit)
 
     removed_artifacts = _clear_report_artifacts()
@@ -116,9 +118,21 @@ def demo_reset(
     )
     if state == "open":
         summary["left_open"] = summary["imported"] + summary["refreshed"]
+
+    db = SessionLocal()
+    try:
+        _, shared_demo_reports, _ = ensure_shared_demo_workspace(db, settings)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
     summary["removed_artifacts"] = removed_artifacts
     summary["removed_audit_exports"] = removed_audit_exports
     summary["seeded"] = 1 if include_seed else 0
+    summary["shared_demo_reports"] = shared_demo_reports
     return summary
 
 
@@ -169,6 +183,7 @@ def main() -> int:
         f"imported={summary['imported']} "
         f"resolved={summary['resolved']} "
         f"left_open={summary['left_open']} "
+        f"shared_demo_reports={summary['shared_demo_reports']} "
         f"removed_artifacts={summary['removed_artifacts']} "
         f"removed_audit_exports={summary['removed_audit_exports']} "
         f"seeded={summary['seeded']}"

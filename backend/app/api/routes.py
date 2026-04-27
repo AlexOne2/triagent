@@ -1842,7 +1842,7 @@ def generate_report_assist_draft_endpoint(
     request: Request,
     report_id: int,
     db: Session = Depends(get_db),
-    principal: Principal = Depends(require_permission("reports.resolve")),
+    principal: Principal = Depends(require_permission("reports.read")),
 ):
     report = _scoped_report_or_404(db, report_id, principal)
 
