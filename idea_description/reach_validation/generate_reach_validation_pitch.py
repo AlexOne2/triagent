@@ -10,8 +10,8 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches, Pt
 
 
-ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "idea_description" / "triagent_reach_validation_pitch.pptx"
+ROOT = Path(__file__).resolve().parents[2]
+OUTPUT = ROOT / "idea_description" / "reach_validation" / "triagent_reach_validation_pitch.pptx"
 SCREENSHOT = ROOT / "Dashboard.png"
 
 
