@@ -44,7 +44,7 @@ make migrate
 make dev
 ```
 
-4) (Optional) Seed demo data:
+4) (Optional) Seed local sample data:
 
 ```bash
 make seed
@@ -56,22 +56,21 @@ make seed
 make import-synthetic SPLIT=gold
 ```
 
-Reset the local demo state to a known curated walkthrough dataset:
+Reset the local walkthrough state to a known curated dataset:
 
 ```bash
-make demo-reset
+make walkthrough-reset
 ```
 
-By default, `make demo-reset` clears existing report/campaign demo data, removes stored report artifacts, clears audit history, and imports the synthetic `demo` split into a **mixed** walkthrough state: three intentionally chosen cases stay **OPEN** for live triage, while one malicious and one safe case arrive already resolved so you can show auditability and evidence export without extra clicks. Use `SPLIT=gold` when you want the broader evaluation set instead.
+By default, `make walkthrough-reset` clears existing report and campaign data, removes stored report artifacts, clears audit history, and imports the synthetic `demo` split into a **mixed** walkthrough state: three intentionally chosen cases stay **OPEN** for live triage, while one malicious and one safe case arrive already resolved so you can show auditability and evidence export without extra clicks. Use `SPLIT=gold` when you want the broader evaluation set instead.
 
 Open:
-- Landing page: `http://localhost:${FRONTEND_PORT}` (default `http://localhost:3000`)
 - Analyst workspace: `http://localhost:${FRONTEND_PORT}/reports`
 - Login: `http://localhost:${FRONTEND_PORT}/login`
 - Backend docs: `http://localhost:${BACKEND_PORT}/docs` (default `http://localhost:8000/docs`)
 - Backend health: `http://localhost:${BACKEND_PORT}/health`
 
-The public landing page includes a persisted waitlist form backed by the `waitlist_leads` table and a `Try demo` CTA that routes into the existing login flow.
+The in-repo frontend is the authenticated analyst workspace. Public marketing-site and lead-capture handling live outside this repository.
 
 If port `3000` is already in use, set a different `FRONTEND_PORT` in `infra/.env` and update `CORS_ORIGINS` accordingly.
 
@@ -85,7 +84,7 @@ This repository ships with local-development defaults for convenience:
 - `MINIO_ROOT_PASSWORD=minioadmin`
 - `REPORTER_HASH_SALT=change-me`
 
-These are demo defaults only. Change them before any shared, persistent, or externally reachable deployment.
+These are local-development defaults only. Change them before any shared, persistent, or externally reachable deployment.
 
 ## Product Positioning
 
@@ -101,7 +100,7 @@ The goal is not blind automation. The goal is faster, more consistent analyst de
 
 ## Docs
 
-The public demo now includes a small operational and security documentation set:
+The repository includes a small operational and security documentation set:
 
 - [Threat model](./docs/security/threat-model.md)
 - [Deployment hardening guide](./docs/operations/hardening.md)
@@ -110,7 +109,7 @@ The public demo now includes a small operational and security documentation set:
 - [Sample investigation scenarios](./docs/evaluation/sample-investigations.md)
 - [Synthetic corpus scaffold](./test_data/synthetic-corpus/README.md)
 
-These documents are intentionally grounded in the current public demo. They describe the controls that exist today, the risks that remain, and the operating assumptions for a Compose-based deployment.
+These documents are intentionally grounded in the current prototype. They describe the controls that exist today, the risks that remain, and the operating assumptions for a Compose-based deployment.
 
 ## Evaluation Fixtures
 
@@ -135,22 +134,22 @@ Import the gold split into a local environment on demand:
 make import-synthetic SPLIT=gold
 ```
 
-Reset the demo stack to a deterministic state using the curated demo split:
+Reset the local walkthrough stack to a deterministic state using the curated demo split:
 
 ```bash
-make demo-reset
+make walkthrough-reset
 ```
 
 Useful options:
 
 ```bash
-make demo-reset
-make demo-reset SPLIT=gold
-make demo-reset SPLIT=gold STATE=open
-make demo-reset SPLIT=gold RESOLVED=1
-make demo-reset SPLIT=gold KEEP_AUDIT=1
-make demo-reset SPLIT=gold INCLUDE_SEED=1
-make demo-reset SPLIT=gold OPEN_SAMPLE_IDS="cred_harvest_shortener_001 benign_vendor_portal_notice_001"
+make walkthrough-reset
+make walkthrough-reset SPLIT=gold
+make walkthrough-reset SPLIT=gold STATE=open
+make walkthrough-reset SPLIT=gold RESOLVED=1
+make walkthrough-reset SPLIT=gold KEEP_AUDIT=1
+make walkthrough-reset SPLIT=gold INCLUDE_SEED=1
+make walkthrough-reset SPLIT=gold OPEN_SAMPLE_IDS="cred_harvest_shortener_001 benign_vendor_portal_notice_001"
 ```
 
 Refresh previously imported synthetic reports in place:
@@ -165,22 +164,22 @@ Remove previously imported synthetic reports from a split:
 make remove-synthetic SPLIT=gold
 ```
 
-## Public Demo Scope
+## Prototype Scope
 
-This public repository is intended as a working validation demo for phishing triage.
+This repository is intended as a working validation prototype for phishing triage.
 
-Implemented in the public demo:
+Implemented in the prototype:
 - `.eml` and `.msg` ingestion
 - report evidence export
 - analyst resolution workflow
 - RBAC and tamper-evident audit logging
 - Docker-based local deployment
 
-Still demo-grade / not production-complete:
+Still prototype-grade / not production-complete:
 - deployment is Compose-first, not enterprise packaging
 - secrets management is local-config based
 - external integrations and enterprise SSO are not the focus of this repo
-- sample datasets and workflows are designed to demonstrate the concept clearly
+- sample datasets and workflows are designed to demonstrate and evaluate the concept clearly
 
 ## Authentication and RBAC
 
@@ -230,7 +229,7 @@ npx office-addin-dev-certs install
 - **macOS (Outlook Desktop)**: Tools -> Accounts -> Advanced -> Custom Add-ins -> "+" -> add manifest.
 - **Outlook on the web**: Settings -> Manage add-ins -> Upload custom add-in.
 
-## Demo Flow
+## Walkthrough Flow
 
 1) Login in the UI.
 2) Upload one or more `.eml` or `.msg` files from Uploads, or ingest through the add-in.

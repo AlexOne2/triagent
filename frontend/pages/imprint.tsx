@@ -57,8 +57,8 @@ export default function ImprintPage() {
         </section>
 
         <div className="legal-actions">
-          <Link href="/" className="legal-link">
-            Back to landing page
+          <Link href="/login" className="legal-link">
+            Back to login
           </Link>
           <Link href="/privacy" className="legal-link">
             Privacy policy

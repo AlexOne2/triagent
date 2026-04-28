@@ -55,7 +55,7 @@ make import-synthetic SPLIT=gold
 Reset the curated demo walkthrough dataset:
 
 ```bash
-make demo-reset
+make walkthrough-reset
 ```
 
 Leave imported cases open instead of auto-resolving them:

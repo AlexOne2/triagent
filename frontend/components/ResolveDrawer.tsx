@@ -20,7 +20,6 @@ type ResolveDrawerProps = {
   open: boolean;
   report: Report;
   attachments?: Attachment[];
-  readOnly?: boolean;
   onClose: () => void;
   onResolved: (report: Report) => void;
   preselectedArtifactKeys?: string[];
@@ -30,7 +29,6 @@ export default function ResolveDrawer({
   open,
   report,
   attachments = [],
-  readOnly = false,
   onClose,
   onResolved,
   preselectedArtifactKeys = [],
@@ -142,10 +140,6 @@ export default function ResolveDrawer({
   };
 
   async function handleResolve() {
-    if (readOnly) {
-      setError("The public demo is read-only. You can preview the resolution flow, but you cannot save changes.");
-      return;
-    }
     if (disposition === "MALICIOUS" && classificationCode === "UNCLASSIFIED") {
       setError("Classification is required for malicious disposition.");
       return;
@@ -193,11 +187,6 @@ export default function ResolveDrawer({
         </div>
 
         <div className="resolve-content">
-          {readOnly ? (
-            <p className="resolve-readonly-note">
-              Public demo preview only. The resolution flow is visible here, but demo users cannot save changes.
-            </p>
-          ) : null}
           <section className="resolve-section">
             <div className="resolve-assist-head">
               <h3>Assist draft</h3>
@@ -265,7 +254,6 @@ export default function ResolveDrawer({
               <button
                 type="button"
                 className={`resolve-pill ${disposition === "MALICIOUS" ? "active malicious" : ""}`.trim()}
-                disabled={readOnly}
                 onClick={() => {
                   markEdited();
                   setDisposition("MALICIOUS");
@@ -276,7 +264,6 @@ export default function ResolveDrawer({
               <button
                 type="button"
                 className={`resolve-pill ${disposition === "SAFE" ? "active safe" : ""}`.trim()}
-                disabled={readOnly}
                 onClick={() => {
                   markEdited();
                   setDisposition("SAFE");
@@ -298,7 +285,6 @@ export default function ResolveDrawer({
                     <input
                       type="checkbox"
                       checked={selectedArtifacts.includes(key)}
-                      disabled={readOnly}
                       onChange={(event) => {
                         markEdited();
                         setSelectedArtifacts((current) =>
@@ -318,7 +304,6 @@ export default function ResolveDrawer({
             <select
               className="select"
               value={classificationCode}
-              disabled={readOnly}
               onChange={(event) => {
                 markEdited();
                 setClassificationCode(event.target.value as ClassificationCode | "UNCLASSIFIED");
@@ -338,7 +323,6 @@ export default function ResolveDrawer({
             <textarea
               className="resolve-note"
               value={note}
-              disabled={readOnly}
               onChange={(event) => {
                 markEdited();
                 setNote(event.target.value);
@@ -373,8 +357,8 @@ export default function ResolveDrawer({
 
           {error ? <p className="resolve-error">{error}</p> : null}
 
-          <button className="resolve-button" type="button" disabled={submitting || readOnly} onClick={() => void handleResolve()}>
-            {readOnly ? "Read-only demo" : submitting ? "Resolving..." : "Resolve"}
+          <button className="resolve-button" type="button" disabled={submitting} onClick={() => void handleResolve()}>
+            {submitting ? "Resolving..." : "Resolve"}
           </button>
         </div>
       </aside>

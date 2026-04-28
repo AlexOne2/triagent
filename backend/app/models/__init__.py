@@ -15,7 +15,6 @@ from app.models.report import (
 from app.models.report_resolution import ReportResolution
 from app.models.security_audit import AuditActorType, AuditChainState, AuditExport, SecurityAuditEvent
 from app.models.user import Permission, Role, RolePermission, User, UserRole
-from app.models.waitlist_lead import WaitlistLead
 
 __all__ = [
     "Attachment",
@@ -43,5 +42,4 @@ __all__ = [
     "AuditChainState",
     "AuditExport",
     "SecurityAuditEvent",
-    "WaitlistLead",
 ]

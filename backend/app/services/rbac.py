@@ -54,11 +54,6 @@ SYSTEM_ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "INGESTOR": (
         "reports.ingest",
     ),
-    "DEMO": (
-        "reports.read",
-        "resolutions.read",
-        "dashboard.read",
-    ),
 }
 
 
@@ -87,11 +82,6 @@ SYSTEM_ROLES = (
         "key": "INGESTOR",
         "name": "Ingestor",
         "description": "Service role for ingestion only.",
-    },
-    {
-        "key": "DEMO",
-        "name": "Demo Viewer",
-        "description": "Shared read-only workspace for public demo sessions.",
     },
 )
 

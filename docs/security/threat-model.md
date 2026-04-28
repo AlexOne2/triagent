@@ -177,7 +177,7 @@ Current controls:
 Residual risk:
 
 - if URL resolution or DNS lookups are enabled, suspicious data may cause outbound network traffic
-- the public demo does not yet provide a dedicated egress proxy or privacy-preserving enrichment service
+- the prototype does not yet provide a dedicated egress proxy or privacy-preserving enrichment service
 
 ## Threat: Weak authentication or over-broad access
 
@@ -194,13 +194,13 @@ Residual risk:
 
 ## Known Gaps
 
-These gaps are material and should be treated as part of the current demo scope:
+These gaps are material and should be treated as part of the current prototype scope:
 
 - no malware sandbox or detonation workflow
 - no attachment handoff flow to isolated analysis environments
 - no remote browser isolation or content-disarm pipeline
 - no formal secret manager integration
-- no enterprise SSO or device-trust controls in the public demo
+- no enterprise SSO or device-trust controls in the prototype
 - no explicit outbound proxy model for URL resolution or DNS lookups
 - no signed release, SBOM, or rollback automation yet
 

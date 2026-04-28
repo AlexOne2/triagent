@@ -8,12 +8,11 @@ from sqlalchemy import text
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.services.demo_workspace import ensure_shared_demo_workspace
 from app.services.object_storage import ObjectStorageError, ObjectStorageService
 from scripts.import_synthetic_corpus import DEFAULT_CORPUS_ROOT, import_synthetic_corpus
 from scripts.seed import seed
 
-DEMO_RESET_STATES = ("open", "resolved", "mixed")
+WALKTHROUGH_RESET_STATES = ("open", "resolved", "mixed")
 DEFAULT_MIXED_OPEN_SAMPLE_IDS_BY_SPLIT = {
     "demo": (
         "benign_vendor_portal_notice_001",
@@ -80,7 +79,7 @@ def _clear_filesystem_audit_exports() -> int:
     return file_count
 
 
-def demo_reset(
+def walkthrough_reset(
     *,
     corpus_root: Path,
     split: str,
@@ -90,7 +89,6 @@ def demo_reset(
     keep_audit: bool,
     limit: int | None,
 ) -> dict[str, int]:
-    settings = get_settings()
     _truncate_tables(keep_audit=keep_audit)
 
     removed_artifacts = _clear_report_artifacts()
@@ -99,8 +97,8 @@ def demo_reset(
     if include_seed:
         seed()
 
-    if state not in DEMO_RESET_STATES:
-        raise ValueError(f"Unsupported demo reset state: {state}")
+    if state not in WALKTHROUGH_RESET_STATES:
+        raise ValueError(f"Unsupported walkthrough reset state: {state}")
 
     resolved = state in {"resolved", "mixed"}
     effective_leave_open_sample_ids = set(leave_open_sample_ids or [])
@@ -119,33 +117,22 @@ def demo_reset(
     if state == "open":
         summary["left_open"] = summary["imported"] + summary["refreshed"]
 
-    db = SessionLocal()
-    try:
-        _, shared_demo_reports, _ = ensure_shared_demo_workspace(db, settings)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-    finally:
-        db.close()
-
     summary["removed_artifacts"] = removed_artifacts
     summary["removed_audit_exports"] = removed_audit_exports
     summary["seeded"] = 1 if include_seed else 0
-    summary["shared_demo_reports"] = shared_demo_reports
     return summary
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Reset the demo dataset and reload a deterministic synthetic corpus.")
+    parser = argparse.ArgumentParser(description="Reset the seeded walkthrough dataset and reload a deterministic synthetic corpus.")
     parser.add_argument("--corpus-root", type=Path, default=DEFAULT_CORPUS_ROOT, help="Synthetic corpus root directory.")
     parser.add_argument("--split", default="demo", help="Corpus split to import, for example demo or gold.")
     parser.add_argument("--limit", type=int, default=None, help="Optional max number of samples to import from the split.")
     parser.add_argument(
         "--state",
-        choices=DEMO_RESET_STATES,
+        choices=WALKTHROUGH_RESET_STATES,
         default="mixed",
-        help="Desired demo state: all OPEN, all resolved, or a mixed walkthrough state.",
+        help="Desired walkthrough state: all OPEN, all resolved, or a mixed walkthrough state.",
     )
     parser.add_argument(
         "--include-seed",
@@ -166,7 +153,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        summary = demo_reset(
+        summary = walkthrough_reset(
             corpus_root=args.corpus_root,
             split=args.split,
             state=args.state,
@@ -179,11 +166,10 @@ def main() -> int:
         raise SystemExit(str(exc)) from exc
 
     print(
-        "demo-reset summary: "
+        "walkthrough-reset summary: "
         f"imported={summary['imported']} "
         f"resolved={summary['resolved']} "
         f"left_open={summary['left_open']} "
-        f"shared_demo_reports={summary['shared_demo_reports']} "
         f"removed_artifacts={summary['removed_artifacts']} "
         f"removed_audit_exports={summary['removed_audit_exports']} "
         f"seeded={summary['seeded']}"

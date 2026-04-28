@@ -16,7 +16,7 @@ Show one clear story:
 From the repo root:
 
 ```bash
-make demo-reset
+make walkthrough-reset
 ```
 
 This loads the curated `demo` split in a mixed state.
@@ -35,7 +35,7 @@ Operator notes:
 
 ## Dataset State
 
-After `make demo-reset`, the demo split contains exactly five uploads:
+After `make walkthrough-reset`, the demo split contains exactly five uploads:
 
 | Sample ID | Subject | Expected state |
 | --- | --- | --- |
@@ -57,7 +57,7 @@ Use this exact report order:
 
 ### 0:00-0:30 Reset and login
 
-1. Run `make demo-reset`.
+1. Run `make walkthrough-reset`.
 2. Open `http://localhost:3000/login`.
 3. Sign in with `admin / change-me`.
 4. Open `Uploads`.
@@ -207,7 +207,7 @@ If you only have 3 minutes:
 If the dataset is wrong:
 
 ```bash
-make demo-reset
+make walkthrough-reset
 ```
 
 If old queue filters are still applied:
@@ -217,5 +217,5 @@ If old queue filters are still applied:
 If you need the broader evaluation set instead of the curated walkthrough:
 
 ```bash
-make demo-reset SPLIT=gold
+make walkthrough-reset SPLIT=gold
 ```

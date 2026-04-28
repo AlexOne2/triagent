@@ -2,7 +2,7 @@ ENV_FILE = infra/.env
 ENV_EXAMPLE = infra/.env.example
 COMPOSE = docker compose -f infra/docker-compose.yml --env-file $(ENV_FILE)
 
-.PHONY: dev migrate seed import-synthetic remove-synthetic down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval triage-backfill reset-data demo-reset
+.PHONY: dev migrate seed import-synthetic remove-synthetic down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval triage-backfill reset-data walkthrough-reset
 
 ensure-env:
 	@if [ ! -f $(ENV_FILE) ]; then cp $(ENV_EXAMPLE) $(ENV_FILE); echo "Created $(ENV_FILE) from $(ENV_EXAMPLE)"; fi
@@ -79,6 +79,6 @@ reset-data: wait-db
 	$(COMPOSE) build backend
 	$(COMPOSE) run --rm backend python -m scripts.reset_ingested_data
 
-demo-reset: migrate
+walkthrough-reset: migrate
 	$(COMPOSE) build backend
-	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.demo_reset --corpus-root "/workspace/$(or $(CORPUS_ROOT),test_data/synthetic-corpus)" --split "$(or $(SPLIT),demo)" --state "$(or $(STATE),$(if $(RESOLVED),resolved,mixed))" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(INCLUDE_SEED),--include-seed,) $(if $(KEEP_AUDIT),--keep-audit,) $(foreach id,$(OPEN_SAMPLE_IDS),--leave-open-sample-id "$(id)")
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.walkthrough_reset --corpus-root "/workspace/$(or $(CORPUS_ROOT),test_data/synthetic-corpus)" --split "$(or $(SPLIT),demo)" --state "$(or $(STATE),$(if $(RESOLVED),resolved,mixed))" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(INCLUDE_SEED),--include-seed,) $(if $(KEEP_AUDIT),--keep-audit,) $(foreach id,$(OPEN_SAMPLE_IDS),--leave-open-sample-id "$(id)")

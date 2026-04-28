@@ -29,12 +29,6 @@ class User(Base):
     roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("AuthSession", back_populates="user", cascade="all, delete-orphan")
     created_api_keys = relationship("ApiKey", back_populates="created_by", foreign_keys="ApiKey.created_by_user_id")
-    demo_reports = relationship(
-        "Report",
-        foreign_keys="Report.demo_user_id",
-        passive_deletes=True,
-        back_populates="demo_user",
-    )
 
 
 class Role(Base):

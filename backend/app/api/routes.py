@@ -6,7 +6,7 @@ from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, Response, UploadFile, status
-from sqlalchemy import Text, case, cast, func, or_, select
+from sqlalchemy import Text, case, cast, func, or_, select, true
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -92,20 +92,12 @@ TRIAGE_BUCKET_ORDER: tuple[TriageBucket, ...] = (
 )
 
 
-def _is_demo_principal(principal: Principal) -> bool:
-    return bool(principal.role_keys and "DEMO" in principal.role_keys)
-
-
 def _report_scope_predicate(principal: Principal):
-    if _is_demo_principal(principal):
-        if principal.user_id is None:
-            raise HTTPException(status_code=403, detail="Demo session is invalid")
-        return Report.demo_user_id == principal.user_id
-    return Report.demo_user_id.is_(None)
+    return true()
 
 
 def _apply_report_scope(query, principal: Principal):
-    return query.where(_report_scope_predicate(principal))
+    return query
 
 
 def _scoped_report_or_404(
@@ -726,7 +718,6 @@ def _create_report(
     ingest_source: IngestSource,
     *,
     attachment_names: list[str] | None = None,
-    demo_user_id: int | None = None,
 ) -> tuple[Report, int]:
     settings = get_settings()
     now = datetime.now(timezone.utc)
@@ -778,7 +769,6 @@ def _create_report(
         return_path=payload.return_path,
         originating_ip=payload.originating_ip,
         originating_rdns=payload.originating_rdns,
-        demo_user_id=demo_user_id,
     )
     triage_assessment = _compute_triage_assessment(report, raw_url_analysis=url_analysis, attachment_names=attachment_names)
     _persist_triage_assessment(report, triage_assessment)

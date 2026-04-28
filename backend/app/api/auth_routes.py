@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
@@ -23,7 +23,6 @@ from app.services.auth import (
     utcnow,
     verify_password,
 )
-from app.services.demo_workspace import ensure_shared_demo_workspace
 from app.services.ldap_auth import LdapAuthenticator, LdapConfigurationError, LdapUnavailableError
 from app.services.rbac import user_permission_keys, user_role_keys
 
@@ -78,48 +77,6 @@ def _issue_login_response(
         user=AuthUserOut.model_validate(user),
         permissions=permissions,
         roles=roles,
-    )
-
-
-@router.post("/demo-login", response_model=AuthLoginResponse)
-def demo_login(
-    request: Request,
-    db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-):
-    if not settings.auth_demo_enabled:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demo login is disabled")
-
-    now = utcnow()
-    try:
-        user, report_total, provisioned = ensure_shared_demo_workspace(db, settings)
-    except Exception:
-        db.rollback()
-        raise
-
-    create_security_audit_event(
-        db,
-        action="AUTH_DEMO_LOGIN_SUCCESS",
-        outcome="SUCCESS",
-        actor_user_id=user.id,
-        target_type="user",
-        target_id=str(user.id),
-        metadata={
-            "report_total": report_total,
-            "provisioned": provisioned,
-            "split": settings.auth_demo_split,
-        },
-        request_meta=request_meta(request),
-    )
-
-    return _issue_login_response(
-        db=db,
-        settings=settings,
-        request=request,
-        user=user,
-        now=now,
-        auth_source="DEMO",
-        session_ttl_minutes=settings.auth_demo_session_ttl_minutes,
     )
 
 

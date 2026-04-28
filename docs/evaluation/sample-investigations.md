@@ -1,6 +1,6 @@
 # Sample Investigation Scenarios
 
-This document defines the first investigation scenarios the public demo should be able to demonstrate clearly. It is written as evaluation guidance for synthetic or redacted samples rather than as a collection of real customer mail.
+This document defines the first investigation scenarios the prototype should be able to demonstrate clearly. It is written as evaluation guidance for synthetic or redacted samples rather than as a collection of real customer mail.
 
 Use these scenarios as:
 

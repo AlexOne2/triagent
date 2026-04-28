@@ -151,6 +151,7 @@ class InvestigationExportTests(unittest.TestCase):
                 "arc": {"result": "unknown"},
                 "raw_headers": {},
             },
+            lookalike_analysis=None,
             original_message=EvidenceOriginalMessage(
                 filename="invoice.eml",
                 content_type="message/rfc822",

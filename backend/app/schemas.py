@@ -68,43 +68,6 @@ class AuthMeResponse(BaseModel):
     permissions: List[str]
 
 
-class WaitlistLeadCreate(BaseModel):
-    name: Optional[str] = None
-    work_email: str
-    company: Optional[str] = None
-    role: Optional[str] = None
-    notes: Optional[str] = None
-    source: str = "landing_page"
-
-    @field_validator("name", "company", "role", "notes", "source", mode="before")
-    @classmethod
-    def normalize_optional_text(cls, value):
-        if value is None:
-            return None
-        cleaned = str(value).strip()
-        return cleaned or None
-
-    @field_validator("work_email", mode="before")
-    @classmethod
-    def validate_work_email(cls, value):
-        cleaned = str(value).strip().lower() if value is not None else ""
-        if not cleaned:
-            raise ValueError("work_email is required")
-        if "@" not in cleaned:
-            raise ValueError("work_email must be a valid email address")
-        local, _, domain = cleaned.partition("@")
-        if not local or "." not in domain:
-            raise ValueError("work_email must be a valid email address")
-        return cleaned
-
-
-class WaitlistLeadSubmitResponse(BaseModel):
-    id: int
-    work_email: str
-    already_exists: bool
-    created_at: datetime
-
-
 class ReportCreate(BaseModel):
     message_id: Optional[str] = None
     received_at: Optional[datetime] = None

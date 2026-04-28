@@ -32,8 +32,12 @@ class Principal:
 
 
 def request_meta(request: Request) -> AuditRequestMeta:
+    forwarded_for = request.headers.get("x-forwarded-for")
+    forwarded_ip = forwarded_for.split(",", 1)[0].strip() if forwarded_for else None
+    real_ip = request.headers.get("x-real-ip")
+    client_ip = forwarded_ip or (real_ip.strip() if real_ip else None) or (request.client.host if request.client else None)
     return AuditRequestMeta(
-        ip=request.client.host if request.client else None,
+        ip=client_ip,
         user_agent=request.headers.get("user-agent"),
         request_id=getattr(request.state, "request_id", None),
         correlation_id=getattr(request.state, "correlation_id", None),

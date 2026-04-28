@@ -123,11 +123,6 @@ class Report(Base):
     flagged_artifacts_json: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True)
     resolved_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_resolved_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    demo_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=True,
-        index=True,
-    )
     campaign_id: Mapped[int | None] = mapped_column(
         ForeignKey("campaigns.id", ondelete="SET NULL"),
         nullable=True,
@@ -145,7 +140,6 @@ class Report(Base):
     resolutions = relationship("ReportResolution", back_populates="report", cascade="all, delete-orphan")
     campaign = relationship("Campaign", back_populates="reports", foreign_keys=[campaign_id])
     feature = relationship("ReportFeature", back_populates="report", uselist=False, cascade="all, delete-orphan")
-    demo_user = relationship("User", foreign_keys=[demo_user_id], back_populates="demo_reports")
 
     @property
     def has_original_message(self) -> bool:

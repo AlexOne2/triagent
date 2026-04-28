@@ -1,6 +1,6 @@
 # Rollback Runbook
 
-This runbook is for the current Compose-based public demo. It assumes the backend, PostgreSQL, and MinIO are operated together and that upgrades may include both code and Alembic migrations.
+This runbook is for the current Compose-based prototype. It assumes the backend, PostgreSQL, and MinIO are operated together and that upgrades may include both code and Alembic migrations.
 
 The safest rollback path is restore-and-redeploy, not an ad hoc schema downgrade.
 
@@ -99,7 +99,7 @@ Restore the database snapshot taken immediately before the failed deployment.
 
 Rationale:
 
-- the current public demo includes schema migrations
+- the current prototype includes schema migrations
 - a code rollback without a schema rollback can leave the app in an undefined state
 
 ## 4. Restore MinIO Artifacts From the Matching Backup

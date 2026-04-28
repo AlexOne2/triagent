@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True)
+    model_config = SettingsConfigDict(env_file=".env", env_ignore_empty=True, extra="ignore")
 
     database_url: str = Field(
         default="postgresql+psycopg2://triagent:triagent@postgres:5432/triagent",
@@ -30,10 +30,6 @@ class Settings(BaseSettings):
     auth_lockout_duration_minutes: int = Field(default=15, alias="AUTH_LOCKOUT_DURATION_MINUTES")
     auth_dns_enabled: bool = Field(default=True, alias="AUTH_DNS_ENABLED")
     auth_dns_timeout_seconds: float = Field(default=2.0, alias="AUTH_DNS_TIMEOUT_SECONDS")
-    auth_demo_enabled: bool = Field(default=True, alias="AUTH_DEMO_ENABLED")
-    auth_demo_session_ttl_minutes: int = Field(default=120, alias="AUTH_DEMO_SESSION_TTL_MINUTES")
-    auth_demo_retention_hours: int = Field(default=24, alias="AUTH_DEMO_RETENTION_HOURS")
-    auth_demo_split: str = Field(default="demo", alias="AUTH_DEMO_SPLIT")
     auth_ldap_enabled: bool = Field(default=False, alias="AUTH_LDAP_ENABLED")
     auth_ldap_server_uri: Optional[str] = Field(default=None, alias="AUTH_LDAP_SERVER_URI")
     auth_ldap_bind_dn: Optional[str] = Field(default=None, alias="AUTH_LDAP_BIND_DN")

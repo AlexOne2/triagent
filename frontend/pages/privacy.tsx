@@ -7,8 +7,7 @@ export default function PrivacyPage() {
         <p className="legal-kicker">Legal</p>
         <h1>Privacy policy</h1>
         <p className="legal-intro">
-          This privacy policy explains what personal data is processed when you use the Triagent landing page, waitlist
-          form, and public demo.
+          This privacy policy explains what personal data is processed when you use the Triagent application.
         </p>
 
         <section className="legal-section">
@@ -32,9 +31,9 @@ export default function PrivacyPage() {
         <section className="legal-section">
           <h2>What data is processed</h2>
           <ul className="legal-list">
-            <li>Waitlist form data such as work email, name, company, role, and notes.</li>
-            <li>Technical session data when the public demo is opened, such as temporary auth session records.</li>
+            <li>Account and session data needed to authenticate users and operate the application.</li>
             <li>Basic request and security metadata needed to operate the application, such as IP address and user agent.</li>
+            <li>Uploaded phishing-triage data where users intentionally submit messages or related evidence.</li>
           </ul>
         </section>
 
@@ -42,12 +41,13 @@ export default function PrivacyPage() {
           <h2>Purposes and legal bases</h2>
           <ul className="legal-list">
             <li>
-              To coordinate demo access, respond to requests, and follow up with interested teams. Legal basis: Article
-              6 paragraph 1 letter b GDPR and, where applicable, Article 6 paragraph 1 letter f GDPR.
+              To provide authenticated access to the application, process submitted triage data, and support operational
+              security. Legal basis: Article 6 paragraph 1 letter b GDPR and, where applicable, Article 6 paragraph 1
+              letter f GDPR.
             </li>
             <li>
-              To operate the public demo, maintain security, prevent misuse, and ensure stable service. Legal basis:
-              Article 6 paragraph 1 letter f GDPR.
+              To maintain security, prevent misuse, troubleshoot issues, and keep audit records. Legal basis: Article 6
+              paragraph 1 letter f GDPR.
             </li>
           </ul>
         </section>
@@ -63,16 +63,16 @@ export default function PrivacyPage() {
         <section className="legal-section">
           <h2>Retention</h2>
           <ul className="legal-list">
-            <li>Waitlist entries are kept for demo coordination and follow-up, then reviewed for deletion when no longer needed.</li>
-            <li>Demo sessions and security-related logs are retained only as long as needed for operation, troubleshooting, and abuse prevention.</li>
+            <li>Application records are retained only as long as needed for operation, troubleshooting, and agreed usage.</li>
+            <li>Security-related logs may be retained where needed for auditability, troubleshooting, and abuse prevention.</li>
           </ul>
         </section>
 
         <section className="legal-section">
           <h2>Provision of data</h2>
           <p>
-            The work email field is required if you want to join the waitlist. Other fields are optional. Without a work
-            email, it is not possible to contact you about access.
+            Account and submitted triage data are needed to use the application. Without the required account data,
+            authenticated access cannot be provided.
           </p>
         </section>
 
@@ -100,13 +100,13 @@ export default function PrivacyPage() {
           <h2>Cookies and tracking</h2>
           <p>
             This site does not use marketing or analytics tracking by default. Technical session handling may be used
-            where necessary to operate login and demo access.
+            where necessary to operate login access.
           </p>
         </section>
 
         <div className="legal-actions">
-          <Link href="/" className="legal-link">
-            Back to landing page
+          <Link href="/login" className="legal-link">
+            Back to login
           </Link>
           <Link href="/imprint" className="legal-link">
             Imprint

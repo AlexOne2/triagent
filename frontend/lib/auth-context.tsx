@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { authDemoLogin, authLogin, authLogout, authMe, AuthUser, setUnauthorizedHandler } from "./api";
+import { authLogin, authLogout, authMe, AuthUser, setUnauthorizedHandler } from "./api";
 import { clearAccessToken, getAccessToken, setAccessToken } from "./auth-storage";
 
 type AuthContextValue = {
@@ -11,7 +11,6 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   hasPermission: (permission: string) => boolean;
   login: (username: string, password: string) => Promise<void>;
-  loginDemo: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -68,14 +67,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPermissions(result.permissions || []);
   }, []);
 
-  const loginDemo = useCallback(async () => {
-    const result = await authDemoLogin();
-    setAccessToken(result.access_token, result.expires_at);
-    setUser(result.user);
-    setRoles(result.roles || []);
-    setPermissions(result.permissions || []);
-  }, []);
-
   const logout = useCallback(async () => {
     try {
       if (getAccessToken()) {
@@ -102,10 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user),
       hasPermission,
       login,
-      loginDemo,
       logout,
     }),
-    [user, roles, permissions, loading, hasPermission, login, loginDemo, logout]
+    [user, roles, permissions, loading, hasPermission, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

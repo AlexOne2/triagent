@@ -11,10 +11,8 @@ function AppContent({ Component, pageProps }: AppProps) {
   const { loading, isAuthenticated } = useAuth();
 
   const isLoginPage = router.pathname === "/login";
-  const isCapturePage = router.pathname === "/demo-capture";
   const isLegalPage = router.pathname === "/imprint" || router.pathname === "/privacy";
-  const isPublicRoute =
-    router.pathname === "/" || router.pathname === "/demo" || isCapturePage || isLoginPage || isLegalPage;
+  const isPublicRoute = router.pathname === "/" || isLoginPage || isLegalPage;
 
   useEffect(() => {
     if (loading) return;

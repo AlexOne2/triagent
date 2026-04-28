@@ -32,7 +32,7 @@ AUTH_LEGACY_BASIC_ENABLED=false
 
 Rationale:
 
-- the public demo still supports a temporary legacy bridge for convenience
+- the local prototype still supports a temporary legacy bridge for convenience
 - hardened deployments should use the main session-RBAC path, or a reviewed LDAP-backed configuration if needed
 
 ## 3. Restrict CORS and External Reachability
@@ -61,7 +61,7 @@ Recommended baseline:
 - HTTPS for API traffic
 - internal-only connectivity for Postgres and MinIO
 
-The public demo does not configure TLS for you.
+The local Compose setup does not configure TLS for you.
 
 ## 5. Use Role Separation Deliberately
 
