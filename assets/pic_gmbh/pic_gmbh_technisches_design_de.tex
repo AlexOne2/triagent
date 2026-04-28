@@ -84,11 +84,11 @@ Das Zielbild ist ein modulares Engine-Modell. Einzelne Engines sollen pro Deploy
 
 \noindent\textbf{Architektur des aktuellen Prototyps}\\
 \noindent\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{3.4cm}X@{}}
-Frontend & Next.js, React, TypeScript. Enthält Landing Page, Demo, Uploads, In-tray, Dashboard, Report Detail, Resolve Drawer, Settings und Admin-Sichten.\\
-Backend & FastAPI in Python mit serviceorientierter Struktur für Parsing, Triage, Assist Drafts, Evidence Export, Audit, RBAC und Demo-Seeding.\\
+Frontend & Next.js, React, TypeScript. Enthält Uploads, In-tray, Dashboard, Report Detail, Resolve Drawer, Settings und Admin-Sichten.\\
+Backend & FastAPI in Python mit serviceorientierter Struktur für Parsing, Triage, Assist Drafts, Evidence Export, Audit, RBAC und reproduzierbares Daten-Seeding.\\
 Datenhaltung & PostgreSQL über SQLAlchemy und Alembic-Migrationen.\\
 Objektspeicher & MinIO als S3-kompatibler Storage für Originalmails, Anhänge und Exporte.\\
-Deployment & Docker Compose für lokalen und self-hosted Demo-Betrieb.\\
+Deployment & Docker Compose für lokalen und self-hosted Prototyp-Betrieb.\\
 Client-Integration & Office.js Outlook Add-in mit API-Key-basierter Meldung an das Backend.\\
 \end{tabularx}
 
@@ -99,14 +99,14 @@ Client-Integration & Office.js Outlook Add-in mit API-Key-basierter Meldung an d
 \vspace{0.35em}
 \noindent\textbf{Was heute bereits implementiert ist}\par\vspace{0.12em}
 \noindent\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{4.1cm}X@{}}
-E-Mail-Intake & Upload und Parsing von \texttt{.eml} und \texttt{.msg}, Batch-Import synthetischer Demos, Outlook Add-in für gemeldete Mails.\\
+E-Mail-Intake & Upload und Parsing von \texttt{.eml} und \texttt{.msg}, Batch-Import synthetischer Validierungsdaten, Outlook Add-in für gemeldete Mails.\\
 Report-Workspace & Uploads, In-tray, Dashboard, Report Detail mit Details, Lookalikes, Authentication, URLs, Attachments, Transmission, X-Headers und Source.\\
 Technische Analyse & SPF, DKIM, DMARC, ARC, URL-Extraktion, optionale Redirect-Auflösung, Same-org-Lookalike-Erkennung, Attachment-Metadaten, Raw Source Preservation.\\
 Triage & Persistierte Triage-Buckets und Queue-Filter. Diese Logik ist bewusst als frühe Heuristik zu verstehen und noch nicht produktionsreif.\\
-Assist Draft & Lokaler heuristischer Assist-Draft für Disposition, Klassifikation, Begründung und vorgeschlagene Artefakte. Aktuell Demo- und Prototypstand.\\
+Assist Draft & Lokaler heuristischer Assist-Draft für Disposition, Klassifikation, Begründung und vorgeschlagene Artefakte. Aktuell früher Prototypstand.\\
 Resolution & Analyst-in-the-loop-Resolution mit Disposition, Klassifikationscode, Notiz und markierten Artefakten.\\
 Exporte & Evidence Export als PDF, Markdown und JSON sowie IOC Export als CSV und JSON.\\
-Governance & Session-RBAC, Rollen/Rechte, API Keys, Audit Events, Audit Export und Demo-User-Konzept.\\
+Governance & Session-RBAC, Rollen/Rechte, API Keys, Audit Events und Audit Export.\\
 Kampagnenbasis & Datenmodell und Backend-Mechaniken für Campaign Assignment, Recluster, Merge, Split und Campaign Evidence sind angelegt, aber noch nicht Produktfokus.\\
 \end{tabularx}
 
@@ -130,7 +130,7 @@ if analyst_confirms:
 
 \noindent\textbf{Bekannte technische Grenzen und Code-Risiken}
 \begin{itemize}
-  \item \textbf{Triage und Assist Draft sind noch frühe Heuristiken}. Sie funktionieren für die Demo- und synthetischen Fälle, brauchen aber reale Daten, Tuning und saubere Bewertungsmetriken.
+  \item \textbf{Triage und Assist Draft sind noch frühe Heuristiken}. Sie funktionieren für synthetische Validierungsfälle, brauchen aber reale Daten, Tuning und saubere Bewertungsmetriken.
   \item \textbf{Engine-Erweiterbarkeit ist noch nicht sauber abstrahiert}. Analysefunktionen existieren als Python-Services, aber noch nicht als stabiles Plugin- oder Engine-SDK.
   \item \textbf{Deployment ist Compose-first}. Für echten Betrieb fehlen noch Packaging, Secrets Management, Backup-/Restore-Automation, Observability und Update-Prozesse.
   \item \textbf{Integrationen sind noch begrenzt}. Outlook Add-in und Upload/API sind da, tiefe Ticketing-, SIEM-, SOAR- oder Sandbox-Integrationen sind noch offen.
@@ -144,13 +144,13 @@ if analyst_confirms:
 
 \noindent\textbf{Fertig oder weitgehend vorhanden}
 \begin{itemize}
-  \item lauffähiger Demo-Stack mit Frontend, Backend, Datenbank und Objektspeicher
+  \item lauffähiger Prototyp-Stack mit Frontend, Backend, Datenbank und Objektspeicher
   \item E-Mail-Parsing, Originalartefakt-Speicherung und technische Report-Sichten
   \item einfache Queue- und Triage-Logik
   \item Assist-Draft und analyst-in-the-loop-Resolution
   \item PDF-/JSON-/IOC-Exporte
   \item Audit- und RBAC-Grundlagen
-  \item public read-only Demo und reproduzierbares Demo-Reset
+  \item reproduzierbare Validierungsdatensätze für Tests und Walkthroughs
 \end{itemize}
 
 \noindent\textbf{Ausstehende Kernmeilensteine}
@@ -186,6 +186,6 @@ Der sinnvollste Beitrag eines technischen Partners läge aus unserer Sicht in dr
 \end{itemize}
 
 \noindent\textbf{Kurzfazit}\\
-Triagent hat bereits einen funktionsfähigen Kern für reported-email triage, Evidence Review, Assist Drafts, Resolution und Exporte. Die größten offenen Arbeiten liegen nicht in einer weiteren Feature-Demo, sondern in Produktisierung, Engine-Erweiterbarkeit, Integrationen, Betriebshärtung und echter Validierung auf realistischen Workflows.
+Triagent hat bereits einen funktionsfähigen Kern für reported-email triage, Evidence Review, Assist Drafts, Resolution und Exporte. Die größten offenen Arbeiten liegen in Produktisierung, Engine-Erweiterbarkeit, Integrationen, Betriebshärtung und echter Validierung auf realistischen Workflows.
 
 \end{document}
