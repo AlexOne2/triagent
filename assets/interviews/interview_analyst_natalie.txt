@@ -1,0 +1,1165 @@
+00:00:00,960 --> 00:00:10,000 [speaker_0]
+Test, Test, Test, Test, Test. Test, Test, Test.
+
+00:00:10,840 --> 00:00:26,260 [speaker_1]
+Hi!
+
+00:00:26,380 --> 00:00:32,119 [speaker_0]
+Hallo. Kann man mich gut hören?
+
+00:00:32,140 --> 00:00:35,440 [speaker_1]
+Man kann dich super hören. Hörst du mich auch?
+
+00:00:35,480 --> 00:00:36,260 [speaker_0]
+Jo.
+
+00:00:36,820 --> 00:00:45,160 [speaker_1]
+Perfekt. Dann muss ich dich nur mal eben in ein anderes Fenster schieben,
+weil du bist auf dem falschen Bildschirmen.
+
+00:00:45,360 --> 00:00:48,900 [speaker_0]
+Jo.
+
+00:00:52,120 --> 00:01:04,140 [speaker_1]
+Die Nasraubanzeige. Klappt nicht. Egal.
+
+00:01:04,180 --> 00:01:12,780 [speaker_0]
+[lacht] Okay, passt so. Ja, okay, in welche, wo sitzt du? Äh, bist du in Münster oder in Hannover?
+
+00:01:12,840 --> 00:01:14,260 [speaker_1]
+Äh, ich sitze in Münster.
+
+00:01:14,340 --> 00:01:50,680 [speaker_0]
+Ah, okay, ich auch. Ich bin auch in Münster. Genau. Ähm, okay, ich weiß nicht,
+ich kann ja sonst einfach mal noch mal dieses Dokument, äh, teilen, was ich dir geschickt hab.
+
+00:01:50,700 --> 00:01:50,920 [speaker_1]
+Mhm.
+
+00:01:51,060 --> 00:02:23,080 [speaker_0]
+Ähm, bin sofort wieder da. So. Hmm. So.
+
+00:02:25,320 --> 00:02:28,360 [speaker_1]
+Hier haben wir's wieder.
+
+00:02:30,540 --> 00:02:33,680 [speaker_0]
+Jetzt solltest du mein Word sehen.
+
+00:02:33,760 --> 00:02:34,870 [speaker_1]
+Ja, genau.
+
+00:02:34,900 --> 00:02:48,140 [speaker_0]
+Ja, perfekt. Äh, ja, ähm, was sagst du denn dazu? Würdest du sagen,
+dass das so schon in die richtige Richtung geht oder würdest du da irgendwo widersprechen oder noch
+
+00:02:49,360 --> 00:03:41,280 [speaker_1]
+Es geht auf jeden Fall, äh, in die, äh, richtige Richtung. Spannend wird's natürlich nachher beim,
+äh, Feintuning. Äh, gerade wenn so 'ne, äh, URL mal ein paar Sprungmarken drinne hat,
+
+00:03:41,320 --> 00:03:41,750 [speaker_0]
+Mhm.
+
+00:03:42,860 --> 00:04:05,520 [speaker_1]
+Das heißt, äh, je nachdem, äh, wie dort, äh, die Einstellungen gemacht werden, äh... Ja,
+ma-mach mal was anders.
+
+00:04:05,560 --> 00:04:13,260 [speaker_0]
+Mhm, ja, das hab ich, äh, genau, wir haben hier die Start, hier die, die Attachment-Analyse.
+
+00:04:13,280 --> 00:04:19,920 [speaker_1]
+Mhm. Die soll wahrscheinlich dann auch automatisch erfolgen?
+
+00:04:20,019 --> 00:04:34,400 [speaker_0]
+Ähm, das ist die Frage. Also ich mein, man könnte sich das natürlich auch so überlegen,
+dass man irgendwie die einzelnen Attachments dann anklicken würde und die dann erst halt analysiert
+
+00:04:34,410 --> 00:05:06,480 [speaker_1]
+Mhm. Weil, was ich mir denke, äh, wenn wir so 'n PDF-Dokument haben, was aber, äh,
+was meinetwegen ein Skript hinterlegt hat und, äh, das Skript wartet meinetwegen zwanzig Minuten,
+
+00:05:06,500 --> 00:05:07,720 [speaker_0]
+Mhm.
+
+00:05:08,600 --> 00:05:14,740 [speaker_1]
+Weil wir müssten dafür das dann auch auf Analyse-Laptop packen und das händisch, äh, analysieren.
+
+00:05:14,760 --> 00:05:22,860 [speaker_0]
+Ah, okay, also das macht ihr auch öfters, dass ihr dann quasi die Attachments dann wirklich, äh,
+per Hand richtig analysiert, oder?
+
+00:05:22,880 --> 00:05:23,760 [speaker_1]
+Ja.
+
+00:05:23,780 --> 00:05:26,520 [speaker_0]
+Ah, okay. Mhm.
+
+00:05:26,800 --> 00:05:32,820 [speaker_1]
+Also ich sag mal so, das meiste finden wir in Joey, aber nicht alles.
+
+00:05:32,860 --> 00:05:48,300 [speaker_0]
+Mhm. Und manche Dinge findet man dann erst,
+wenn man die wirklich auf 'nem Laptop laufen lässt und dann auch irgendwie längere Zeit wartet,
+
+00:05:48,320 --> 00:05:48,580 [speaker_1]
+Mhm.
+
+00:05:49,060 --> 00:05:56,860 [speaker_0]
+Okay. Okay, das heißt, Joey Sandbox würde dann nicht alles unbedingt abdecken.
+
+00:05:56,880 --> 00:06:00,120 [speaker_1]
+Ich sag mal so, fünfundneunzig Prozent nur.
+
+00:06:02,940 --> 00:06:15,820 [speaker_0]
+... Okay, spannend. Aber würdest du dann sagen, dass man-- also was,
+was müsste das Tool dann können, um auch noch die restlichen fünf Prozent abzudecken?
+
+00:06:18,340 --> 00:06:43,129 [speaker_1]
+Was kann man da am besten machen? Weil das Ding ist, wenn, wenn wir davon ausgehen, äh,
+dass sich der Analyst einfach nur noch einmal durch die Ergebnisse klickt und das entweder bestätigt
+
+00:06:44,200 --> 00:06:44,480 [speaker_0]
+Mhm.
+
+00:06:44,500 --> 00:07:02,800 [speaker_1]
+Da gibt's, äh, meistens 'ne Meldung. Und wenn, wenn ich die Meldung, äh, in der Ausgabe von, äh,
+der KI habe, nach dem Motto: Hier, wir haben hier 'ne Sandbox Evasion gegebenenfalls detected,
+
+00:07:03,480 --> 00:07:04,760 [speaker_0]
+Mhm.
+
+00:07:04,780 --> 00:07:06,800 [speaker_1]
+Dass man diese Meldung da einfach ausliest.
+
+00:07:06,879 --> 00:07:12,580 [speaker_0]
+Ah, okay, also du, ah, in diesen fünf Prozent der Fällen sagt Joe Sandbox das dann sogar auch,
+dass es-
+
+00:07:12,620 --> 00:07:13,020 [speaker_1]
+Ja.
+
+00:07:13,030 --> 00:07:19,580 [speaker_0]
+-so ist. Ah, okay, und dann muss man erst, äh,
+das Ganze auf diesem separaten Laptop ausfüllen lassen?
+
+00:07:19,640 --> 00:07:20,450 [speaker_1]
+Ja, genau.
+
+00:07:20,540 --> 00:07:32,000 [speaker_0]
+Ah, okay. Okay, und wie, ähm, wie bekommt ihr dann dieses Attachment, ähm, auf diesen Laptop drauf?
+Wie funktioniert das?
+
+00:07:32,100 --> 00:07:37,220 [speaker_1]
+Das läuft über 'n, äh, FITS-Datenraum.
+
+00:07:38,040 --> 00:07:38,180 [speaker_0]
+Mhm.
+
+00:07:38,190 --> 00:07:51,820 [speaker_1]
+Da haben wir, äh, an sich so 'n, wie ich sagen, Online-Austauschlaufwerk, aber 'ne Möglichkeit,
+wie wir, äh, Dinge von unserem FI-Laptop auf 'n anderen, anderes Gerät bekommen.
+
+00:07:52,240 --> 00:08:03,520 [speaker_0]
+Mhm. Weil ich mein, das muss dann ja auch schon irgendwie so 'n bisschen, ähm, sicher sein,
+sodass diese Attachments dann nicht irgendwo rumfliegen,
+
+00:08:03,580 --> 00:08:08,440 [speaker_1]
+Ja, auch unser Analyselaptop, der darf auch nicht mit 'm, äh, FI-Netz verbunden sein.
+
+00:08:08,480 --> 00:08:10,280 [speaker_0]
+Mhm.
+
+00:08:10,300 --> 00:08:17,240 [speaker_1]
+Und, äh, oder an sich nur der einmal, äh, hopsgehen darf.
+
+00:08:17,260 --> 00:08:18,060 [speaker_0]
+Mhm, aber-
+
+00:08:18,240 --> 00:08:20,480 [speaker_1]
+Keine weiteren Auswirkungen geben.
+
+00:08:20,520 --> 00:08:32,860 [speaker_0]
+Aber wie funktioniert das dann? Also du hast quasi dieses Attachment dann, äh,
+bei der Joe Sandbox und das lädst du dir dann runter und dann schickst du das auf dieses Laufwerk
+
+00:08:33,060 --> 00:08:47,180 [speaker_1]
+Wenn ich jetzt, äh, Attachment meinetwegen aus der Mail hab, äh, lad ich das in, äh,
+in der Sandbox hoch. Da wird mir dann gesagt: Hier, äh, wahrscheinliche Sandbox Evasion.
+
+00:08:47,200 --> 00:08:47,320 [speaker_0]
+Mhm.
+
+00:08:47,330 --> 00:08:57,920 [speaker_1]
+Dann nehm ich mir das Original, äh, Dokument und, äh, aus der Mail und zieh das auf 'n, äh,
+Analyselaptop.
+
+00:08:58,460 --> 00:09:04,060 [speaker_0]
+Mhm. Und am Anfang ist das dann noch auf deinem regulären FI-Laptop?
+
+00:09:04,140 --> 00:09:04,880 [speaker_1]
+Ja.
+
+00:09:04,920 --> 00:09:24,000 [speaker_0]
+Ah, okay. Okay, das heißt, man bräuchte vielleicht irgendwie so 'n Download-Button,
+mit dem man quasi dieses Attachment dann einmal in den Downloads-Ordner sich ziehen kann und dann
+
+00:09:24,020 --> 00:09:25,310 [speaker_1]
+Mhm.
+
+00:09:25,320 --> 00:09:44,800 [speaker_0]
+Mhm. Okay, versteh ich. Ähm, okay. Ähm, bei URL-Analyse sagtest du ... Ah nee, warte mal,
+das war URL-Normalisierung, mein ich, ne?
+
+00:09:44,860 --> 00:09:45,840 [speaker_1]
+Ja, genau.
+
+00:09:45,860 --> 00:09:56,860 [speaker_0]
+Genau, da ist es, da sagtest du, dass es oft so ist,
+dass die URLs irgendwie geshortet sind oder obfuscated, dass die dann quasi mehrere Hops haben?
+
+00:09:56,900 --> 00:09:59,540 [speaker_1]
+Ja, geshortet sind sie tatsächlich fast immer.
+
+00:09:59,700 --> 00:10:01,340 [speaker_0]
+Mhm.
+
+00:10:01,420 --> 00:10:08,240 [speaker_1]
+Also das ist, äh, entweder, äh, so TinyURL, URL-Shortener und-
+
+00:10:08,260 --> 00:10:08,290 [speaker_0]
+Mhm
+
+00:10:08,320 --> 00:10:37,900 [speaker_1]
+... und so weiter. Vieles sind, äh, OneDrive, äh, Links,
+die auf 'ne gefälschte OneDrive-Seite leiten, sodass man eher denkt: Okay, ist OneDrive,
+
+00:10:37,920 --> 00:10:47,680 [speaker_0]
+Mhm. Mhm, okay, versteh ich. Ja.
+
+00:10:47,780 --> 00:10:58,260 [speaker_1]
+Also es reicht meist nicht, äh, den, äh, wenn man den Link anklickt, die erste Seite, äh,
+zu analysieren, sondern auch die nachfolgenden.
+
+00:10:58,280 --> 00:11:22,300 [speaker_0]
+Mhm. Und, ähm, wenn ihr dann so 'nen Case habt, dann, ähm, wie, wie macht ihr das dann?
+Also angenommen, da hat jetzt jemand was reported und dann sind da jetzt, keine Ahnung,
+
+00:11:23,320 --> 00:11:30,820 [speaker_1]
+Wir, äh, legen die einmal in den, äh, E-Analyzer, um uns die ganzen Links rauszuziehen.
+
+00:11:30,829 --> 00:11:31,720 [speaker_0]
+Mhm.
+
+00:11:31,740 --> 00:11:47,820 [speaker_1]
+Und, äh, prüfen das einmal, äh, je nachdem, was das für Links sind, in der Sandbox, äh,
+was hinter dem Link steckt. Klicken da, äh, bisschen rum, um zu gucken, ob wir
+
+00:11:48,720 --> 00:11:48,730 [speaker_0]
+Mhm.
+
+00:11:48,780 --> 00:12:10,440 [speaker_1]
+Und schauen uns, äh, über Virus Total beziehungsweise URL Scan das Ganze einmal an,
+wie die Reputation der Seite ist. Und ... Was war das Dritte, was ich jetzt vergessen hab? Ach so,
+
+00:12:11,696 --> 00:12:15,876 [speaker_0]
+... Ah, okay, das heißt, dann machst du auch direkt 'ne Splunk Query?
+
+00:12:16,696 --> 00:12:17,336 [speaker_1]
+Ja.
+
+00:12:17,836 --> 00:12:30,956 [speaker_0]
+Ah, okay. Ähm, und wie würde dieses Splunk Query funktionieren? Dann würdest du da einfach den, äh,
+die URL reinpacken oder wie läuft das genau?
+
+00:12:33,316 --> 00:12:38,716 [speaker_1]
+Ich mein, du bist ja in der Dreierabteilung, den kann ich dir sehr wahrscheinlich einfach zeigen.
+
+00:12:41,116 --> 00:12:42,716 [speaker_0]
+Gerne.
+
+00:12:53,376 --> 00:13:40,796 [speaker_1]
+Ah, hier ist mein Port grad abgestürzt. Weil wir haben dafür, äh, an sich 'n Dash, äh,
+Dashboard mal bekommen, wo wir einfach nur die URL eintragen. Es ist aber, äh,
+
+00:13:40,816 --> 00:14:15,876 [speaker_0]
+Mhm. Okay, also du würdest quasi die URLs dann alle einmal in Splunk überprüfen. Und, ähm, was, äh,
+wie würde das dann quasi den Workflow von daran ausgehend beeinflussen? Also angenommen,
+
+00:14:15,936 --> 00:14:24,736 [speaker_1]
+Wenn alle URLs geblockt sind, äh, wird, äh, also ist erst mal, äh, durchatmen und alles ist gut.
+
+00:14:24,756 --> 00:14:26,396 [speaker_0]
+Mhm.
+
+00:14:26,456 --> 00:15:28,316 [speaker_1]
+Ich mach's dann noch gerne, dass ich einmal für den, äh, User, äh, schaue,
+ob wir irgendwelche Alarme, Alarme bekommen haben, äh, in Splunk. Äh, einmal für den User,
+
+00:15:28,336 --> 00:15:29,716 [speaker_0]
+Mhm.
+
+00:15:29,736 --> 00:15:33,316 [speaker_1]
+Dann, dann müssen wir de-definitiv eingreifen.
+
+00:15:33,356 --> 00:15:44,676 [speaker_0]
+Mhm. Okay, verstehe. Und, ähm, in welchen Tools würdet ihr das dann quasi noch checken?
+Also welche Tools sind da neben Splunk noch relevant?
+
+00:15:45,876 --> 00:15:49,236 [speaker_1]
+An sich das, äh, EDR.
+
+00:15:49,296 --> 00:15:50,476 [speaker_0]
+Was ist das?
+
+00:15:51,096 --> 00:15:54,996 [speaker_1]
+Es ist, äh, Tanium.
+
+00:15:55,116 --> 00:15:57,976 [speaker_0]
+Ähm, wa- was macht das genau also?
+
+00:15:58,016 --> 00:16:09,656 [speaker_1]
+Ach so, äh, an sich ist das Endpoint Detection Response. [tippt] Also eigentlich ein, äh,
+sehr aufgebohrter Virenschutz.
+
+00:16:09,696 --> 00:16:10,476 [speaker_0]
+Ah, okay.
+
+00:16:11,616 --> 00:16:16,576 [speaker_1]
+Der Möglichkeiten hat, ein paar mehr Dinge zu sehen als im Splunk.
+
+00:16:16,596 --> 00:16:26,256 [speaker_0]
+[tippt] Okay. Ah, und das ist quasi so 'ne Software, die hier on premise läuft, schätze ich mal, ne?
+
+00:16:26,296 --> 00:16:26,306 [speaker_1]
+Ja.
+
+00:16:26,376 --> 00:16:26,916 [speaker_0]
+Okay.
+
+00:16:26,956 --> 00:16:28,165 [speaker_1]
+Jo.
+
+00:16:28,196 --> 00:16:46,896 [speaker_0]
+Ja, okay, spannend. Ähm, was haben wir denn eigentlich alles für Software? Also wir haben ja Splunk,
+um unsere Logs zu sammeln. Und dann haben wir noch dieses Titanium, was quasi uns dabei hilft,
+
+00:16:48,216 --> 00:17:06,356 [speaker_1]
+Ja, e-einmal, äh, Splunk, die EDR. Wir haben noch, äh, den klassischen Virenschutz, äh,
+und unsere ganzen, äh, unsere ganze Sicherheitshardware und hast du nicht gesehen.
+
+00:17:06,376 --> 00:17:08,496 [speaker_0]
+Mhm.
+
+00:17:09,636 --> 00:17:17,826 [speaker_1]
+[klack] Äh, wir müssen an sich auch einfach nur die Logs raus, also administrieren tun wir das.
+
+00:17:19,176 --> 00:17:21,356 [speaker_0]
+Mhm.
+
+00:17:23,416 --> 00:17:42,236 [speaker_1]
+Und da würd ich tatsächlich sagen, sind wir auch, äh, dann auch schon im Incident Response, äh,
+bloß, wo uns die KI, glaub ich, nicht mehr allzu viel helfen kann. Das wär dann schon eher
+
+00:17:43,236 --> 00:18:08,295 [speaker_0]
+Mhm. Wenn wir jetzt noch mal, ähm, auf dieses Tool zurückgehen, ähm,
+was quasi mein Word-Dokument grad beschreibt. Äh, welche Anbindung bräuchte man denn dann?
+
+00:18:09,256 --> 00:18:10,716 [speaker_1]
+Mhm.
+
+00:18:10,756 --> 00:18:17,676 [speaker_0]
+Dann bräuchte man wahrscheinlich noch irgendwie 'ne ServiceNow-Anbindung,
+um dann nachher die Tickets zu schreiben, schätze ich mal.
+
+00:18:19,860 --> 00:18:23,800 [speaker_1]
+... Das wolltest du, glaub ich, auch noch machen, oder?
+
+00:18:23,840 --> 00:18:49,460 [speaker_0]
+Mhm, also ich, ähm, ich frag einfach nur mal, was man, was quasi so das Ideal wäre.
+Also ich hab mir als Integration aufgeschrieben:
+
+00:18:51,300 --> 00:19:06,480 [speaker_1]
+Äh, da dann ist die Frage: [klickt] Äh, für ServiceNow, was möchtest du damit genau machen? Äh,
+Tickets erstellen?
+
+00:19:06,580 --> 00:19:27,680 [speaker_0]
+Ähm, die Frage ist dann quasi: Angenommen, du hast jetzt diesen Case aufgeklärt,
+wie dokumentierst du das dann? Also ich schätze ja mal, dass du dann wahrscheinlich, dass,
+
+00:19:27,820 --> 00:19:29,120 [speaker_1]
+Ja.
+
+00:19:29,180 --> 00:19:30,119 [speaker_0]
+Mhm.
+
+00:19:35,530 --> 00:19:49,980 [speaker_1]
+Gut, das seh ich wohl. Du hast ja aber auch 'n Projekt. Ich glaub,
+alleine 'ne Anbindung an das SIEM-Modul und das ServiceNow dauert ja schon auch.
+
+00:19:50,160 --> 00:20:09,280 [speaker_0]
+[lacht] Ja, ich mein, äh, ob man davon dann alles umsetzt, ist natürlich 'ne andere Sache,
+aber ich mein, das, das ist jetzt quasi so die, das Ideal. Ähm, also nicht,
+
+00:20:09,320 --> 00:20:37,049 [speaker_1]
+Mhm. Wär natürlich schön, wenn, äh, wenn ich den Report, äh, dann auch, äh, noch mal geprüft habe,
+ich einfach sagen kann: Alles klar, abschicken.
+
+00:20:37,080 --> 00:20:47,350 [speaker_0]
+Mhm. Ähm, w, in welchem, ähm, welchem Tool steht denn das Ticket überhaupt drin,
+wenn der Sparkassenmitarbeiter das quasi gemeldet hat?
+
+00:20:48,720 --> 00:20:50,280 [speaker_1]
+Äh, SR plus.
+
+00:20:50,440 --> 00:21:05,780 [speaker_0]
+SR plus, okay. Okay, das heißt,
+der Sparkassenmitarbeiter schickt euch quasi 'ne Mail und dann müsst ihr dieses SR plus-Ticket
+
+00:21:05,820 --> 00:21:28,360 [speaker_1]
+Der Spark... Es kommt auf die Sparkasse drauf an. Ähm, teilweise kriegen wir,
+[Hintergrundgeräusch] meldet sich die Sparkasse beim, äh,
+
+00:21:30,240 --> 00:21:31,720 [speaker_0]
+Mhm, mhm.
+
+00:21:31,740 --> 00:21:38,060 [speaker_1]
+Wir bearbeiten das Ticket und geben das an den Service desk zurück und er schickt das dann an die
+Sparkasse zurück.
+
+00:21:38,400 --> 00:21:42,560 [speaker_0]
+Äh, was ist der Service desk? Ist das bei uns oder bei der Sparkasse?
+
+00:21:42,620 --> 00:21:43,640 [speaker_1]
+Das ist bei uns.
+
+00:21:43,720 --> 00:21:45,860 [speaker_0]
+Ah, okay.
+
+00:21:45,880 --> 00:21:49,500 [speaker_1]
+Weil manche Sparkassen noch so 'ne Sonderlücke haben.
+
+00:21:49,520 --> 00:21:50,340 [speaker_0]
+Okay.
+
+00:21:50,400 --> 00:21:51,420 [speaker_1]
+Die werden anders supportet.
+
+00:21:51,500 --> 00:22:03,320 [speaker_0]
+Das hei... Ja, [lacht] okay, ich verstehe. Also der Service desk,
+der eröffnet quasi dieses SR plus-Ticket und das kriegst du dann irgendwie per Mail. Wahrscheinlich:
+
+00:22:03,420 --> 00:22:04,000 [speaker_1]
+Ja.
+
+00:22:04,100 --> 00:22:23,860 [speaker_0]
+Ja, okay, versteh ich, versteh ich. Das heißt, man bräuchte,
+man bräuchte idealerweise direkt so 'ne SR plus-Integration. Das heißt,
+
+00:22:24,000 --> 00:22:25,000 [speaker_1]
+Ja.
+
+00:22:25,100 --> 00:22:28,750 [speaker_0]
+Oh, das wär, das wär cool, ne? Ja. [lacht]
+
+00:22:28,840 --> 00:22:42,720 [speaker_1]
+Äh, das Problem ist, äh, die Ticketbeschreibung ist so halb standardisiert. Standardisiert nach, äh,
+SIC-Compliance-Regeln-
+
+00:22:42,740 --> 00:22:42,840 [speaker_0]
+Mhm
+
+00:22:43,260 --> 00:23:04,420 [speaker_1]
+... aber, äh, nicht standardisiert, äh, für das tägliche Nutzen,
+weil da steht sehr viel Bla bla drin. Und du musst dir die, äh,
+
+00:23:04,440 --> 00:23:21,860 [speaker_0]
+Mhm. Ähm, wie sieht denn so 'n Ticket überhaupt aus? Also, we..., du sagst,
+dass es nach Compliance-Richtlinien, äh, stark vorgegeben. Was, äh,
+
+00:23:21,880 --> 00:23:24,760 [speaker_1]
+Ich kann mal kurz gucken, ob ich eins finde.
+
+00:23:24,840 --> 00:23:37,260 [speaker_0]
+Jo, das wär super.
+
+00:23:37,280 --> 00:23:41,100 [speaker_1]
+Wie lange Zeit hast du für das Projekt?
+
+00:23:41,460 --> 00:23:54,140 [speaker_0]
+Ähm, also mein Vertrag ist aktuell befristet bis Ende Juni,
+aber letztlich kann ich den auch noch verlängern.
+
+00:23:54,160 --> 00:24:04,780 [speaker_1]
+Mhm. Und das ist, soweit ich weiß, für deine, äh, Masterarbeit?
+
+00:24:04,920 --> 00:24:17,940 [speaker_0]
+Ja, genau.
+Also meine Masterarbeit geht mehr um Phishing Detection und dieses Tool wäre quasi so 'ne Ergänzung
+
+00:24:18,840 --> 00:24:29,276 [speaker_1]
+So, sorry....M-muss es am Ende w-wirklich funktionieren oder reicht es,
+wenn du das einfach nur sehr genau aufgeschrieben hast für deine Masterarbeit?
+
+00:24:29,376 --> 00:24:33,196 [speaker_0]
+Ähm, also dieses Tool hat mit der Masterarbeit an sich nichts zu tun.
+
+00:24:33,256 --> 00:24:33,836 [speaker_1]
+Okay.
+
+00:24:35,076 --> 00:24:49,856 [speaker_0]
+Genau, das ist-- das wäre nur was, was für die FI interessant wäre, aber nicht für meinen Prof.
+[lacht]
+
+00:24:49,916 --> 00:24:59,756 [speaker_1]
+Die, die haben jetzt übers Wochenende das Design der Plus geändert. Das heißt,
+ich muss erst mal eben schauen-
+
+00:24:59,816 --> 00:25:00,596 [speaker_0]
+Alles gut.
+
+00:25:00,676 --> 00:25:01,896 [speaker_1]
+Was ich hier gemacht habe.
+
+00:25:01,916 --> 00:25:05,416 [speaker_0]
+Alles gut.
+
+00:25:05,436 --> 00:25:30,676 [speaker_1]
+[tippt] Hier nehmen wir doch mal den. Der sieht doch auf den ersten Blick richtig toll aus.
+
+00:25:30,696 --> 00:25:55,596 [speaker_0]
+Mhm. Okay, das muss ich mal groß machen. "Sehr geehrte Damen und Herren,
+Anwender meldet einen potenziellen Sicherheitsvorfall." Mhm. Wann trat das Event auf? An welchen...
+
+00:25:55,676 --> 00:25:56,416 [speaker_1]
+Ja, genau.
+
+00:25:56,516 --> 00:26:19,756 [speaker_0]
+Ah, okay, interessant. In welchem TS-Rechner war es der Anmelder angemeldet? Äh,
+via Provinzial-Laptop angemeldet. Okay. Wie lautet die Meldung? Okay,
+
+00:26:19,816 --> 00:26:30,356 [speaker_1]
+Ja, äh, manchmal ist auf dem Provinzial-Laptop noch mit was drauf. Ist eher selten,
+dass es ein Provinzial-Laptop ist.
+
+00:26:30,416 --> 00:26:58,436 [speaker_0]
+Ja. Welch-- Was ist passiert? Verdächtige Mail im Postfach ZGG-Versicherungsagentur. Mhm. Warum?
+Ähm. Okay, das heißt, das ist quasi, was der Mitarbeiter ausfüllt oder macht das, äh,
+
+00:26:58,476 --> 00:27:00,476 [speaker_1]
+Das macht der Service-Desk.
+
+00:27:00,596 --> 00:27:11,816 [speaker_0]
+Ah, okay, und der Mitarbeiter sagt einfach nur: "Hey, das ist komisch. Hier ist die EML, EML-Datei.
+Guckt euch das mal an beim Service-Desk" und die machen das dann?
+
+00:27:11,876 --> 00:27:18,396 [speaker_1]
+Ja, die machen so, so 'ne Erstanalyse und schicken das dann an uns weiter.
+
+00:27:18,936 --> 00:27:34,876 [speaker_0]
+Jo, okay. Hm, wie geht das dann unten weiter? Okay, das war's schon.
+
+00:27:34,976 --> 00:27:52,936 [speaker_1]
+Ja, letzten Endes geht hier, dass es im, äh,
+in einem Gruppenpostfach eine Mail auf gelesen gestanden hat, die, äh,
+
+00:27:52,996 --> 00:27:53,296 [speaker_0]
+Ja.
+
+00:27:53,376 --> 00:28:07,036 [speaker_1]
+Aber er geht davon aus,
+dass jemand anderer die Mail gelesen hat und gleich auch auf den Link geklickt hat.
+
+00:28:07,656 --> 00:28:15,816 [speaker_0]
+Okay, und da haben wir dann jetzt, wenn du weiter runterscrollst,
+quasi als Anhang die EML-Datei noch?
+
+00:28:15,856 --> 00:28:26,396 [speaker_1]
+Die kommt, äh, die EML-Datei kommt nicht immer per Anhang. Die wird, äh,
+auch per Mail noch mal an uns versendet.
+
+00:28:26,476 --> 00:28:34,716 [speaker_0]
+Oh, okay. Boah, okay, das hört sich, äh, sehr Flickenteppich-mäßig an.
+
+00:28:36,596 --> 00:28:37,436 [speaker_1]
+Ja.
+
+00:28:38,796 --> 00:28:39,716 [speaker_0]
+[lacht] Ja.
+
+00:28:40,716 --> 00:28:53,516 [speaker_1]
+Vor allem, wenn die Leute dann auch die, die, äh, die Prozesse, die wir haben,
+nicht einhalten und man recherchieren muss, wie der eigentliche Prozess gewesen wäre.
+
+00:28:53,596 --> 00:29:16,136 [speaker_0]
+Mhm. Okay, warte mal, da muss ich jetzt mal kurz in mein Dokument schauen, wo wir grade sind. Okay,
+ähm, aber also der Idealfall wäre quasi auch, dass, ähm,
+
+00:29:16,176 --> 00:29:17,186 [speaker_1]
+Ja.
+
+00:29:17,186 --> 00:29:27,096 [speaker_0]
+Ja, okay. Und, äh, dieser Outlook-Report-Button, was müsste der dann genau machen? Ähm,
+würde der dann quasi... Ja, erzähl ruhig.
+
+00:29:27,996 --> 00:29:41,716 [speaker_1]
+Äh, der müsste die Original-Mail, äh, in ein ZIP-Archiv packen,
+das Ganze mit einem Passwort verschlüsseln und an unsere E-Mail-Adresse senden.
+
+00:29:41,796 --> 00:29:46,496 [speaker_0]
+Mhm, und dann kriegt das der Service-Desk oder direkt ihr schon?
+
+00:29:46,536 --> 00:29:47,876 [speaker_1]
+Direkt wir.
+
+00:29:47,956 --> 00:29:55,656 [speaker_0]
+Ach so, okay. Also dann würde man quasi diesen Service-Desk-, äh, Schritt überspringen.
+
+00:29:55,816 --> 00:30:04,856 [speaker_1]
+Ja, die, äh, das Ticket an den Service-Desk... Wäre natürlich schön, wenn's dafür auch-
+
+00:30:05,036 --> 00:30:17,416 [speaker_0]
+Ah, okay, ich verstehe. Also einmal, es gibt quasi zwei Dinge: Es gibt einmal das Ticket,
+was an den Service-Desk gehen muss, und dann gibt's die Mail, die direkt an euch gehen muss,
+
+00:30:17,536 --> 00:30:18,236 [speaker_1]
+Ja.
+
+00:30:18,376 --> 00:30:25,376 [speaker_0]
+Ah, okay, verstehe. Das heißt, dieses, äh,
+dieser Outlook-Button müsste quasi irgendwie beides machen können?
+
+00:30:30,232 --> 00:30:47,652 [speaker_1]
+... aber ich, da ich die Prozesse der Sparkasse natürlich jetzt nicht kenne, weiß ich nicht, äh,
+ob wir da nicht einen Sparkassenprozess aushebeln würden. Weil ich nicht weiß:
+
+00:30:47,692 --> 00:30:48,872 [speaker_0]
+Mhm. Okay.
+
+00:30:48,882 --> 00:30:50,032 [speaker_1]
+Für die Analyse.
+
+00:30:51,132 --> 00:31:04,222 [speaker_0]
+Mhm, okay. Das heißt, es könnte sein, dass sie den erst anrufen müssen und dann sagt er: "Okay,
+du darfst mit dem Outlook-Report-Button das Ganze reporten."
+
+00:31:04,312 --> 00:31:04,552 [speaker_1]
+Ja.
+
+00:31:05,452 --> 00:31:54,252 [speaker_0]
+Okay, ich mein, das wär, würde man ja hinkriegen. Okay, das heißt,
+dann würde einmal dieses Ticket erstellt werden und dann würdet,
+
+00:31:54,272 --> 00:31:55,642 [speaker_1]
+Mhm.
+
+00:31:55,772 --> 00:32:21,032 [speaker_0]
+Und dann guckst du dir quasi, ja, guckst du dir alles an.
+Wahrscheinlich viel auch hier diese Authentication Signals, also DMARC, DKIM, SPF. Aber ich glaub,
+
+00:32:21,072 --> 00:32:21,872 [speaker_1]
+Ja.
+
+00:32:21,892 --> 00:32:23,352 [speaker_0]
+Mhm.
+
+00:32:25,352 --> 00:32:36,652 [speaker_1]
+Und du bräuchst wahrscheinlich auch 'ne, äh, Anbindung zur Sandbox, oder nicht, wenn du da, äh,
+Anhänge hochladen möchtest?
+
+00:32:36,672 --> 00:32:40,322 [speaker_0]
+Mhm. Genau.
+
+00:32:40,371 --> 00:32:41,802 [speaker_1]
+Ich hör heute die Schlagbohrer nicht.
+
+00:32:43,032 --> 00:32:45,452 [speaker_0]
+Nö. [lacht]
+
+00:32:45,462 --> 00:32:45,462 [speaker_1]
+Cool.
+
+00:32:45,552 --> 00:33:00,382 [speaker_0]
+Ähm, jo, okay. Genau, Sandbox, äh, Anbindung, Splunk-Anbindung für URLs gegebenenfalls. Ähm, genau.
+
+00:33:00,382 --> 00:33:27,672 [speaker_1]
+Und dann gibt's natürlich auch noch das Problem, dass, äh, we- wenn es sehr stark danach aussieht,
+dass es, äh, Personalunterlagen oder so was sind. Irgendwelche Unterlagen, äh, die der, äh,
+
+00:33:27,752 --> 00:33:29,792 [speaker_0]
+Jo, mhm.
+
+00:33:31,372 --> 00:33:48,792 [speaker_1]
+Genau das Gleiche gilt für, äh, E-Mail-Adress, äh, Quatsch, nicht E-Mail-Adressen. Link,
+wo zum Beispiel ein Punkt intern mit bei ist, wo es heißt: Okay, das ist, äh, 'ne interne, äh,
+
+00:33:48,892 --> 00:33:58,552 [speaker_0]
+Ja. Mhm. Das heißt,
+in solchen Fällen würdet ihr das einfach gar nicht bei VirusTotal erst hochladen?
+
+00:33:58,992 --> 00:33:59,562 [speaker_1]
+Nein.
+
+00:33:59,612 --> 00:34:02,732 [speaker_0]
+Mhm. Okay, ich verstehe.
+
+00:34:02,742 --> 00:34:14,512 [speaker_1]
+Bei internen Domains müssen wir dann den Link einmal komplett auseinandernehmen, zu gucken, ob,
+ist da irgendwas Obfuskierteres bei,
+
+00:34:14,532 --> 00:34:16,452 [speaker_0]
+Mhm.
+
+00:34:17,372 --> 00:34:23,432 [speaker_1]
+Weil da würde auch die Sandbox natürlich nichts bringen,
+weil die ja keinen Zugriff auf interne Ressourcen hat.
+
+00:34:25,392 --> 00:34:27,772 [speaker_0]
+Gibt's denn noch, ähm-
+
+00:34:28,212 --> 00:34:30,772 [speaker_1]
+Also Lizenz runterschrauben.
+
+00:34:30,852 --> 00:34:35,932 [speaker_0]
+Gäb's denn irgendwelche Sandboxes, die on premise laufen könnten?
+
+00:34:41,392 --> 00:34:42,452 [speaker_1]
+Gäb's bestimmt.
+
+00:34:44,032 --> 00:34:49,312 [speaker_0]
+Wenn man so was hätte, wär das ja voll der Game Changer, oder?
+
+00:34:51,932 --> 00:34:58,152 [speaker_1]
+Das kann ich auch für eine haben. Hab ich bisher nie gebraucht.
+
+00:34:58,192 --> 00:35:13,592 [speaker_0]
+Mhm. Gut, ich mein, in manchen Fällen kann man das dann vielleicht hochladen,
+aber wenn man halt eine On-Prem-Sandbox hätte,
+
+00:35:13,952 --> 00:35:15,792 [speaker_1]
+Mhm.
+
+00:35:15,832 --> 00:35:41,412 [speaker_0]
+Das wär vielleicht was. Oder auch das mit den URL-Checks. Vielleicht könnte man ...
+vielleicht gibt's ja so was auch irgendwie, dass man da 'ne Offline-Datenbank hat,
+
+00:35:45,692 --> 00:36:07,692 [speaker_1]
+Ja, i-i-ich sehe deinen Punkt, dass, äh, um da viel zu sagen zu können,
+da bin ich einfach noch nicht lange genug dabei, warum sich damals dafür entschieden worden ist.
+
+00:36:07,832 --> 00:36:37,112 [speaker_0]
+Okay, fair. Fair, das kriegen wir schon raus. Okay, ähm, dann sagen wir mal, angenommen,
+die Analyse ist komplett fertig. Du weißt genau,
+
+00:36:38,496 --> 00:37:13,216 [speaker_1]
+... Wenn nichts ist, würd ich das Ticket einfach nur, äh, auf geschlossen setzen und sagen: äh,
+alles gut, äh, wurd alles blockiert, können ganz normal weiterarbeiten. Bei, äh, wenn, äh,
+
+00:37:13,236 --> 00:37:14,176 [speaker_0]
+Mhm.
+
+00:37:14,196 --> 00:37:26,825 [speaker_1]
+bei, äh, größeren Fällen muss das Ganze als Sicherheitsvorfall dokumentiert werden,
+um weitere Response-Maßnahmen durchgeführt werden, wenn jetzt zum Beispiel
+
+00:37:26,836 --> 00:37:27,216 [speaker_0]
+Mhm.
+
+00:37:27,276 --> 00:37:31,056 [speaker_1]
+Äh, irgendwie verdächtige Dateien.
+
+00:37:31,256 --> 00:37:42,356 [speaker_0]
+Und, ähm, in den Fällen, wie funktioniert das dann genau?
+Also musst du dann quasi so 'n Report schreiben auch, oder?
+
+00:37:42,656 --> 00:37:51,016 [speaker_1]
+Bei, äh, wenn's wirklich, äh, verdächtige Aktivitäten gab oder bei, äh, false positives?
+
+00:37:51,456 --> 00:37:54,676 [speaker_0]
+Äh, in beiden Fällen.
+
+00:37:54,696 --> 00:38:02,196 [speaker_1]
+Bei false positive muss ich keinen Report schreiben, bei echten Fällen, wo wirklich
+was passiert ist, ja schon.
+
+00:38:02,236 --> 00:38:05,036 [speaker_0]
+Und was steht dann in dem Report alles drin?
+
+00:38:06,956 --> 00:38:26,526 [speaker_1]
+Äh, da steht drin: Was ist passiert? Wann wurde es gemeldet? Was hab ich alles überprüft,
+um auszugehen, äh, auszuschließen, dass ich nichts übersehen hab? Und, äh,
+
+00:38:26,556 --> 00:38:32,916 [speaker_0]
+Mhm. Ah, okay. Und das schreibst du dann manuell wahrscheinlich, ne?
+
+00:38:32,996 --> 00:38:33,716 [speaker_1]
+Ja.
+
+00:38:33,836 --> 00:39:00,816 [speaker_0]
+Jo. Ja, okay, versteh ich. Okay. Ja. Mhm. Und diese Artefakte aus der Analyse,
+stehen die dann auch in dem Report drin? Also zum Beispiel, äh, hier DMARC und DKIM,
+
+00:39:01,836 --> 00:39:11,216 [speaker_1]
+Bei DMARC und DKIM, äh, das schreib, hab ich tatsächlich noch nie reingeschrieben,
+weil das meistens nicht wirklich aussagekräftig ist.
+
+00:39:11,296 --> 00:39:11,876 [speaker_0]
+Jo.
+
+00:39:12,556 --> 00:39:31,456 [speaker_1]
+Das, was reinkommt, sind, äh, IOCs, wie irgendwelche URLs, was dahinter dann wirklich passiert ist,
+wenn wir 'n HTML-Phisher haben oder, äh, meinetwegen Ausführung von Mimikatz, wenn man, äh,
+
+00:39:32,516 --> 00:39:32,896 [speaker_0]
+Mhm.
+
+00:39:32,956 --> 00:39:38,556 [speaker_1]
+Und irgendwelche, äh, Prozesszeilen, die mir aufgefallen sind.
+
+00:39:38,656 --> 00:39:54,876 [speaker_0]
+Mhm. Okay. Ähm, angenommen, wir hätten jetzt so 'n Tool, Tool.
+Würde das dann in 'nem Docker-Container laufen oder wie laufen generell diese On-Prem-Tools bei uns?
+
+00:39:55,096 --> 00:40:05,336 [speaker_1]
+Gute Frage. Äh, das kann ich dir nicht sagen.
+
+00:40:05,376 --> 00:40:05,705 [speaker_0]
+Okay.
+
+00:40:05,896 --> 00:40:13,116 [speaker_1]
+Da bist du auch grad nicht, wen ich dafür fragen sollte.
+
+00:40:13,156 --> 00:40:14,156 [speaker_0]
+Mhm.
+
+00:40:14,166 --> 00:40:19,256 [speaker_1]
+Weil ich mit Eigenentwicklung an sich nichts zu tun habe.
+
+00:40:19,316 --> 00:40:30,596 [speaker_0]
+Okay. Ähm, würde das dann quasi ein Single-Tenant-Tool sein oder ein Multi-Tenant-Tool?
+Wisst du das?
+
+00:40:33,156 --> 00:40:34,836 [speaker_1]
+Kann ich auch nicht sagen.
+
+00:40:34,896 --> 00:40:49,396 [speaker_0]
+Okay. Ähm, und sonst bezüglich, äh, so Sachen wie Role-based Access Control, ähm, kannst du dazu
+was sagen oder weißt du das auch nicht?
+
+00:40:51,516 --> 00:40:54,386 [speaker_1]
+Kann ich dir so auch ...
+
+00:40:54,416 --> 00:41:06,876 [speaker_0]
+Okay, also ich glaub, bei den vier, bei den meisten internen Tools hast du ja immer so 'n Button,
+äh, automatische Anmeldung, ne? Ich glaube, das ist wahrscheinlich so 'n LDAP-Ding.
+
+00:41:06,916 --> 00:41:08,256 [speaker_1]
+Mhm.
+
+00:41:08,376 --> 00:41:24,356 [speaker_0]
+Ja, okay.
+Und dann zieht der sich quasi das aus dem LDAP Directory und dann hast du da ganz viele Rollen und
+
+00:41:24,456 --> 00:41:25,216 [speaker_1]
+Ja.
+
+00:41:25,256 --> 00:41:33,056 [speaker_0]
+Mhm. Okay, ich merk schon, [lacht] sehr komplizierte Sache. Mhm, okay.
+
+00:41:33,096 --> 00:41:38,636 [speaker_1]
+Ja, also als ich vor 'm halben Jahr hier angefangen hab, ich hab ge- genauso geguckt wie du.
+
+00:41:38,676 --> 00:41:41,736 [speaker_0]
+Mhm. Ah, du bist auch noch nicht so lange hier, okay.
+
+00:41:41,776 --> 00:41:42,176 [speaker_1]
+Nee.
+
+00:41:43,016 --> 00:42:00,056 [speaker_0]
+Ja. Ja, ich, äh, bin schon seit 2024 bei der FI,
+aber erst seit November jetzt im Cyber Defense Center. Von daher, ja,
+
+00:42:00,076 --> 00:42:01,116 [speaker_1]
+Wo warst du vorher?
+
+00:42:02,356 --> 00:42:19,936 [speaker_0]
+Vorher war ich in der, ähm, vier fünf neun eins. Da haben wir so was wie Risk Op gemacht und so.
+Also wir haben quasi die Software für die Sparkasse entwickelt, die die da benutzen.
+
+00:42:19,996 --> 00:42:23,536 [speaker_1]
+Vier fünf neun eins.
+
+00:42:23,596 --> 00:42:31,176 [speaker_0]
+Ja. Ist alles 'n bisschen anders da als hier, also.
+
+00:42:31,216 --> 00:42:42,016 [speaker_1]
+Adressen, Liquiditätsrisiko und Op-Risk. Alles klar. Dacht mir überhaupt nichts.
+
+00:42:42,176 --> 00:43:09,928 [speaker_0]
+[lacht] ... Ja, okay. [atmet] Okay, also ich fand es auf jeden Fall sehr spannend,
+was du erzählt hast. Ich glaub, ich werd das alles einfach mal mitnehmen und, ähm,
+
+00:43:09,948 --> 00:43:11,308 [speaker_1]
+Mhm.
+
+00:43:11,448 --> 00:43:22,868 [speaker_0]
+Ähm, äh, kennst du jemanden, der dafür zuständig ist, Software extern einzukaufen?
+
+00:43:24,848 --> 00:43:37,908 [speaker_1]
+Ja, da ist die Frage: Äh, geht's um den Entscheider nach dem Motto, äh, wer entscheidet,
+dass wir die Software kaufen oder direkt den Bestellvorgang ausfüllt?
+
+00:43:38,508 --> 00:43:45,028 [speaker_0]
+Ich glaub, alle Stakeholder sind wichtig. Ja, ähm-
+
+00:43:45,048 --> 00:43:51,408 [speaker_1]
+Den A..., äh, Einkauf durchspülen, hätte ich jetzt den Einkauf gesagt.
+
+00:43:51,448 --> 00:43:52,058 [speaker_0]
+Mhm.
+
+00:43:52,068 --> 00:43:58,388 [speaker_1]
+Frag mich jetzt nicht, wel..., äh, wie die OE dafür heißt.
+
+00:43:58,788 --> 00:44:16,688 [speaker_0]
+Mhm, also ich schätze ja mal,
+dass irgendwie unsere Abteilung so 'ne Art Antrag stellen würde oder unsere Abteilung sucht
+
+00:44:16,708 --> 00:44:17,988 [speaker_1]
+Mhm.
+
+00:44:18,048 --> 00:44:25,988 [speaker_0]
+So schätze ich mal, dass es ... Und die müssen dann irgendwie schauen,
+wie das Lizet-Lizenzbudget ist und so 'n Kram.
+
+00:44:26,088 --> 00:44:27,208 [speaker_1]
+Ja.
+
+00:44:27,228 --> 00:44:51,348 [speaker_0]
+Mhm. Weil Sinan hatte mir gesagt, dass der Jens Hocheimer, ich glaub,
+das ist der Leiter von der Einser, dass der grade nach einem neuen, äh, EDR-Tool schaut.
+
+00:44:53,788 --> 00:45:34,448 [speaker_1]
+Mhm. Also es kann, kann theoretisch sein, dass, äh, du das Tool baust, 'ne schöne EDR- äh,
+Einbindung machst und, äh, dir das danach das EDR wechselst.
+
+00:45:34,468 --> 00:45:55,428 [speaker_0]
+Also der Jens Hocheimer, der soll irgendwie grade mit Herstellern in Kontakt sein und, ähm,
+irgendwie für das Verfahren zuständig sein. Also ich glaub, sonst werd ich den einfach noch mal ...
+
+00:45:55,708 --> 00:45:56,088 [speaker_1]
+Ja, weiß-
+
+00:45:58,168 --> 00:46:03,148 [speaker_0]
+Äh, in welcher Abteilung bist du?
+
+00:46:04,768 --> 00:46:04,778 [speaker_1]
+Äh,
+
+00:46:05,688 --> 00:46:09,028 [speaker_0]
+Du bist grad irgendwie 'n bisschen abgehakt.
+
+00:46:11,188 --> 00:46:13,268 [speaker_1]
+Äh, ich wechsel das Handy.
+
+00:46:15,468 --> 00:46:19,748 [speaker_0]
+Grade ist ganz schlecht die mit deinem Audio.
+
+00:46:23,528 --> 00:46:25,188 [speaker_1]
+So, jetzt solltest du mich wieder besser verstehen.
+
+00:46:25,228 --> 00:46:26,908 [speaker_0]
+Jetzt ist besser, jo.
+
+00:46:26,968 --> 00:46:29,148 [speaker_1]
+Äh, fünf sieben zwei eins. Ich bin auch-
+
+00:46:29,208 --> 00:46:35,268 [speaker_0]
+Ach so, du bist auch bei DM. Ah, okay. Ja, okay, verstehe.
+
+00:46:35,308 --> 00:46:41,968 [speaker_1]
+Was, äh, über welche Themen hast du mit Sinan sonst so, äh, bei geredet?
+
+00:46:42,008 --> 00:46:55,868 [speaker_0]
+Boah, eigentlich nur über dieses Thema, worüber wir jetzt auch geredet haben. Und, äh,
+er hat mir dann quasi einfach einmal an 'nem Beispiel das Ganze mit Bildschirmübertragung gezeigt
+
+00:46:56,618 --> 00:46:57,168 [speaker_1]
+Mhm.
+
+00:46:57,188 --> 00:47:15,408 [speaker_0]
+[Geräusch] Ja. Äh, wie lange würdest du sagen, ist so die Bearbeitungszeit von einem Fall für dich?
+
+00:47:17,688 --> 00:47:25,428 [speaker_1]
+Wenn's false positive ist und alles blockiert ist, fünf Minuten.
+
+00:47:26,828 --> 00:47:34,928 [speaker_0]
+Und wenn das-- fünf Minuten, wenn's alles gut läuft und wenn nicht?
+
+00:47:35,488 --> 00:47:47,488 [speaker_1]
+Dann zwischen zehn Minuten, wenn man, äh, Benutzerkonten zurücksetzen muss und mehreren Tagen,
+wenn's wirklich 'n großer Fall ist.
+
+00:47:47,548 --> 00:47:53,448 [speaker_0]
+Mhm. Okay.
+
+00:47:55,148 --> 00:48:24,988 [speaker_1]
+[atmet] Wirklich interessant wird, äh, so 'n Tool ja dann, wenn's wirklich 'ne, äh,
+große Kampagne gibt, äh, wo man meinetwegen, äh, Hunderter Mails, äh, zugesendet bekommt, die, äh,
+
+00:48:25,068 --> 00:48:25,548 [speaker_0]
+Ja.
+
+00:48:26,168 --> 00:48:30,448 [speaker_1]
+Wenn man das dann in einer Oberfläche zusammenfassen kann.
+
+00:48:30,508 --> 00:48:36,378 [speaker_0]
+Genau, also wenn du dann nicht quasi hundert Fälle hast, sondern eine Kampagne sozusagen, ne?
+
+00:48:36,528 --> 00:48:37,208 [speaker_1]
+Ja.
+
+00:48:37,748 --> 00:48:41,748 [speaker_0]
+Ähm, wie oft kommt das so vor, dass 'ne Kampagne kommt?
+
+00:48:43,668 --> 00:48:46,628 [speaker_1]
+Ich hatte bisher noch keine in dem halben Jahr.
+
+00:48:46,648 --> 00:48:47,407 [speaker_0]
+Mhm.
+
+00:48:51,568 --> 00:49:00,288 [speaker_1]
+... Ich hab auch bisher noch von keiner gehört, aber die wird's,
+die hat es bestimmt schon gegeben und die wird's auch wieder geben.
+
+00:49:00,868 --> 00:49:07,848 [speaker_0]
+Mhm. Und das ist quasi so das, äh, Schreckensszenario, dass das mal wiederkommt?
+
+00:49:07,908 --> 00:49:21,388 [speaker_1]
+Ja, weil dann einfach, äh, gefühlt fünf Analysten daran sitzen, irgendwelche, äh,
+Phishing-Mails zu analysieren. Und ja, da, das muss ja einfacher gehen.
+
+00:49:21,778 --> 00:49:40,608 [speaker_0]
+Ja, voll. Ähm, okay, wie sieht denn so 'ne Kampagne dann aus? Ist dann einfach nur der ...
+Also worin unterscheiden sich die Mails dann? Die sind ja wahrscheinlich sehr, sehr ähnlich,
+
+00:49:41,868 --> 00:49:50,388 [speaker_1]
+Das kommt ganz auf die Kampagne drauf an.
+Teilweise wird wirklich die Anrede "Sehr geehrte Damen und Herren" verwendet oder "Guten Tag".
+
+00:49:50,458 --> 00:49:51,928 [speaker_0]
+Mhm.
+
+00:49:52,048 --> 00:50:00,868 [speaker_1]
+Äh, Ihr, Ihr PIN ist abgelaufen. Klicken Sie auf diesen Link, um Ihre PIN zu erneuern.
+
+00:50:01,148 --> 00:50:01,628 [speaker_0]
+Mhm.
+
+00:50:01,688 --> 00:50:08,548 [speaker_1]
+Weil, äh, oft ist es exakt der gleiche Link, der an, äh, tausende Mitarbeiter versendet wird.
+
+00:50:08,608 --> 00:50:14,218 [speaker_0]
+Mhm. Also wirklich exakt die gleiche Mail, die an tausende Mitarbeiter gesendet wird?
+
+00:50:14,268 --> 00:50:15,348 [speaker_1]
+Ja.
+
+00:50:15,388 --> 00:50:21,858 [speaker_0]
+Okay, und dann müsst ihr erst mal gucken: Okay,
+sind die Mails alle wirklich gleich oder sind da doch Unterschiede drin und das wisst ihr nicht
+
+00:50:22,208 --> 00:50:22,418 [speaker_1]
+Ja.
+
+00:50:22,508 --> 00:50:25,188 [speaker_0]
+Ei, Scheiße! Okay.
+
+00:50:25,198 --> 00:50:40,608 [speaker_1]
+Und ich Angreifer, ich würd die Mails immer so ganz leicht unterschiedlich machen,
+weil wegen auch von unterschiedlichen, äh, Absendern.
+
+00:50:40,668 --> 00:50:57,548 [speaker_0]
+Ja, versteh ich. Oh, Scheiße! Ja, also eigentlich ist das das Hauptproblem,
+wäre eigentlich so das Szenario, dass man 'ne Kampagne hat,
+
+00:50:57,628 --> 00:50:57,828 [speaker_1]
+Ja.
+
+00:50:58,488 --> 00:51:08,088 [speaker_0]
+Das ist so das, das Hauptproblem. Und diese Fälle, wo eine Mail kommt, die,
+wo nichts draufgeklickt wurde, das ist eigentlich gar nicht mal so 'n großes Problem so an sich.
+
+00:51:09,008 --> 00:51:18,908 [speaker_1]
+Nee, si..., w-wenn davon fünf die Woche kommen, ja, dann hab ich zwanzig Minuten investiert.
+
+00:51:18,977 --> 00:51:22,148 [speaker_0]
+Mhm. Kein großes Ding.
+
+00:51:22,228 --> 00:51:23,158 [speaker_1]
+Überhaupt nicht.
+
+00:51:23,168 --> 00:51:23,178 [speaker_0]
+Mhm.
+
+00:51:23,188 --> 00:51:33,948 [speaker_1]
+Und selbst mit, äh, selbst mit dem besten Tool der Welt, ähm, brauch,
+brauch ich vielleicht nicht zwanzig Minuten, sondern nur fünfzehn, weil ich ein bisschen
+
+00:51:34,028 --> 00:52:20,648 [speaker_0]
+Ja, okay, also das Hauptproblem ist quasi, dass das mit den Kampagnen. Kampagnen. Okay, verstehe.
+Ja, das ist 'ne gute Erkenntnis, würd ich mal sagen. Mhm. Ja, voll spannend, ey. Ich glaube,
+
+00:52:21,308 --> 00:53:05,448 [speaker_1]
+Na, natürlich, äh, es gibt 'ne Menge Software, die, äh, anhand verschiedenster Kriterien, äh,
+direkt am Mail-Gateway sitzt, um die Sachen zu prüfen. Denn früher hab ich, äh,
+
+00:53:05,468 --> 00:53:06,588 [speaker_0]
+Mhm.
+
+00:53:06,608 --> 00:53:13,948 [speaker_1]
+Da setz ich mich selbst mit meinem Wissen 'ne halbe Stunde hin,
+überleg mir 'ne neue Kampagne und dann komm ich da durch.
+
+00:53:15,408 --> 00:53:31,908 [speaker_0]
+Okay, das heißt, diese vollautomatisierten Systeme, die bedür, bedarfen,
+das eigentlich im Bedarf immer noch, dass 'n Mensch das quasi, äh,
+
+00:53:31,988 --> 00:53:33,068 [speaker_1]
+Ja.
+
+00:53:33,128 --> 00:53:53,668 [speaker_0]
+Ja, versteh ich. Das heißt, man, angenommen, man hätte jetzt so 'ne Software,
+die quasi diese automatisierte Kampagnendetektion machen könnte,
+
+00:53:53,708 --> 00:54:48,168 [speaker_1]
+Ja, man muss ja, äh, auch gucken, äh, gibt es ... Äh, nehmen wir mal an, äh, ich hab in meinem, äh,
+Gateway jetzt 'ne, äh, Kampagne detektiert. Davon sind dreihundert Mails abgeblockt worden, äh,
+
+00:54:49,048 --> 00:55:20,328 [speaker_0]
+Okay, okay. Ja, verstehe. Ja, okay, warte mal, ich geh noch mal kurz meine,
+meine Checkliste hier durch. Ähm, okay, ich glaube,
+
+00:55:20,848 --> 00:55:21,728 [speaker_1]
+Ja.
+
+00:55:21,848 --> 00:55:37,468 [speaker_0]
+Okay. Das ist ja schon mal 'ne gute Erkenntnis. Nicht, dass man hier irgendwas baut,
+was gar keinen Mehrwert bringt. Ääähm, okay, ja, ich glaube, dann haben wir das eigentlich alles.
+
+00:55:38,148 --> 00:55:38,968 [speaker_1]
+Gut.
+
+00:55:39,028 --> 00:55:42,408 [speaker_0]
+Ja, perfekt. Äh, vielen Dank für deine Zeit und-
+
+00:55:42,908 --> 00:55:43,388 [speaker_1]
+Sehr gerne.
+
+00:55:43,408 --> 00:55:53,848 [speaker_0]
+-deine Erkenntnisse.
+Und dann wünsch ich dir noch einen schönen Arbeitstag und einen erfolgreichen Tag und man sieht sich
+
+00:55:53,888 --> 00:55:55,648 [speaker_1]
+Jipp, danke, dir auch!
+
+00:55:55,708 --> 00:56:17,967 [speaker_0]
+Alles klar. Ciao.

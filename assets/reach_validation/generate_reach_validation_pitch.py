@@ -11,8 +11,8 @@ from pptx.util import Inches, Pt
 
 
 ROOT = Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "idea_description" / "reach_validation" / "triagent_reach_validation_pitch.pptx"
-SCREENSHOT = ROOT / "Dashboard.png"
+OUTPUT = ROOT / "assets" / "reach_validation" / "triagent_reach_validation_pitch.pptx"
+SCREENSHOT = ROOT / "assets" / "screenshots" / "Dashboard.png"
 
 
 COLORS = {

@@ -10,7 +10,7 @@ Core workflow:
 - Let analysts review and resolve reported emails with full context
 - Export evidence reports and compliance-friendly audit history
 
-![Triagent dashboard](./Dashboard.png)
+![Triagent dashboard](./assets/screenshots/Dashboard.png)
 
 ## Repo Structure
 
@@ -18,6 +18,7 @@ Core workflow:
 - `frontend/`: Next.js analyst workspace (uploads, in-tray, dashboard, admin)
 - `outlook-addin/`: Office.js taskpane add-in
 - `infra/`: Docker Compose + env templates
+- `assets/`: pitch decks, one-pagers, technical docs, and source screenshots
 
 ## Quickstart (Local)
 
