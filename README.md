@@ -299,7 +299,7 @@ Operational docs:
 
 ## Public Demo Status
 
-This repository is public as a personal portfolio asset and product demo. External code contributions are not being accepted at this stage.
+This repository is public as a personal portfolio asset and product demo. Non-commercial use is allowed under the project license, but external code contributions are not being accepted at this stage.
 
 - See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the current contribution policy.
 - Report suspected vulnerabilities privately through the process in [`SECURITY.md`](./SECURITY.md).
@@ -329,6 +329,6 @@ Prototype-grade:
 
 ## License
 
-This project is proprietary and all rights are reserved. No permission is granted to use, copy, modify, distribute, or create derivative works from this repository except with prior written permission from the copyright holder.
+Triagent is licensed under the [PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0/).
 
-See [`LICENSE`](./LICENSE).
+Non-commercial use, copying, modification, and distribution are permitted under that license. Commercial use, resale, hosted commercial offerings, or use for commercial advantage require separate permission from the copyright holder. See [`LICENSE`](./LICENSE).
