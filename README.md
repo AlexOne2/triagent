@@ -1,106 +1,293 @@
 # Triagent
 
-AI-assisted, on-prem phishing triage for regulated environments.
+**Local-first phishing triage for teams that need evidence, speed, and control.**
 
-Triagent helps SOC teams prioritize the right cases instead of reviewing every reported email in isolation. It surfaces the highest-risk cases first, keeps analysts in the loop for resolution, and generates evidence-first reports with a complete audit trail.
+Triagent is an on-prem phishing investigation workspace for SOC teams, internal security teams, and regulated environments. It turns reported emails into structured cases with parsed headers, authentication results, URLs, attachments, transmission hops, analyst decisions, and exportable evidence.
 
-Core workflow:
-- Ingest reported emails from manual uploads or the Outlook add-in
-- Normalize headers, URLs, attachments, and message metadata
-- Let analysts review and resolve reported emails with full context
-- Export evidence reports and compliance-friendly audit history
+The goal is not to replace the analyst. The goal is to remove the repetitive parsing work so the analyst can make a faster, better-documented decision.
 
 ![Triagent dashboard](./assets/screenshots/Dashboard.png)
 
-## Repo Structure
+## Why Triagent?
 
-- `backend/`: FastAPI API + SQLAlchemy + Alembic
-- `frontend/`: Next.js analyst workspace (uploads, in-tray, dashboard, admin)
-- `outlook-addin/`: Office.js taskpane add-in
-- `infra/`: Docker Compose + env templates
-- `assets/`: pitch decks, one-pagers, technical docs, and source screenshots
+Most reported phishing emails start as messy artifacts: forwarded messages, raw `.eml` files, Outlook submissions, odd headers, shortened links, and attachments that need careful handling. Triagent normalizes that evidence into one analyst-friendly case view.
 
-## Quickstart (Local)
+| What analysts need | What Triagent provides |
+| --- | --- |
+| Understand the message quickly | Details, rendered body, source, headers, attachments, URLs, and transmission in one workspace |
+| Verify sender authenticity | Structured SPF, DKIM, DMARC, ARC, DNS-derived record display, and raw-header fallback |
+| Track risky artifacts | Flag URLs, domains, senders, return paths, originating IPs, attachment names, and hashes |
+| Preserve auditability | Resolution history, case-scoped audit trail, hash-chained audit events, and evidence exports |
+| Keep sensitive mail on-prem | Docker Compose deployment with Postgres and MinIO, no mandatory cloud services |
 
-1) Copy env template:
+## Core Workflow
+
+1. Report an email through manual upload or the Outlook add-in.
+2. Triagent parses the message, headers, URLs, attachments, authentication data, and transmission path.
+3. Analysts inspect the case, flag artifacts, classify the incident, and resolve or reopen it.
+4. Triagent exports evidence as Markdown, PDF, JSON, IOC files, and audit records.
+
+## Highlights
+
+- **Email ingestion:** `.eml` and `.msg` uploads, multipart batch upload, and Outlook add-in submission.
+- **Authentication analysis:** SPF, DKIM, DMARC, ARC, sender domains, return-path domains, originating IP, rDNS, DNS record display, and raw authentication headers.
+- **URL triage:** Extracted URLs and domains with copy actions, per-artifact flags, and room for redirect-chain enrichment.
+- **Attachment triage:** Extracted attachment metadata, MD5/SHA-1/SHA-256 hashes, download support, and flaggable file names and hashes.
+- **Evidence exports:** Markdown, PDF, JSON, and IOC exports for analyst handoff and compliance review.
+- **Analyst workflow:** Resolution drawer, classification codes, notes, flagged artifacts, reopen flow, and audit history.
+- **Access control:** Session auth, RBAC roles, API keys for ingestion, and a first-pass LDAP integration for self-hosted teams.
+- **On-prem posture:** Compose-first stack with local Postgres and MinIO storage.
+
+## Screenshots
+
+### Queue
+
+![Triagent queue](./assets/screenshots/Queue.png)
+
+### Resolution
+
+![Triagent resolution flow](./assets/screenshots/ResolutionFlow.png)
+
+## Quickstart
+
+Clone the repository, create the local environment file, migrate the database, and start the stack:
 
 ```bash
 cp infra/.env.example infra/.env
-```
-
-The default local ports are controlled by:
-- `FRONTEND_PORT` (default `3000`)
-- `BACKEND_PORT` (default `8000`)
-
-2) Run migrations:
-
-```bash
 make migrate
-```
-
-3) Start services:
-
-```bash
 make dev
 ```
 
-4) (Optional) Seed local sample data:
+Open the app:
+
+- Analyst workspace: `http://localhost:3000/reports`
+- Login: `http://localhost:3000/login`
+- Backend API docs: `http://localhost:8000/docs`
+- Backend health check: `http://localhost:8000/health`
+
+Default local credentials:
+
+```text
+username: admin
+password: change-me
+```
+
+These defaults are for local development only. Change `ADMIN_PASSWORD`, `REPORTER_HASH_SALT`, database credentials, and MinIO credentials before any shared or externally reachable deployment.
+
+## Demo Data
+
+Seed a small local dataset:
 
 ```bash
 make seed
 ```
 
-5) (Optional) Import the synthetic gold corpus as ready-to-review evaluation cases:
+Import the synthetic gold corpus as ready-to-review evaluation cases:
 
 ```bash
 make import-synthetic SPLIT=gold
 ```
 
-Reset the local walkthrough state to a known curated dataset:
+Reset the local walkthrough stack to a deterministic demo state:
 
 ```bash
 make walkthrough-reset
 ```
 
-By default, `make walkthrough-reset` clears existing report and campaign data, removes stored report artifacts, clears audit history, and imports the synthetic `demo` split into a **mixed** walkthrough state: three intentionally chosen cases stay **OPEN** for live triage, while one malicious and one safe case arrive already resolved so you can show auditability and evidence export without extra clicks. Use `SPLIT=gold` when you want the broader evaluation set instead.
+The walkthrough reset imports curated synthetic cases, leaves a few reports open for live triage, and keeps resolved examples available for audit and export demonstrations.
 
-Open:
-- Analyst workspace: `http://localhost:${FRONTEND_PORT}/reports`
-- Login: `http://localhost:${FRONTEND_PORT}/login`
-- Backend docs: `http://localhost:${BACKEND_PORT}/docs` (default `http://localhost:8000/docs`)
-- Backend health: `http://localhost:${BACKEND_PORT}/health`
+## Repository Layout
 
-The in-repo frontend is the authenticated analyst workspace. Public marketing-site and lead-capture handling live outside this repository.
+```text
+backend/        FastAPI API, SQLAlchemy models, Alembic migrations, parser services
+frontend/       Next.js analyst workspace
+outlook-addin/  Office.js Outlook taskpane add-in
+infra/          Docker Compose stack and environment templates
+docs/           threat model, hardening, rollback, demo, and evaluation docs
+test_data/      synthetic phishing corpus and expected outputs
+assets/         screenshots, pitch materials, and research artifacts
+```
 
-If port `3000` is already in use, set a different `FRONTEND_PORT` in `infra/.env` and update `CORS_ORIGINS` accordingly.
+## Tech Stack
 
-## Development Defaults
+| Layer | Technology |
+| --- | --- |
+| Frontend | Next.js 14, React 18, TypeScript, Recharts |
+| Backend | FastAPI, SQLAlchemy, Alembic, Pydantic |
+| Database | PostgreSQL |
+| Object storage | MinIO |
+| Email parsing | Python email tooling, MSG parser service |
+| Outlook integration | Office.js add-in with Webpack |
+| Deployment | Docker Compose |
 
-This repository ships with local-development defaults for convenience:
+## Configuration
 
-- `ADMIN_USERNAME=admin`
-- `ADMIN_PASSWORD=change-me`
-- `MINIO_ROOT_USER=minioadmin`
-- `MINIO_ROOT_PASSWORD=minioadmin`
-- `REPORTER_HASH_SALT=change-me`
+Triagent reads local deployment settings from `infra/.env`. The template is `infra/.env.example`.
 
-These are local-development defaults only. Change them before any shared, persistent, or externally reachable deployment.
+Important local settings:
 
-## Product Positioning
+| Variable | Purpose |
+| --- | --- |
+| `FRONTEND_PORT` | Port for the Next.js app, default `3000` |
+| `BACKEND_PORT` | Port for the FastAPI app, default `8000` |
+| `DATABASE_URL` | Backend Postgres connection string |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Bootstrap admin account if no users exist |
+| `REPORTER_HASH_SALT` | Salt used to hash reporter identity |
+| `CORS_ORIGINS` | Allowed frontend origins |
+| `MINIO_*` | Object storage credentials and bucket |
+| `AUTH_LDAP_*` | Optional LDAP settings for self-hosted environments |
 
-Triagent is designed around analyst-centered phishing triage:
+If port `3000` is already in use, set a different `FRONTEND_PORT` and update `CORS_ORIGINS` accordingly.
 
-- AI-assisted scoring to prioritize suspicious emails
-- Rich email inspection across details, authentication, URLs, attachments, transmission, and raw headers
-- Analyst-in-the-loop resolution workflows
-- Automated evidence reports with artifacts, rationale, and audit history
-- On-prem deployment for regulated and sensitive environments
+## Authentication and RBAC
 
-The goal is not blind automation. The goal is faster, more consistent analyst decisions with full traceability.
+Triagent defaults to session-based RBAC:
 
-## Docs
+```text
+AUTH_MODE=session_rbac
+```
 
-The repository includes a small operational and security documentation set:
+Built-in roles:
+
+- `ADMIN`
+- `ANALYST`
+- `REVIEWER`
+- `READ_ONLY`
+- `INGESTOR`
+
+Core permission areas:
+
+- report read, ingest, resolve, reopen, and admin override
+- dashboard read access
+- user, role, and API key administration
+- audit read, verify, export, and retention operations
+
+LDAP can be enabled for small on-prem deployments that already operate a directory service. The initial LDAP integration is intentionally basic: it authenticates against LDAP, maps LDAP groups to Triagent roles, and syncs users into the local RBAC model.
+
+## Outlook Add-in
+
+The Outlook add-in lets users submit suspicious messages directly from Outlook.
+
+1. Edit `outlook-addin/config.json`:
+
+```json
+{
+  "backendUrl": "http://localhost:8000",
+  "apiKey": "create-an-ingestor-api-key-in-triagent",
+  "reporterSalt": "replace-for-real-deployments"
+}
+```
+
+2. Install dependencies and start the dev server:
+
+```bash
+cd outlook-addin
+npm install
+npm run dev
+```
+
+3. Trust the local development certificate:
+
+```bash
+npx office-addin-dev-certs install
+```
+
+4. Sideload `outlook-addin/manifest.xml` in Outlook.
+
+The add-in prefers raw file submission through `/api/report-msg` or `/api/report-eml` when the client supports it, and falls back to JSON submission through `/api/report`.
+
+## Evidence and Audit
+
+Per-report evidence exports:
+
+- `GET /api/reports/{report_id}/evidence.md`
+- `GET /api/reports/{report_id}/evidence.pdf`
+- `GET /api/reports/{report_id}/evidence.json`
+- `GET /api/reports/{report_id}/iocs.json`
+- `GET /api/reports/{report_id}/iocs.csv`
+
+Audit events are append-only and hash-chained with `prev_hash` and `event_hash` for tamper evidence. Audit metadata is redacted and size-bounded with `AUDIT_MAX_METADATA_BYTES`.
+
+Verify audit-chain integrity:
+
+```bash
+make audit-verify
+```
+
+Export an audit window to NDJSON:
+
+```bash
+make audit-export START=2026-02-01T00:00:00Z END=2026-02-20T23:59:59Z
+```
+
+Prune old exported audit rows beyond the retention policy:
+
+```bash
+make audit-prune
+```
+
+## API Surface
+
+Common endpoints:
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/auth/login` | Start a session |
+| `POST /api/auth/logout` | End a session |
+| `GET /api/auth/me` | Read current user context |
+| `POST /api/report-eml` | Upload one `.eml` report |
+| `POST /api/report-msg` | Upload one `.msg` report |
+| `POST /api/report-files` | Batch upload `.eml` / `.msg` files |
+| `GET /api/reports` | List reports |
+| `GET /api/reports/{report_id}` | Read one report with investigation details |
+| `POST /api/reports/{report_id}/resolve` | Resolve a case |
+| `POST /api/reports/{report_id}/reopen` | Reopen a case |
+| `GET /api/reports/{report_id}/attachments/{attachment_id}/download` | Download an extracted attachment |
+| `GET /api/reports/{report_id}/original-message/download` | Download the original submitted message |
+| `GET /api/dashboard/overview` | Dashboard metrics |
+| `GET /health` | Health check |
+
+OpenAPI docs are available locally at `http://localhost:8000/docs`.
+
+## Synthetic Corpus
+
+Triagent includes a synthetic corpus under `test_data/synthetic-corpus/` for repeatable demo and regression coverage.
+
+Generate or refresh samples:
+
+```bash
+python3 backend/scripts/generate_synthetic_corpus.py
+```
+
+Validate samples against the manifest:
+
+```bash
+python3 backend/scripts/validate_synthetic_corpus.py
+```
+
+Useful import commands:
+
+```bash
+make import-synthetic SPLIT=gold
+make import-synthetic SPLIT=gold REFRESH_EXISTING=1
+make remove-synthetic SPLIT=gold
+```
+
+## Operations
+
+Stop the local stack:
+
+```bash
+make down
+```
+
+Clear ingested mail data while keeping users, RBAC, and audit tables:
+
+```bash
+make reset-data
+```
+
+Operational docs:
 
 - [Threat model](./docs/security/threat-model.md)
 - [Deployment hardening guide](./docs/operations/hardening.md)
@@ -109,230 +296,31 @@ The repository includes a small operational and security documentation set:
 - [Sample investigation scenarios](./docs/evaluation/sample-investigations.md)
 - [Synthetic corpus scaffold](./test_data/synthetic-corpus/README.md)
 
-These documents are intentionally grounded in the current prototype. They describe the controls that exist today, the risks that remain, and the operating assumptions for a Compose-based deployment.
+## Current Status
 
-## Evaluation Fixtures
+Triagent is a working validation prototype for analyst-centered phishing triage.
 
-The repository now includes a scaffolded synthetic corpus under
-`test_data/synthetic-corpus/` for stable phishing-triage regression coverage.
+Implemented:
 
-Generate or refresh the sample set:
-
-```bash
-python3 backend/scripts/generate_synthetic_corpus.py
-```
-
-Validate the generated samples against their manifest:
-
-```bash
-python3 backend/scripts/validate_synthetic_corpus.py
-```
-
-Import the gold split into a local environment on demand:
-
-```bash
-make import-synthetic SPLIT=gold
-```
-
-Reset the local walkthrough stack to a deterministic state using the curated demo split:
-
-```bash
-make walkthrough-reset
-```
-
-Useful options:
-
-```bash
-make walkthrough-reset
-make walkthrough-reset SPLIT=gold
-make walkthrough-reset SPLIT=gold STATE=open
-make walkthrough-reset SPLIT=gold RESOLVED=1
-make walkthrough-reset SPLIT=gold KEEP_AUDIT=1
-make walkthrough-reset SPLIT=gold INCLUDE_SEED=1
-make walkthrough-reset SPLIT=gold OPEN_SAMPLE_IDS="cred_harvest_shortener_001 benign_vendor_portal_notice_001"
-```
-
-Refresh previously imported synthetic reports in place:
-
-```bash
-make import-synthetic SPLIT=gold REFRESH_EXISTING=1
-```
-
-Remove previously imported synthetic reports from a split:
-
-```bash
-make remove-synthetic SPLIT=gold
-```
-
-## Prototype Scope
-
-This repository is intended as a working validation prototype for phishing triage.
-
-Implemented in the prototype:
 - `.eml` and `.msg` ingestion
-- report evidence export
+- structured report detail views
+- URL, attachment, authentication, transmission, and raw-header inspection
 - analyst resolution workflow
-- RBAC and tamper-evident audit logging
-- Docker-based local deployment
+- evidence exports
+- RBAC, API keys, and audit logging
+- local Docker Compose deployment
+- Outlook add-in prototype
 
-Still prototype-grade / not production-complete:
-- deployment is Compose-first, not enterprise packaging
-- secrets management is local-config based
-- external integrations and enterprise SSO are not the focus of this repo
-- sample datasets and workflows are designed to demonstrate and evaluate the concept clearly
+Prototype-grade:
 
-## Authentication and RBAC
-
-- Auth mode defaults to `session_rbac`.
-- On backend startup, if no users exist and `ADMIN_USERNAME` / `ADMIN_PASSWORD` are set, an initial admin user is bootstrapped.
-- Login at `http://localhost:${FRONTEND_PORT}/login` using that admin user.
-- Legacy basic-auth bridge can be enabled/disabled with `AUTH_LEGACY_BASIC_ENABLED`.
-
-### Core permissions
-
-- `reports.read`, `reports.ingest`, `reports.resolve`, `reports.reopen`, `reports.admin_override`
-- `resolutions.read`, `dashboard.read`
-- `admin.users.read`, `admin.users.write`, `admin.roles.read`, `admin.api_keys.manage`
-- `audit.read`, `audit.export`, `audit.verify`, `audit.archive.manage`
-
-### Built-in roles
-
-- `ADMIN`, `ANALYST`, `REVIEWER`, `READ_ONLY`, `INGESTOR`
-
-## Outlook Add-in (Sideload)
-
-1) Update backend URL and API key:
-
-- Edit `outlook-addin/config.json`
-  - `backendUrl`
-  - `apiKey` (create one from Admin -> API Keys, role `INGESTOR`)
-  - `reporterSalt` is a local demo placeholder and should be replaced outside throwaway development environments
-  - Add-in prefers raw file submission when supported (`/api/report-msg` for MSG, `/api/report-eml` for EML), and falls back to JSON `/api/report` if raw file APIs are unavailable in the client.
-
-2) Install add-in deps and start dev server:
-
-```bash
-cd outlook-addin
-npm install
-npm run dev
-```
-
-3) Trust dev certificate (first time):
-
-```bash
-npx office-addin-dev-certs install
-```
-
-4) Sideload `outlook-addin/manifest.xml`:
-
-- **Windows (Outlook Desktop)**: File -> Manage Add-ins -> Upload My Add-in -> select the manifest.
-- **macOS (Outlook Desktop)**: Tools -> Accounts -> Advanced -> Custom Add-ins -> "+" -> add manifest.
-- **Outlook on the web**: Settings -> Manage add-ins -> Upload custom add-in.
-
-## Walkthrough Flow
-
-1) Login in the UI.
-2) Upload one or more `.eml` or `.msg` files from Uploads, or ingest through the add-in.
-3) Open a report, inspect details, authentication, URLs, attachments, transmission, and raw source.
-4) Resolve or reopen with analyst notes, classification, flagged artifacts, and audit history.
-5) Export report evidence as Markdown or PDF.
-6) Review dashboard metrics and admin/audit pages.
-
-## API (Backend)
-
-### Auth
-
-- `POST /api/auth/login`
-- `POST /api/auth/logout`
-- `GET /api/auth/me`
-
-### Admin
-
-- `GET /api/admin/roles`
-- `GET /api/admin/permissions`
-- `GET /api/admin/users`
-- `POST /api/admin/users`
-- `PATCH /api/admin/users/{user_id}`
-- `PUT /api/admin/users/{user_id}/roles`
-- `POST /api/admin/api-keys`
-- `GET /api/admin/api-keys`
-- `POST /api/admin/api-keys/{id}/revoke`
-- `GET /api/admin/audit/events`
-- `GET /api/admin/audit/events/{event_id}`
-- `GET /api/admin/audit/verify`
-- `GET /api/admin/audit/export.ndjson`
-- `GET /api/admin/audit/exports`
-
-### Reports and dashboard
-
-- `POST /api/report`
-- `POST /api/report-eml` (multipart `.eml` upload)
-- `POST /api/report-msg` (multipart `.msg` upload)
-- `POST /api/report-files` (multipart batch upload for `.eml`/`.msg`, partial success)
-- `GET /api/reports`
-- `GET /api/reports/{report_id}`
-- `GET /api/reports/{report_id}/attachments`
-- `GET /api/reports/{report_id}/attachments/{attachment_id}/download`
-- `GET /api/reports/{report_id}/original-message/download`
-- `GET /api/reports/{report_id}/evidence.json`
-- `GET /api/reports/{report_id}/evidence.md`
-- `GET /api/reports/{report_id}/evidence.pdf`
-- `GET /api/reports/{report_id}/iocs.json`
-- `GET /api/reports/{report_id}/iocs.csv`
-- `PATCH /api/reports/{report_id}` (admin override)
-- `POST /api/reports/{report_id}/resolve`
-- `POST /api/reports/{report_id}/reopen`
-- `GET /api/reports/{report_id}/resolutions`
-- `GET /api/dashboard/overview?start=<ISO>&end=<ISO>&tz=<IANA>`
-- `GET /api/reports/stats`
-- `GET /health`
-
-## Notes
-
-- Reporter identity is hashed with `REPORTER_HASH_SALT`.
-- `.msg` uploads extract attachments, compute SHA-256, and store blobs in MinIO with metadata in `attachments`.
-- Case evidence export is available per report in Markdown and PDF, including artifacts, rationale, resolution history, and case-scoped audit trail.
-- Audit events are append-only and hash-chained (`prev_hash`, `event_hash`) for tamper evidence.
-- Audit metadata is redacted and size-bounded (`AUDIT_MAX_METADATA_BYTES`) to avoid logging secrets.
-
-## Audit Operations
-
-- Verify chain integrity:
-
-```bash
-make audit-verify
-```
-
-- Export a window to NDJSON and persist export manifest:
-
-```bash
-make audit-export START=2026-02-01T00:00:00Z END=2026-02-20T23:59:59Z
-```
-
-- Prune old exported rows beyond retention policy:
-
-```bash
-make audit-prune
-```
-
-## Maintenance
-
-- Clear only ingested mail data (keeps users/RBAC/audit tables):
-
-```bash
-make reset-data
-```
-
-- Relevant env vars:
-  - `AUDIT_RETENTION_DAYS`
-  - `AUDIT_EXPORT_ENABLED`
-  - `AUDIT_EXPORT_STORAGE` (`filesystem` or `minio`)
-  - `AUDIT_EXPORT_BUCKET`, `AUDIT_EXPORT_PATH`
-  - `AUDIT_MAX_METADATA_BYTES`
+- enterprise packaging and upgrade automation
+- secrets management beyond local environment configuration
+- advanced IAM beyond the initial LDAP integration
+- sandbox and enrichment integrations
+- URL redirect-chain analysis and live detonation workflows
 
 ## License
 
-This project is proprietary and all rights are reserved. No permission is
-granted to use, copy, modify, distribute, or create derivative works from
-this repository except with prior written permission from the copyright
-holder. See [`LICENSE`](./LICENSE).
+This project is proprietary and all rights are reserved. No permission is granted to use, copy, modify, distribute, or create derivative works from this repository except with prior written permission from the copyright holder.
+
+See [`LICENSE`](./LICENSE).
