@@ -289,12 +289,20 @@ make reset-data
 
 Operational docs:
 
+- [Roadmap](./docs/ROADMAP.md)
 - [Threat model](./docs/security/threat-model.md)
 - [Deployment hardening guide](./docs/operations/hardening.md)
 - [Rollback runbook](./docs/operations/runbook-rollback.md)
 - [Demo script](./docs/demo-script.md)
 - [Sample investigation scenarios](./docs/evaluation/sample-investigations.md)
 - [Synthetic corpus scaffold](./test_data/synthetic-corpus/README.md)
+
+## Public Demo Status
+
+This repository is public as a personal portfolio asset and product demo. External code contributions are not being accepted at this stage.
+
+- See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the current contribution policy.
+- Report suspected vulnerabilities privately through the process in [`SECURITY.md`](./SECURITY.md).
 
 ## Current Status
 
