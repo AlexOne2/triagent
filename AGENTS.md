@@ -120,10 +120,10 @@ Import synthetic corpus:
 make import-synthetic SPLIT=gold
 ```
 
-Reset demo walkthrough:
+Start the curated demo:
 
 ```bash
-make walkthrough-reset
+make demo
 ```
 
 Frontend build:
@@ -237,10 +237,10 @@ Target behavior:
 
 Implementation direction:
 
-- Strengthen `make walkthrough-reset`.
+- Keep `make demo` as the single public demo entry point.
+- Keep `make demo-reset` available for resetting demo data without starting the app.
 - Add or improve `docs/demo-script.md`.
 - Add screenshots for the best flows.
-- Consider a `make demo` alias if it improves discoverability.
 
 Success criterion:
 

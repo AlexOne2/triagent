@@ -4,12 +4,21 @@ COMPOSE = docker compose -f infra/docker-compose.yml --env-file $(ENV_FILE)
 DEMO_CORPUS_ROOT = test_data/demo-corpus
 DEMO_OPEN_SAMPLE_IDS = m365_session_expiry_redirect_001 vendor_invoice_attachment_001 benign_vendor_portal_notice_001
 
-.PHONY: dev migrate seed generate-demo-corpus validate-demo-corpus import-demo-corpus remove-demo-corpus demo-reset import-synthetic remove-synthetic down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval triage-backfill reset-data walkthrough-reset
+.PHONY: dev demo migrate seed generate-demo-corpus validate-demo-corpus import-demo-corpus remove-demo-corpus demo-reset import-synthetic remove-synthetic down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval triage-backfill reset-data walkthrough-reset
 
 ensure-env:
 	@if [ ! -f $(ENV_FILE) ]; then cp $(ENV_EXAMPLE) $(ENV_FILE); echo "Created $(ENV_FILE) from $(ENV_EXAMPLE)"; fi
 
 dev: ensure-env
+	$(COMPOSE) up --build
+
+demo: demo-reset
+	@echo ""
+	@echo "Triagent demo is ready."
+	@echo "Open:     http://localhost:3000/reports"
+	@echo "Login:    admin / change-me"
+	@echo "Guide:    docs/demo-script.md"
+	@echo ""
 	$(COMPOSE) up --build
 
 build-backend: ensure-env

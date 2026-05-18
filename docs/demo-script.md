@@ -1,25 +1,25 @@
 # Demo Script
 
-This is the operator runbook for a 5-minute Triagent demo using the curated `demo` split.
+This is the operator runbook for a 5-minute Triagent demo using the curated modern demo corpus.
 
 ## Goal
 
 Show one clear story:
 
-- Triagent separates obvious phishing from routine mail
-- analysts can inspect evidence quickly without tool-hopping
-- analysts stay in control of the final decision
-- every decision can be exported and audited
+- Triagent turns messy reported emails into structured evidence.
+- Analysts can inspect authentication, URLs, attachments, transmission, and message content without tool-hopping.
+- Analysts stay in control of the final decision.
+- Every decision can be exported and audited.
 
-## Pre-Demo Reset
+## Start The Demo
 
 From the repo root:
 
 ```bash
-make walkthrough-reset
+make demo
 ```
 
-This loads the curated `demo` split in a mixed state.
+This prepares the local stack, resets the curated demo corpus, and starts the app.
 
 Default login:
 
@@ -29,155 +29,149 @@ Default login:
 
 Operator notes:
 
-- Use `Uploads` at `/reports`, not `In-tray`
-- Click `Clear` in the search toolbar if any persisted filters are active
-- If the UI still looks stale after reset, hard refresh once
+- Use `Uploads` at `/reports`, not `In-tray`.
+- Click `Clear` in the search toolbar if any persisted filters are active.
+- If the UI still looks stale after reset, hard refresh once.
 
 ## Dataset State
 
-After `make walkthrough-reset`, the demo split contains exactly five uploads:
+After `make demo`, the demo split contains seven uploads:
 
-| Sample ID | Subject | Expected state |
+| Sample ID | Subject | What it demonstrates |
 | --- | --- | --- |
-| `benign_internal_it_notice_001` | `Planned VPN maintenance window` | already resolved safe |
-| `malicious_attachment_zip_001` | `Outstanding invoice 4481` | already resolved malicious |
-| `benign_vendor_portal_notice_001` | `Monthly portal notice for April` | open benign control |
-| `display_name_bec_replyto_001` | `Need you to handle this wire today` | open spoof / BEC-style case |
-| `cred_harvest_shortener_001` | `Urgent: Your Microsoft 365 password expires today` | open obvious phishing case |
+| `m365_session_expiry_redirect_001` | `Action required: Microsoft 365 session expires today` | Credential harvest with redirect analysis |
+| `vendor_invoice_attachment_001` | `Updated invoice and remittance details` | Attachment lure with hashes and evidence export |
+| `compromised_vendor_portal_001` | `Q2 billing document requires review` | Auth passes, but business context and redirects still matter |
+| `executive_wire_replyto_001` | `Can you handle this before 4?` | BEC-style reply-to mismatch without links |
+| `teams_qr_login_lure_001` | `Teams mobile access expires tonight` | QR/login lure with inert image attachment |
+| `benign_vendor_portal_notice_001` | `May supplier portal maintenance window` | Benign external control |
+| `benign_internal_it_notice_001` | `Planned VPN maintenance on Saturday` | Benign internal control |
+
+By default, the most demo-friendly open cases are:
+
+- `m365_session_expiry_redirect_001`
+- `vendor_invoice_attachment_001`
+- `benign_vendor_portal_notice_001`
+
+The remaining cases are useful for resolved-case review, audit history, and broader workflow discussion.
 
 ## 5-Minute Flow
 
-Use this exact report order:
+Use this report order:
 
-1. `benign_internal_it_notice_001` - `Planned VPN maintenance window`
-2. `malicious_attachment_zip_001` - `Outstanding invoice 4481`
-3. `benign_vendor_portal_notice_001` - `Monthly portal notice for April`
-4. `display_name_bec_replyto_001` - `Need you to handle this wire today`
-5. `cred_harvest_shortener_001` - `Urgent: Your Microsoft 365 password expires today`
+1. `m365_session_expiry_redirect_001` - `Action required: Microsoft 365 session expires today`
+2. `vendor_invoice_attachment_001` - `Updated invoice and remittance details`
+3. `benign_vendor_portal_notice_001` - `May supplier portal maintenance window`
+4. `compromised_vendor_portal_001` - `Q2 billing document requires review`
+5. `executive_wire_replyto_001` - `Can you handle this before 4?`
 
-### 0:00-0:30 Reset and login
+### 0:00-0:30 Reset And Login
 
-1. Run `make walkthrough-reset`.
+1. Run `make demo`.
 2. Open `http://localhost:3000/login`.
 3. Sign in with `admin / change-me`.
 4. Open `Uploads`.
 
 Talk track:
 
-`This is a deterministic demo environment. I can reset it to the same known dataset before every call.`
+`This is a deterministic local demo. I can reset the product to the same known phishing-triage dataset before every walkthrough.`
 
-### 0:30-1:00 Show the queue
+### 0:30-1:00 Show The Queue
 
-1. Confirm there are five uploads.
-2. If the list is not obviously in the sequence above, use the search bar to jump by subject.
-3. Explain the order:
-   - one resolved safe baseline
-   - one resolved malicious baseline
-   - one open benign control
-   - one open spoof / BEC case
-   - one open obvious phishing case
-4. Point out that the visible queues are intentionally simple:
-   - `Needs investigation`
-   - `Likely benign`
-   - `Uncertain`
-5. Explain that this is an analyst workspace, not a black-box auto-close tool.
+1. Confirm the upload list is sorted newest-first.
+2. Point out the mix of open and resolved cases.
+3. Explain that this is an analyst workspace, not a black-box auto-close tool.
 
 Talk track:
 
-`The goal is to cut analyst time by putting the right cases in front of them with evidence already organized.`
+`The goal is to reduce the repetitive parsing work. The analyst still owns the final verdict, but the evidence is already organized.`
 
-### 1:00-1:45 Show an already resolved malicious case
+### 1:00-2:00 Resolve The Credential-Harvest Case
 
-Open `Outstanding invoice 4481`.
+Open `Action required: Microsoft 365 session expires today`.
 
 Click path:
 
-1. Open the report.
-2. Go to `Attachments`.
-3. Show the suspicious archive attachment and hash.
-4. Open the actions menu `•••`.
-5. Click `Download` -> `PDF`.
-6. Click `Download` -> `IOC CSV` or `IOC JSON`.
+1. Go to `URLs`.
+2. Show the original URL/domain and the resolved destination.
+3. Go to `Authentication`.
+4. Point out failed authentication and the sender alignment problem.
+5. Click `Resolve`.
+6. Review the `Analyst Verdict Draft`.
+7. Keep `Disposition` as `Malicious`.
+8. Set `Classification code` to `CRED_HARV`.
+9. Review the preselected flagged artifacts.
+10. Click `Resolve`.
 
 Talk track:
 
-`This is what a closed malicious case looks like. The analyst decision is preserved, the evidence can be exported immediately, and the IOC package is ready for downstream handling.`
+`This is the happy-path phishing case. Triagent keeps the original message, extracts the suspicious URL evidence, gives the analyst a draft conclusion, and preserves the resolution trail.`
 
-### 1:45-2:15 Show an already resolved safe case
+### 2:00-2:45 Show The Attachment Case
 
-Open `Planned VPN maintenance window`.
+Open `Updated invoice and remittance details`.
 
 Click path:
 
-1. Open the report.
-2. Go to `Authentication`.
-3. Show that SPF, DKIM, and DMARC are clean.
-4. Open `•••` -> `Audit log`.
+1. Go to `Attachments`.
+2. Show the inert ZIP attachment.
+3. Point out MD5, SHA-1, and SHA-256.
+4. Open the attachment actions menu.
+5. Show that file name and hashes can be flagged.
+6. Use the report actions menu to show evidence export options.
 
 Talk track:
 
-`Not every reported email is phishing. The point is to get to a defensible safe decision quickly and keep the audit trail.`
+`Attachment handling is deliberately evidence-first: file metadata, hashes, analyst flags, and exportable artifacts. Triagent does not need to upload attachments to a cloud service to make the case reviewable.`
 
-### 2:15-2:45 Show the open benign control
+### 2:45-3:15 Show A Benign Control
 
-Open `Monthly portal notice for April`.
+Open `May supplier portal maintenance window`.
 
 Click path:
 
-1. Open the report.
-2. Go to `URLs`.
-3. Show the stable vendor portal URL.
-4. Go to `Authentication`.
-5. Show that SPF, DKIM, and DMARC are aligned.
-6. Leave the report open.
+1. Go to `Details`.
+2. Show normal sender and recipient metadata.
+3. Go to `Authentication`.
+4. Show SPF, DKIM, and DMARC passing.
+5. Go to `URLs`.
+6. Show the stable vendor portal URL.
 
 Talk track:
 
-`This is the control. It looks routine, it stays low-friction to inspect, and the analyst can decide whether to leave it open briefly or resolve it safe later.`
+`Not every reported email is malicious. The tool should make benign resolution just as defensible as malicious resolution.`
 
-### 2:45-3:45 Resolve the spoof / BEC-style case live
+### 3:15-4:15 Show A Subtle Business-Context Case
 
-Open `Need you to handle this wire today`.
+Open `Q2 billing document requires review`.
 
 Click path:
 
-1. Open the report.
-2. Go to `Details`.
-3. Show `From` and `Reply-To`.
-4. Go to `Authentication`.
-5. Point out the DMARC issue and why it is suspicious even without a link.
-6. Click `Resolve`.
-7. Leave `Disposition` as `Malicious`.
-8. Set `Classification code` to `SPOOF`.
-9. Click `Resolve`.
+1. Go to `Authentication`.
+2. Point out that SPF, DKIM, and DMARC pass.
+3. Go to `URLs`.
+4. Show that the case still deserves review because the business context and redirect destination matter.
+5. Open the rendered email body.
 
 Talk track:
 
-`This is the more operationally interesting case because it is not just a bad link. The analyst still gets the key evidence quickly and can close the case without bouncing across multiple tools.`
+`This is why Triagent is not just an authentication dashboard. Authentication can pass on compromised or abused infrastructure. Analysts need the full evidence context.`
 
-### 3:45-4:45 Resolve one obvious phishing case live
+### 4:15-4:45 Show A BEC-Style Case
 
-Open `Urgent: Your Microsoft 365 password expires today`.
+Open `Can you handle this before 4?`.
 
 Click path:
 
-1. Open the report.
-2. Go to `URLs`.
-3. Show the shortener, redirect chain, and final domain.
-4. Go to `Authentication`.
-5. Point out auth failures.
-6. Optionally go to `Source` and show `Original message` preservation.
-7. Click `Resolve`.
-8. Leave `Disposition` as `Malicious`.
-9. Set `Classification code` to `CRED_HARV`.
-10. Keep or review the preselected flagged artifacts.
-11. Click `Resolve`.
+1. Go to `Details`.
+2. Compare `From` and `Reply-To`.
+3. Mention that no URL or attachment is required for a case to be suspicious.
 
 Talk track:
 
-`This is the happy-path phishing case. You can see the redirect chain, failed auth, preserved original message, and then resolve it in one place.`
+`This is the email-security version of paperwork reduction. The interesting signal is not a payload; it is the mismatch and the requested action.`
 
-### 4:45-5:00 Close on auditability and deployment
+### 4:45-5:00 Close On Auditability And Deployment
 
 Return to `Uploads` or stay on the current report.
 
@@ -186,7 +180,7 @@ Close with:
 - `Analyst-in-the-loop resolution`
 - `Evidence export and IOC export`
 - `Audit log on every resolution`
-- `Original uploaded sample preserved`
+- `Original uploaded message preserved`
 - `Compose-based local deployment today, on-prem direction by design`
 
 Suggested closing line:
@@ -198,8 +192,8 @@ Suggested closing line:
 If you only have 3 minutes:
 
 1. Queue overview in `Uploads`
-2. `Urgent: Your Microsoft 365 password expires today`
-3. `Outstanding invoice 4481`
+2. `Action required: Microsoft 365 session expires today`
+3. `Updated invoice and remittance details`
 4. End on `Audit log` + `PDF` + `IOC CSV`
 
 ## Common Failure Recovery
@@ -207,15 +201,21 @@ If you only have 3 minutes:
 If the dataset is wrong:
 
 ```bash
-make walkthrough-reset
+make demo-reset
 ```
 
 If old queue filters are still applied:
 
-- Click `Clear` in the search toolbar
+- Click `Clear` in the search toolbar.
 
-If you need the broader evaluation set instead of the curated walkthrough:
+If you only want to reset data without starting the app:
 
 ```bash
-make walkthrough-reset SPLIT=gold
+make demo-reset
+```
+
+If you need the broader regression set instead of the curated demo:
+
+```bash
+make import-synthetic SPLIT=gold
 ```

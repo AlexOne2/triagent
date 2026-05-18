@@ -50,12 +50,10 @@ Most reported phishing emails start as messy artifacts: forwarded messages, raw 
 
 ## Quickstart
 
-Clone the repository, create the local environment file, migrate the database, and start the stack:
+Clone the repository and start the curated local demo:
 
 ```bash
-cp infra/.env.example infra/.env
-make migrate
-make dev
+make demo
 ```
 
 Open the app:
@@ -74,46 +72,9 @@ password: change-me
 
 These defaults are for local development only. Change `ADMIN_PASSWORD`, `REPORTER_HASH_SALT`, database credentials, and MinIO credentials before any shared or externally reachable deployment.
 
-## Demo Data
+`make demo` creates the local environment file if needed, starts the supporting services, runs migrations, resets the curated demo corpus, prints the login details, and starts the app. The demo leaves a few reports open for live triage and keeps resolved examples available for audit and export demonstrations.
 
-Seed a small local dataset:
-
-```bash
-make seed
-```
-
-Import the polished modern demo corpus as ready-to-review cases:
-
-```bash
-make import-demo-corpus
-```
-
-Reset the local stack to a demo-ready state with a mix of open and resolved cases:
-
-```bash
-make demo-reset
-```
-
-Regenerate or validate the demo corpus:
-
-```bash
-make generate-demo-corpus
-make validate-demo-corpus
-```
-
-Import the broader synthetic gold corpus as regression/evaluation cases:
-
-```bash
-make import-synthetic SPLIT=gold
-```
-
-Reset the older walkthrough split:
-
-```bash
-make walkthrough-reset
-```
-
-The demo reset imports human-crafted synthetic cases, leaves a few reports open for live triage, and keeps resolved examples available for audit and export demonstrations.
+For the guided five-minute path, follow [docs/demo-script.md](./docs/demo-script.md).
 
 ## Repository Layout
 

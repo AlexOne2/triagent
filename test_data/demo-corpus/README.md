@@ -20,6 +20,12 @@ URLs, or active payloads.
 
 ## Commands
 
+Start the full guided local demo:
+
+```bash
+make demo
+```
+
 Refresh the generated `.eml` files, expectations, splits, and manifest:
 
 ```bash
