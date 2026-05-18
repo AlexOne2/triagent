@@ -1,0 +1,31 @@
+{
+  "expectations": {
+    "classification_code": "MAL_URL",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [
+      "teams-mobile-access.png"
+    ],
+    "expected_attack_techniques": [
+      "T1566.002"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "softfail"
+    },
+    "expected_lookalikes": [],
+    "expected_url_domains": {
+      "observed": [
+        "teams-access.example"
+      ],
+      "resolved": [
+        "review-docs.example"
+      ]
+    },
+    "notes": "QR-assisted login lure with a fallback URL and inert image attachment.",
+    "risk_min": 35
+  },
+  "family_id": "modern_qr_login",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "teams_qr_login_lure_001"
+}

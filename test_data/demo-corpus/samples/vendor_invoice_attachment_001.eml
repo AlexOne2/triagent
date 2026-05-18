@@ -1,0 +1,119 @@
+Subject: Updated invoice and remittance details
+From: Vendor Payments <accounts@vendor-payments.example>
+To: ap@contoso.example
+Reply-To: accounts@vendor-payments.example
+Return-Path: <mailer@vendor-payments.example>
+Message-ID: <vendor_invoice_attachment_001@triagent.example>
+Date: Wed, 06 May 2026 09:35:00 +0000
+Received: from mail.vendor-payments.example (mail.vendor-payments.example
+ [198.51.100.51]) by mx.contoso.example with ESMTPS id demo002 for
+ <ap@contoso.example>; Wed, 6 May 2026 09:35:00 +0000
+Authentication-Results: mx.contoso.example; spf=fail
+ smtp.mailfrom=vendor-payments.example; dkim=none; dmarc=fail
+ header.from=vendor-payments.example
+Received-SPF: fail (mx.contoso.example: domain of vendor-payments.example does
+ not designate 198.51.100.51 as permitted sender) client-ip=198.51.100.51;
+ envelope-from=mailer@vendor-payments.example;
+ helo=mail.vendor-payments.example
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============3559447650854480732=="
+
+--===============3559447650854480732==
+Content-Type: multipart/alternative;
+ boundary="===============5363336675628753955=="
+
+--===============5363336675628753955==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hello,
+
+Please use the attached invoice packet. We updated the remittance bank detail=
+s after our finance migration.
+
+Regards,
+Vendor Payments
+
+--===============5363336675628753955==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html>
+<head>
+  <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8">
+  <title>Invoice Notification</title>
+</head>
+<body style=3D"margin:0;background:#ffffff;font-family:Arial,Helvetica,sans-s=
+erif;color:#222222;">
+  <table width=3D"720" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" style=
+=3D"margin:18px 0 0 24px;border-collapse:collapse;">
+    <tr>
+      <td style=3D"font-size:18px;font-weight:bold;color:#333333;padding-bott=
+om:12px;">Vendor Payments</td>
+    </tr>
+    <tr>
+      <td style=3D"border-top:4px solid #4b5563;padding-top:18px;font-size:14=
+px;line-height:21px;">
+        Hello,<br><br>
+        Please find the updated invoice packet attached. The remittance detai=
+ls were changed after our finance migration and should be used for the next s=
+cheduled payment.
+      </td>
+    </tr>
+    <tr>
+      <td style=3D"padding:20px 0;">
+        <table width=3D"540" cellpadding=3D"0" cellspacing=3D"0" border=3D"0"=
+ style=3D"border:1px solid #cccccc;border-collapse:collapse;font-size:13px;">
+          <tr bgcolor=3D"#eeeeee">
+            <td style=3D"padding:9px 12px;font-weight:bold;border-bottom:1px =
+solid #cccccc;">Invoice</td>
+            <td style=3D"padding:9px 12px;border-bottom:1px solid #cccccc;">8=
+742</td>
+          </tr>
+          <tr>
+            <td style=3D"padding:9px 12px;font-weight:bold;border-bottom:1px =
+solid #eeeeee;">Attachment</td>
+            <td style=3D"padding:9px 12px;border-bottom:1px solid #eeeeee;">I=
+nvoice_8742.zip</td>
+          </tr>
+          <tr>
+            <td style=3D"padding:9px 12px;font-weight:bold;">Requested action=
+</td>
+            <td style=3D"padding:9px 12px;">Review remittance update today</t=
+d>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style=3D"font-size:14px;line-height:21px;">
+        Regards,<br>
+        Vendor Payments Team
+      </td>
+    </tr>
+    <tr>
+      <td style=3D"padding-top:28px;font-size:11px;color:#666666;border-top:1=
+px solid #eeeeee;">
+        This email and any attachments are intended only for the named recipi=
+ent. If you received this message in error, please notify the sender.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+
+--===============5363336675628753955==--
+
+--===============3559447650854480732==
+Content-Type: application/zip
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="Invoice_8742.zip"
+MIME-Version: 1.0
+
+UEsDBBQAAAAIAO9UslzrEZAxOgAAADoAAAAQAAAASW52b2ljZV84NzQyLnR4dAXB0QmAMAwE0FVu
+go7ijxPU9KCBmCsSRbf3vf3Lmiw3DJ6C5yM3YkU3TsXg1bAJfGl39SMIUxaz2g9QSwECFAMUAAAA
+CADvVLJc6xGQMToAAAA6AAAAEAAAAAAAAAAAAAAAgAEAAAAASW52b2ljZV84NzQyLnR4dFBLBQYA
+AAAAAQABAD4AAABoAAAAAAA=
+
+--===============3559447650854480732==--

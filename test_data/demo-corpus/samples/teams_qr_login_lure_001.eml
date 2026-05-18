@@ -1,0 +1,104 @@
+Subject: Teams mobile access expires tonight
+From: Teams Mobile <teams-mobile@collaboration-alerts.example>
+To: alex@contoso.example
+Return-Path: <bounce@collaboration-alerts.example>
+Message-ID: <teams_qr_login_lure_001@triagent.example>
+Date: Wed, 06 May 2026 13:05:00 +0000
+Received: from mail.collaboration-alerts.example
+ (mail.collaboration-alerts.example [198.51.100.91]) by mx.contoso.example
+ with ESMTPS id demo005 for <alex@contoso.example>; Wed, 6 May 2026 13:05:00
+ +0000
+Authentication-Results: mx.contoso.example; spf=softfail
+ smtp.mailfrom=collaboration-alerts.example; dkim=fail
+ header.d=collaboration-alerts.example header.i=@collaboration-alerts.example;
+ dmarc=fail header.from=collaboration-alerts.example
+Received-SPF: softfail (mx.contoso.example: transitioning domain of
+ collaboration-alerts.example does not designate 198.51.100.91 as permitted
+ sender) client-ip=198.51.100.91;
+ envelope-from=bounce@collaboration-alerts.example;
+ helo=mail.collaboration-alerts.example
+DKIM-Signature: v=1; a=rsa-sha256; d=collaboration-alerts.example; s=mail;
+ c=relaxed/relaxed; bh=demo005; b=demo005;
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===============1870916491512472878=="
+
+--===============1870916491512472878==
+Content-Type: multipart/alternative;
+ boundary="===============8279618232640908376=="
+
+--===============8279618232640908376==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Your Teams mobile session expires tonight. Scan the attached code or use the =
+fallback link:
+
+https://teams-access.example/mobile/scan
+
+This keeps your device enrolled for chat and calls.
+
+--===============8279618232640908376==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html>
+<head>
+  <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8">
+  <title>Teams Mobile Access</title>
+</head>
+<body bgcolor=3D"#f3f6fb" style=3D"margin:0;background:#f3f6fb;font-family:Se=
+goe UI,Arial,sans-serif;color:#252423;">
+  <table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0">
+    <tr>
+      <td align=3D"center" style=3D"padding:28px;">
+        <table width=3D"600" cellpadding=3D"0" cellspacing=3D"0" border=3D"0"=
+ bgcolor=3D"#ffffff" style=3D"border:1px solid #d5dce8;">
+          <tr>
+            <td style=3D"padding:18px 24px;background:#464eb8;color:#ffffff;f=
+ont-size:19px;font-weight:600;">Microsoft Teams</td>
+          </tr>
+          <tr>
+            <td style=3D"padding:24px;font-size:14px;line-height:22px;">
+              Your Teams mobile session expires tonight. Scan the attached co=
+de from your mobile device or use the fallback link below to keep chat and ca=
+lling enabled.
+            </td>
+          </tr>
+          <tr>
+            <td align=3D"center" style=3D"padding:0 24px 20px 24px;">
+              <table cellpadding=3D"0" cellspacing=3D"0" border=3D"0" width=
+=3D"220" style=3D"border:1px dashed #98a2b3;background:#f8fafc;">
+                <tr>
+                  <td align=3D"center" style=3D"padding:28px;font-size:13px;c=
+olor:#667085;">QR image attached<br>teams-mobile-access.png</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style=3D"padding:0 24px 26px 24px;">
+              <a href=3D"https://teams-access.example/mobile/scan" style=3D"b=
+ackground:#464eb8;color:#ffffff;text-decoration:none;padding:11px 18px;displa=
+y:inline-block;font-weight:600;">Continue device enrollment</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+
+--===============8279618232640908376==--
+
+--===============1870916491512472878==
+Content-Type: image/png
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="teams-mobile-access.png"
+MIME-Version: 1.0
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9WlH0r8A
+AAAASUVORK5CYII=
+
+--===============1870916491512472878==--

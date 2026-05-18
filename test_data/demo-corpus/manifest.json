@@ -1,0 +1,231 @@
+{
+  "dataset_name": "triagent-modern-demo-corpus",
+  "dataset_version": "0.1.0",
+  "generated_at": "2026-05-18T08:39:30.521034+00:00",
+  "generator_version": "1",
+  "sample_count": 7,
+  "samples": [
+    {
+      "classification_code": "CRED_HARV",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1598.003"
+      ],
+      "expected_auth": {
+        "dkim": "fail",
+        "dmarc": "fail",
+        "spf": "fail"
+      },
+      "expected_lookalikes": [],
+      "expected_url_domains": {
+        "observed": [
+          "go.example"
+        ],
+        "resolved": [
+          "id-check.example"
+        ]
+      },
+      "family_id": "modern_m365_identity_harvest",
+      "file_name": "m365_session_expiry_redirect_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Modern credential-harvest lure with a benign-looking redirector and a suspicious final login domain.",
+      "relative_path": "samples/m365_session_expiry_redirect_001.eml",
+      "risk_min": 35,
+      "sample_id": "m365_session_expiry_redirect_001",
+      "scenario": "credential_harvest_redirect",
+      "sha256": "4b8befe88337f9cc0070d32f5cdaeb113a7339bf1a1f6136c2c7928111c341e8",
+      "split": "demo"
+    },
+    {
+      "classification_code": "MAL_ATTACH",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [
+        "Invoice_8742.zip"
+      ],
+      "expected_attack_techniques": [
+        "T1566.001"
+      ],
+      "expected_auth": {
+        "dkim": "none",
+        "dmarc": "fail",
+        "spf": "fail"
+      },
+      "expected_lookalikes": [],
+      "expected_url_domains": {
+        "observed": [],
+        "resolved": []
+      },
+      "family_id": "modern_attachment_invoice",
+      "file_name": "vendor_invoice_attachment_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Attachment-led invoice lure with an inert ZIP payload.",
+      "relative_path": "samples/vendor_invoice_attachment_001.eml",
+      "risk_min": 20,
+      "sample_id": "vendor_invoice_attachment_001",
+      "scenario": "invoice_attachment_delivery",
+      "sha256": "e7be324110a496194cafc72b3ce9f19f5df9502e651a779af963f3a01d77c788",
+      "split": "demo"
+    },
+    {
+      "classification_code": "COMPRO_SEND",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [
+        "T1566.002",
+        "T1586.002"
+      ],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_lookalikes": [],
+      "expected_url_domains": {
+        "observed": [
+          "billing-vendor.example"
+        ],
+        "resolved": [
+          "documents-vendor.example"
+        ]
+      },
+      "family_id": "modern_vendor_compromise",
+      "file_name": "compromised_vendor_portal_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Compromised-vendor style case: authentication passes, but the business context and redirect still need analyst review.",
+      "relative_path": "samples/compromised_vendor_portal_001.eml",
+      "risk_min": 20,
+      "sample_id": "compromised_vendor_portal_001",
+      "scenario": "compromised_vendor_portal",
+      "sha256": "062b263033c42b8caa2f9c668bb9dccd1f6166fcc0a27cf94625bc7149723a46",
+      "split": "demo"
+    },
+    {
+      "classification_code": "FIN_FRAUD",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_lookalikes": [],
+      "expected_url_domains": {
+        "observed": [],
+        "resolved": []
+      },
+      "family_id": "modern_bec_payment",
+      "file_name": "executive_wire_replyto_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "BEC-style payment request with clean authentication but a reply-to mismatch.",
+      "relative_path": "samples/executive_wire_replyto_001.eml",
+      "risk_min": 15,
+      "sample_id": "executive_wire_replyto_001",
+      "scenario": "executive_reply_to_mismatch",
+      "sha256": "cdbc286fff98bc5076d4505007ed983db26cd3a21903c025422360f194b12ae4",
+      "split": "demo"
+    },
+    {
+      "classification_code": "MAL_URL",
+      "disposition": "MALICIOUS",
+      "expected_attachment_names": [
+        "teams-mobile-access.png"
+      ],
+      "expected_attack_techniques": [
+        "T1566.002"
+      ],
+      "expected_auth": {
+        "dkim": "fail",
+        "dmarc": "fail",
+        "spf": "softfail"
+      },
+      "expected_lookalikes": [],
+      "expected_url_domains": {
+        "observed": [
+          "teams-access.example"
+        ],
+        "resolved": [
+          "review-docs.example"
+        ]
+      },
+      "family_id": "modern_qr_login",
+      "file_name": "teams_qr_login_lure_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "QR-assisted login lure with a fallback URL and inert image attachment.",
+      "relative_path": "samples/teams_qr_login_lure_001.eml",
+      "risk_min": 35,
+      "sample_id": "teams_qr_login_lure_001",
+      "scenario": "qr_login_lure",
+      "sha256": "1a89fcd1a6aebfbad286e503ff01bc8995bfb3f54ba3f07032407047678d7198",
+      "split": "demo"
+    },
+    {
+      "classification_code": null,
+      "disposition": "BENIGN",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_lookalikes": [],
+      "expected_url_domains": {
+        "observed": [
+          "portal.vendor.example"
+        ],
+        "resolved": [
+          "portal.vendor.example"
+        ]
+      },
+      "family_id": "modern_benign_vendor",
+      "file_name": "benign_vendor_portal_notice_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Clean benign vendor control.",
+      "relative_path": "samples/benign_vendor_portal_notice_001.eml",
+      "risk_min": 0,
+      "sample_id": "benign_vendor_portal_notice_001",
+      "scenario": "benign_vendor_notice",
+      "sha256": "1adc60c60d4e5651a9ff096c8111f1558e0bb467ef6de473af944ca483a8fea5",
+      "split": "demo"
+    },
+    {
+      "classification_code": null,
+      "disposition": "BENIGN",
+      "expected_attachment_names": [],
+      "expected_attack_techniques": [],
+      "expected_auth": {
+        "dkim": "pass",
+        "dmarc": "pass",
+        "spf": "pass"
+      },
+      "expected_lookalikes": [],
+      "expected_url_domains": {
+        "observed": [
+          "intranet.example"
+        ],
+        "resolved": [
+          "intranet.example"
+        ]
+      },
+      "family_id": "modern_benign_internal",
+      "file_name": "benign_internal_it_notice_001.eml",
+      "mailbox_domain": "contoso.example",
+      "message_format": "eml",
+      "notes": "Clean internal control for demos and screenshots.",
+      "relative_path": "samples/benign_internal_it_notice_001.eml",
+      "risk_min": 0,
+      "sample_id": "benign_internal_it_notice_001",
+      "scenario": "benign_internal_it_notice",
+      "sha256": "8d042e9c4732bf5ab5eac81d57553a235a81693692b92d4851ba98976dcd0d50",
+      "split": "demo"
+    }
+  ]
+}

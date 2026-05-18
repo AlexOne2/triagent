@@ -1,0 +1,27 @@
+{
+  "expectations": {
+    "classification_code": "MAL_ATTACH",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [
+      "Invoice_8742.zip"
+    ],
+    "expected_attack_techniques": [
+      "T1566.001"
+    ],
+    "expected_auth": {
+      "dkim": "none",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_lookalikes": [],
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "Attachment-led invoice lure with an inert ZIP payload.",
+    "risk_min": 20
+  },
+  "family_id": "modern_attachment_invoice",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "vendor_invoice_attachment_001"
+}

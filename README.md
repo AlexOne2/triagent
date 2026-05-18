@@ -82,19 +82,38 @@ Seed a small local dataset:
 make seed
 ```
 
-Import the synthetic gold corpus as ready-to-review evaluation cases:
+Import the polished modern demo corpus as ready-to-review cases:
+
+```bash
+make import-demo-corpus
+```
+
+Reset the local stack to a demo-ready state with a mix of open and resolved cases:
+
+```bash
+make demo-reset
+```
+
+Regenerate or validate the demo corpus:
+
+```bash
+make generate-demo-corpus
+make validate-demo-corpus
+```
+
+Import the broader synthetic gold corpus as regression/evaluation cases:
 
 ```bash
 make import-synthetic SPLIT=gold
 ```
 
-Reset the local walkthrough stack to a deterministic demo state:
+Reset the older walkthrough split:
 
 ```bash
 make walkthrough-reset
 ```
 
-The walkthrough reset imports curated synthetic cases, leaves a few reports open for live triage, and keeps resolved examples available for audit and export demonstrations.
+The demo reset imports human-crafted synthetic cases, leaves a few reports open for live triage, and keeps resolved examples available for audit and export demonstrations.
 
 ## Repository Layout
 
@@ -251,15 +270,30 @@ OpenAPI docs are available locally at `http://localhost:8000/docs`.
 
 ## Synthetic Corpus
 
-Triagent includes a synthetic corpus under `test_data/synthetic-corpus/` for repeatable demo and regression coverage.
+Triagent includes two safe synthetic datasets:
 
-Generate or refresh samples:
+- `test_data/demo-corpus/`: the polished public-demo dataset with modern, human-crafted cases.
+- `test_data/synthetic-corpus/`: the broader regression/evaluation corpus.
+
+Generate or refresh the modern demo samples:
+
+```bash
+make generate-demo-corpus
+```
+
+Validate the modern demo samples:
+
+```bash
+make validate-demo-corpus
+```
+
+Generate or refresh the broader regression corpus:
 
 ```bash
 python3 backend/scripts/generate_synthetic_corpus.py
 ```
 
-Validate samples against the manifest:
+Validate the broader corpus against the manifest:
 
 ```bash
 python3 backend/scripts/validate_synthetic_corpus.py
@@ -268,6 +302,8 @@ python3 backend/scripts/validate_synthetic_corpus.py
 Useful import commands:
 
 ```bash
+make import-demo-corpus
+make demo-reset
 make import-synthetic SPLIT=gold
 make import-synthetic SPLIT=gold REFRESH_EXISTING=1
 make remove-synthetic SPLIT=gold
@@ -295,6 +331,7 @@ Operational docs:
 - [Rollback runbook](./docs/operations/runbook-rollback.md)
 - [Demo script](./docs/demo-script.md)
 - [Sample investigation scenarios](./docs/evaluation/sample-investigations.md)
+- [Modern demo corpus](./test_data/demo-corpus/README.md)
 - [Synthetic corpus scaffold](./test_data/synthetic-corpus/README.md)
 
 ## Public Demo Status

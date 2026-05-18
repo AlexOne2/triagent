@@ -1,0 +1,27 @@
+{
+  "expectations": {
+    "classification_code": null,
+    "disposition": "BENIGN",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "pass",
+      "spf": "pass"
+    },
+    "expected_lookalikes": [],
+    "expected_url_domains": {
+      "observed": [
+        "portal.vendor.example"
+      ],
+      "resolved": [
+        "portal.vendor.example"
+      ]
+    },
+    "notes": "Clean benign vendor control.",
+    "risk_min": 0
+  },
+  "family_id": "modern_benign_vendor",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "benign_vendor_portal_notice_001"
+}

@@ -1,8 +1,10 @@
 ENV_FILE = infra/.env
 ENV_EXAMPLE = infra/.env.example
 COMPOSE = docker compose -f infra/docker-compose.yml --env-file $(ENV_FILE)
+DEMO_CORPUS_ROOT = test_data/demo-corpus
+DEMO_OPEN_SAMPLE_IDS = m365_session_expiry_redirect_001 vendor_invoice_attachment_001 benign_vendor_portal_notice_001
 
-.PHONY: dev migrate seed import-synthetic remove-synthetic down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval triage-backfill reset-data walkthrough-reset
+.PHONY: dev migrate seed generate-demo-corpus validate-demo-corpus import-demo-corpus remove-demo-corpus demo-reset import-synthetic remove-synthetic down ensure-env build-backend wait-db audit-verify audit-export audit-prune campaign-backfill campaign-recluster campaign-metrics campaign-eval triage-backfill reset-data walkthrough-reset
 
 ensure-env:
 	@if [ ! -f $(ENV_FILE) ]; then cp $(ENV_EXAMPLE) $(ENV_FILE); echo "Created $(ENV_FILE) from $(ENV_EXAMPLE)"; fi
@@ -25,6 +27,26 @@ migrate: wait-db
 seed: wait-db
 	$(COMPOSE) build backend
 	$(COMPOSE) run --rm backend python -m scripts.seed
+
+generate-demo-corpus: ensure-env
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.generate_synthetic_corpus --spec "/workspace/$(DEMO_CORPUS_ROOT)/specs/modern-demo-scenarios.json" --output-root "/workspace/$(DEMO_CORPUS_ROOT)"
+
+validate-demo-corpus: ensure-env
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.validate_synthetic_corpus --corpus-root "/workspace/$(DEMO_CORPUS_ROOT)"
+
+import-demo-corpus: wait-db
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.import_synthetic_corpus --corpus-root "/workspace/$(or $(CORPUS_ROOT),$(DEMO_CORPUS_ROOT))" --split "$(or $(SPLIT),demo)" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(OPEN_ONLY),--open-only,) $(if $(REFRESH_EXISTING),--refresh-existing,)
+
+remove-demo-corpus: wait-db
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.remove_synthetic_corpus --corpus-root "/workspace/$(or $(CORPUS_ROOT),$(DEMO_CORPUS_ROOT))" --split "$(or $(SPLIT),demo)" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(DRY_RUN),--dry-run,)
+
+demo-reset: migrate
+	$(COMPOSE) build backend
+	$(COMPOSE) run --rm -v "$(CURDIR):/workspace" backend python -m scripts.walkthrough_reset --corpus-root "/workspace/$(or $(CORPUS_ROOT),$(DEMO_CORPUS_ROOT))" --split "$(or $(SPLIT),demo)" --state "$(or $(STATE),$(if $(RESOLVED),resolved,mixed))" $(if $(LIMIT),--limit "$(LIMIT)",) $(if $(INCLUDE_SEED),--include-seed,) $(if $(KEEP_AUDIT),--keep-audit,) $(foreach id,$(or $(OPEN_SAMPLE_IDS),$(DEMO_OPEN_SAMPLE_IDS)),--leave-open-sample-id "$(id)")
 
 import-synthetic: wait-db
 	$(COMPOSE) build backend

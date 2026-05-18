@@ -1,0 +1,313 @@
+{
+  "dataset_name": "triagent-modern-demo-corpus",
+  "dataset_version": "0.1.0",
+  "generator_version": "1",
+  "samples": [
+    {
+      "sample_id": "m365_session_expiry_redirect_001",
+      "family_id": "modern_m365_identity_harvest",
+      "split": "demo",
+      "scenario": "credential_harvest_redirect",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Action required: Microsoft 365 session expires today",
+        "from_addr": "security@identity-review.example",
+        "from_display_name": "Microsoft 365 Security",
+        "to_addrs": ["alex@contoso.example"],
+        "reply_to": ["support@identity-review.example"],
+        "return_path": "<bounce@identity-review.example>",
+        "message_id": "<m365_session_expiry_redirect_001@triagent.example>",
+        "date": "2026-05-06T08:15:00+00:00",
+        "headers": {
+          "Received": [
+            "from relay.identity-review.example (relay.identity-review.example [198.51.100.24]) by mx.contoso.example with ESMTPS id demo001 for <alex@contoso.example>; Wed, 6 May 2026 08:15:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=fail smtp.mailfrom=identity-review.example; dkim=fail header.d=identity-review.example header.i=@identity-review.example; dmarc=fail header.from=identity-review.example",
+          "Received-SPF": "fail (mx.contoso.example: domain of identity-review.example does not designate 198.51.100.24 as permitted sender) client-ip=198.51.100.24; envelope-from=bounce@identity-review.example; helo=relay.identity-review.example",
+          "DKIM-Signature": "v=1; a=rsa-sha256; d=identity-review.example; s=mail; c=relaxed/relaxed; bh=demo001; b=demo001;"
+        },
+        "body_text": "Hi Alex,\n\nYour Microsoft 365 session will be limited today unless you confirm recent sign-in activity.\n\nReview the session here: https://go.example/m365-verify\n\nIf this was expected, no further action is required after confirmation.\n\nSecurity Operations",
+        "body_html_path": "templates/m365_session_expiry_redirect_001.html"
+      },
+      "expectations": {
+        "disposition": "MALICIOUS",
+        "classification_code": "CRED_HARV",
+        "risk_min": 35,
+        "expected_auth": {"spf": "fail", "dkim": "fail", "dmarc": "fail"},
+        "expected_attack_techniques": ["T1598.003"],
+        "expected_url_domains": {
+          "observed": ["go.example"],
+          "resolved": ["id-check.example"]
+        },
+        "expected_attachment_names": [],
+        "expected_lookalikes": [],
+        "notes": "Modern credential-harvest lure with a benign-looking redirector and a suspicious final login domain."
+      }
+    },
+    {
+      "sample_id": "vendor_invoice_attachment_001",
+      "family_id": "modern_attachment_invoice",
+      "split": "demo",
+      "scenario": "invoice_attachment_delivery",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Updated invoice and remittance details",
+        "from_addr": "accounts@vendor-payments.example",
+        "from_display_name": "Vendor Payments",
+        "to_addrs": ["ap@contoso.example"],
+        "reply_to": ["accounts@vendor-payments.example"],
+        "return_path": "<mailer@vendor-payments.example>",
+        "message_id": "<vendor_invoice_attachment_001@triagent.example>",
+        "date": "2026-05-06T09:35:00+00:00",
+        "headers": {
+          "Received": [
+            "from mail.vendor-payments.example (mail.vendor-payments.example [198.51.100.51]) by mx.contoso.example with ESMTPS id demo002 for <ap@contoso.example>; Wed, 6 May 2026 09:35:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=fail smtp.mailfrom=vendor-payments.example; dkim=none; dmarc=fail header.from=vendor-payments.example",
+          "Received-SPF": "fail (mx.contoso.example: domain of vendor-payments.example does not designate 198.51.100.51 as permitted sender) client-ip=198.51.100.51; envelope-from=mailer@vendor-payments.example; helo=mail.vendor-payments.example"
+        },
+        "body_text": "Hello,\n\nPlease use the attached invoice packet. We updated the remittance bank details after our finance migration.\n\nRegards,\nVendor Payments",
+        "body_html_path": "templates/vendor_invoice_attachment_001.html",
+        "attachments": [
+          {
+            "filename": "Invoice_8742.zip",
+            "content_type": "application/zip",
+            "template": "zip_text_payload",
+            "archive_member": "Invoice_8742.txt",
+            "text_payload": "Synthetic demo invoice placeholder. No executable content."
+          }
+        ]
+      },
+      "expectations": {
+        "disposition": "MALICIOUS",
+        "classification_code": "MAL_ATTACH",
+        "risk_min": 20,
+        "expected_auth": {"spf": "fail", "dkim": "none", "dmarc": "fail"},
+        "expected_attack_techniques": ["T1566.001"],
+        "expected_url_domains": {
+          "observed": [],
+          "resolved": []
+        },
+        "expected_attachment_names": ["Invoice_8742.zip"],
+        "expected_lookalikes": [],
+        "notes": "Attachment-led invoice lure with an inert ZIP payload."
+      }
+    },
+    {
+      "sample_id": "compromised_vendor_portal_001",
+      "family_id": "modern_vendor_compromise",
+      "split": "demo",
+      "scenario": "compromised_vendor_portal",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Q2 billing document requires review",
+        "from_addr": "notifications@billing-vendor.example",
+        "from_display_name": "Billing Vendor",
+        "to_addrs": ["finance@contoso.example"],
+        "return_path": "<notifications@billing-vendor.example>",
+        "message_id": "<compromised_vendor_portal_001@triagent.example>",
+        "date": "2026-05-06T10:10:00+00:00",
+        "headers": {
+          "Received": [
+            "from mail.billing-vendor.example (mail.billing-vendor.example [198.51.100.72]) by mx.contoso.example with ESMTPS id demo003 for <finance@contoso.example>; Wed, 6 May 2026 10:10:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=pass smtp.mailfrom=billing-vendor.example; dkim=pass header.d=billing-vendor.example header.i=@billing-vendor.example; dmarc=pass header.from=billing-vendor.example",
+          "Received-SPF": "pass (mx.contoso.example: domain of billing-vendor.example designates 198.51.100.72 as permitted sender) client-ip=198.51.100.72; envelope-from=notifications@billing-vendor.example; helo=mail.billing-vendor.example",
+          "DKIM-Signature": "v=1; a=rsa-sha256; d=billing-vendor.example; s=mail; c=relaxed/relaxed; bh=demo003; b=demo003;"
+        },
+        "body_text": "Hi Finance,\n\nThe Q2 billing document is ready for your approval.\n\nOpen the review task: https://billing-vendor.example/invoice/8742\n\nThanks,\nBilling Vendor",
+        "body_html_path": "templates/compromised_vendor_portal_001.html"
+      },
+      "expectations": {
+        "disposition": "MALICIOUS",
+        "classification_code": "COMPRO_SEND",
+        "risk_min": 20,
+        "expected_auth": {"spf": "pass", "dkim": "pass", "dmarc": "pass"},
+        "expected_attack_techniques": ["T1566.002", "T1586.002"],
+        "expected_url_domains": {
+          "observed": ["billing-vendor.example"],
+          "resolved": ["documents-vendor.example"]
+        },
+        "expected_attachment_names": [],
+        "expected_lookalikes": [],
+        "notes": "Compromised-vendor style case: authentication passes, but the business context and redirect still need analyst review."
+      }
+    },
+    {
+      "sample_id": "executive_wire_replyto_001",
+      "family_id": "modern_bec_payment",
+      "split": "demo",
+      "scenario": "executive_reply_to_mismatch",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Can you handle this before 4?",
+        "from_addr": "maya.jensen@executive-office.example",
+        "from_display_name": "Maya Jensen",
+        "to_addrs": ["alex@contoso.example"],
+        "reply_to": ["maya.jensen@payments-review.example"],
+        "return_path": "<assistant@executive-office.example>",
+        "message_id": "<executive_wire_replyto_001@triagent.example>",
+        "date": "2026-05-06T11:25:00+00:00",
+        "headers": {
+          "Received": [
+            "from mail.executive-office.example (mail.executive-office.example [198.51.100.82]) by mx.contoso.example with ESMTPS id demo004 for <alex@contoso.example>; Wed, 6 May 2026 11:25:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=pass smtp.mailfrom=executive-office.example; dkim=pass header.d=executive-office.example header.i=@executive-office.example; dmarc=pass header.from=executive-office.example",
+          "Received-SPF": "pass (mx.contoso.example: domain of executive-office.example designates 198.51.100.82 as permitted sender) client-ip=198.51.100.82; envelope-from=assistant@executive-office.example; helo=mail.executive-office.example",
+          "DKIM-Signature": "v=1; a=rsa-sha256; d=executive-office.example; s=mail; c=relaxed/relaxed; bh=demo004; b=demo004;"
+        },
+        "body_text": "Alex,\n\nI need a payment handled before 4 PM. Please reply when you are at your desk and I will send the beneficiary details.\n\nMaya",
+        "body_html_path": "templates/executive_wire_replyto_001.html"
+      },
+      "expectations": {
+        "disposition": "MALICIOUS",
+        "classification_code": "FIN_FRAUD",
+        "risk_min": 15,
+        "expected_auth": {"spf": "pass", "dkim": "pass", "dmarc": "pass"},
+        "expected_attack_techniques": [],
+        "expected_url_domains": {
+          "observed": [],
+          "resolved": []
+        },
+        "expected_attachment_names": [],
+        "expected_lookalikes": [],
+        "notes": "BEC-style payment request with clean authentication but a reply-to mismatch."
+      }
+    },
+    {
+      "sample_id": "teams_qr_login_lure_001",
+      "family_id": "modern_qr_login",
+      "split": "demo",
+      "scenario": "qr_login_lure",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Teams mobile access expires tonight",
+        "from_addr": "teams-mobile@collaboration-alerts.example",
+        "from_display_name": "Teams Mobile",
+        "to_addrs": ["alex@contoso.example"],
+        "return_path": "<bounce@collaboration-alerts.example>",
+        "message_id": "<teams_qr_login_lure_001@triagent.example>",
+        "date": "2026-05-06T13:05:00+00:00",
+        "headers": {
+          "Received": [
+            "from mail.collaboration-alerts.example (mail.collaboration-alerts.example [198.51.100.91]) by mx.contoso.example with ESMTPS id demo005 for <alex@contoso.example>; Wed, 6 May 2026 13:05:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=softfail smtp.mailfrom=collaboration-alerts.example; dkim=fail header.d=collaboration-alerts.example header.i=@collaboration-alerts.example; dmarc=fail header.from=collaboration-alerts.example",
+          "Received-SPF": "softfail (mx.contoso.example: transitioning domain of collaboration-alerts.example does not designate 198.51.100.91 as permitted sender) client-ip=198.51.100.91; envelope-from=bounce@collaboration-alerts.example; helo=mail.collaboration-alerts.example",
+          "DKIM-Signature": "v=1; a=rsa-sha256; d=collaboration-alerts.example; s=mail; c=relaxed/relaxed; bh=demo005; b=demo005;"
+        },
+        "body_text": "Your Teams mobile session expires tonight. Scan the attached code or use the fallback link:\n\nhttps://teams-access.example/mobile/scan\n\nThis keeps your device enrolled for chat and calls.",
+        "body_html_path": "templates/teams_qr_login_lure_001.html",
+        "attachments": [
+          {
+            "filename": "teams-mobile-access.png",
+            "content_type": "image/png",
+            "template": "png_placeholder",
+            "text_payload": "Synthetic QR placeholder."
+          }
+        ]
+      },
+      "expectations": {
+        "disposition": "MALICIOUS",
+        "classification_code": "MAL_URL",
+        "risk_min": 35,
+        "expected_auth": {"spf": "softfail", "dkim": "fail", "dmarc": "fail"},
+        "expected_attack_techniques": ["T1566.002"],
+        "expected_url_domains": {
+          "observed": ["teams-access.example"],
+          "resolved": ["review-docs.example"]
+        },
+        "expected_attachment_names": ["teams-mobile-access.png"],
+        "expected_lookalikes": [],
+        "notes": "QR-assisted login lure with a fallback URL and inert image attachment."
+      }
+    },
+    {
+      "sample_id": "benign_vendor_portal_notice_001",
+      "family_id": "modern_benign_vendor",
+      "split": "demo",
+      "scenario": "benign_vendor_notice",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "May supplier portal maintenance window",
+        "from_addr": "notices@portal.vendor.example",
+        "from_display_name": "Vendor Portal",
+        "to_addrs": ["finance@contoso.example"],
+        "return_path": "<notices@portal.vendor.example>",
+        "message_id": "<benign_vendor_portal_notice_001@triagent.example>",
+        "date": "2026-05-06T14:00:00+00:00",
+        "headers": {
+          "Received": [
+            "from mail.portal.vendor.example (mail.portal.vendor.example [198.51.100.112]) by mx.contoso.example with ESMTPS id demo006 for <finance@contoso.example>; Wed, 6 May 2026 14:00:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=pass smtp.mailfrom=portal.vendor.example; dkim=pass header.d=portal.vendor.example header.i=@portal.vendor.example; dmarc=pass header.from=portal.vendor.example",
+          "Received-SPF": "pass (mx.contoso.example: domain of portal.vendor.example designates 198.51.100.112 as permitted sender) client-ip=198.51.100.112; envelope-from=notices@portal.vendor.example; helo=mail.portal.vendor.example",
+          "DKIM-Signature": "v=1; a=rsa-sha256; d=portal.vendor.example; s=mail; c=relaxed/relaxed; bh=demo006; b=demo006;"
+        },
+        "body_text": "The supplier portal will be unavailable for scheduled maintenance on Friday evening.\n\nDetails: https://portal.vendor.example/notices/may\n\nNo action is required.",
+        "body_html_path": "templates/benign_vendor_portal_notice_001.html"
+      },
+      "expectations": {
+        "disposition": "BENIGN",
+        "classification_code": null,
+        "risk_min": 0,
+        "expected_auth": {"spf": "pass", "dkim": "pass", "dmarc": "pass"},
+        "expected_attack_techniques": [],
+        "expected_url_domains": {
+          "observed": ["portal.vendor.example"],
+          "resolved": ["portal.vendor.example"]
+        },
+        "expected_attachment_names": [],
+        "expected_lookalikes": [],
+        "notes": "Clean benign vendor control."
+      }
+    },
+    {
+      "sample_id": "benign_internal_it_notice_001",
+      "family_id": "modern_benign_internal",
+      "split": "demo",
+      "scenario": "benign_internal_it_notice",
+      "message_format": "eml",
+      "mailbox_domain": "contoso.example",
+      "message": {
+        "subject": "Planned VPN maintenance on Saturday",
+        "from_addr": "it-notices@contoso.example",
+        "from_display_name": "Contoso IT",
+        "to_addrs": ["alex@contoso.example"],
+        "return_path": "<it-notices@contoso.example>",
+        "message_id": "<benign_internal_it_notice_001@triagent.example>",
+        "date": "2026-05-06T15:20:00+00:00",
+        "headers": {
+          "Received": [
+            "from mail.contoso.example (mail.contoso.example [198.51.100.122]) by mx.contoso.example with ESMTPS id demo007 for <alex@contoso.example>; Wed, 6 May 2026 15:20:00 +0000"
+          ],
+          "Authentication-Results": "mx.contoso.example; spf=pass smtp.mailfrom=contoso.example; dkim=pass header.d=contoso.example header.i=@contoso.example; dmarc=pass header.from=contoso.example",
+          "Received-SPF": "pass (mx.contoso.example: domain of contoso.example designates 198.51.100.122 as permitted sender) client-ip=198.51.100.122; envelope-from=it-notices@contoso.example; helo=mail.contoso.example",
+          "DKIM-Signature": "v=1; a=rsa-sha256; d=contoso.example; s=mail; c=relaxed/relaxed; bh=demo007; b=demo007;"
+        },
+        "body_text": "VPN access will be unavailable for 20 minutes during Saturday maintenance.\n\nDetails: https://intranet.example/it/maintenance/may\n\nNo credential confirmation is required.",
+        "body_html_path": "templates/benign_internal_it_notice_001.html"
+      },
+      "expectations": {
+        "disposition": "BENIGN",
+        "classification_code": null,
+        "risk_min": 0,
+        "expected_auth": {"spf": "pass", "dkim": "pass", "dmarc": "pass"},
+        "expected_attack_techniques": [],
+        "expected_url_domains": {
+          "observed": ["intranet.example"],
+          "resolved": ["intranet.example"]
+        },
+        "expected_attachment_names": [],
+        "expected_lookalikes": [],
+        "notes": "Clean internal control for demos and screenshots."
+      }
+    }
+  ]
+}

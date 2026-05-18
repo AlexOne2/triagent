@@ -121,7 +121,16 @@ def _attachment_bytes(spec: dict[str, Any]) -> bytes:
     raise ValueError(f"Unsupported attachment template: {template}")
 
 
-def materialize_sample(sample: dict[str, Any]) -> bytes:
+def _load_body_html(message_spec: dict[str, Any], source_root: Path | None) -> str | None:
+    if message_spec.get("body_html_path"):
+        if source_root is None:
+            raise ValueError("body_html_path requires a source root")
+        html_path = source_root / str(message_spec["body_html_path"])
+        return html_path.read_text(encoding="utf-8")
+    return message_spec.get("body_html")
+
+
+def materialize_sample(sample: dict[str, Any], *, source_root: Path | None = None) -> bytes:
     message_spec = sample["message"]
     message = EmailMessage()
 
@@ -143,7 +152,7 @@ def materialize_sample(sample: dict[str, Any]) -> bytes:
         _add_header(message, header_name, header_value)
 
     body_text = message_spec.get("body_text") or ""
-    body_html = message_spec.get("body_html")
+    body_html = _load_body_html(message_spec, source_root)
     if body_html:
         message.set_content(body_text)
         message.add_alternative(body_html, subtype="html")
@@ -215,7 +224,7 @@ def generate_corpus(spec_path: Path, output_root: Path) -> dict[str, Any]:
     clustering_ids: list[str] = []
 
     for sample in spec["samples"]:
-        raw_bytes = materialize_sample(sample)
+        raw_bytes = materialize_sample(sample, source_root=source_root)
         file_name = f"{sample['sample_id']}.{sample['message_format']}"
         sample_path = samples_dir / file_name
         sample_path.write_bytes(raw_bytes)

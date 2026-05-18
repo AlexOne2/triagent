@@ -1,0 +1,105 @@
+Subject: Q2 billing document requires review
+From: Billing Vendor <notifications@billing-vendor.example>
+To: finance@contoso.example
+Return-Path: <notifications@billing-vendor.example>
+Message-ID: <compromised_vendor_portal_001@triagent.example>
+Date: Wed, 06 May 2026 10:10:00 +0000
+Received: from mail.billing-vendor.example (mail.billing-vendor.example
+ [198.51.100.72]) by mx.contoso.example with ESMTPS id demo003 for
+ <finance@contoso.example>; Wed, 6 May 2026 10:10:00 +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=billing-vendor.example; dkim=pass
+ header.d=billing-vendor.example header.i=@billing-vendor.example; dmarc=pass
+ header.from=billing-vendor.example
+Received-SPF: pass (mx.contoso.example: domain of billing-vendor.example
+ designates 198.51.100.72 as permitted sender) client-ip=198.51.100.72;
+ envelope-from=notifications@billing-vendor.example;
+ helo=mail.billing-vendor.example
+DKIM-Signature: v=1; a=rsa-sha256; d=billing-vendor.example; s=mail;
+ c=relaxed/relaxed; bh=demo003; b=demo003;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============1859182887874915758=="
+
+--===============1859182887874915758==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Hi Finance,
+
+The Q2 billing document is ready for your approval.
+
+Open the review task: https://billing-vendor.example/invoice/8742
+
+Thanks,
+Billing Vendor
+
+--===============1859182887874915758==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html>
+<head>
+  <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8">
+  <title>Billing Vendor Portal</title>
+</head>
+<body bgcolor=3D"#f5f7fa" style=3D"margin:0;background:#f5f7fa;font-family:Ar=
+ial,Helvetica,sans-serif;">
+  <table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" bgco=
+lor=3D"#f5f7fa">
+    <tr>
+      <td align=3D"center" style=3D"padding:30px 10px;">
+        <table width=3D"620" cellpadding=3D"0" cellspacing=3D"0" border=3D"0"=
+ bgcolor=3D"#ffffff" style=3D"border:1px solid #d9dee7;">
+          <tr>
+            <td style=3D"padding:18px 24px;background:#0b4f71;color:#ffffff;f=
+ont-size:20px;font-weight:bold;">Billing Vendor</td>
+          </tr>
+          <tr>
+            <td style=3D"padding:22px 26px;font-size:14px;color:#263238;line-=
+height:21px;">
+              Hi Finance,<br><br>
+              A Q2 billing document has been added to your approval queue. Th=
+is request is part of the monthly purchase-order reconciliation workflow.
+            </td>
+          </tr>
+          <tr>
+            <td style=3D"padding:0 26px 18px 26px;">
+              <table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" borde=
+r=3D"0" style=3D"border:1px solid #d9dee7;border-collapse:collapse;font-size:=
+13px;">
+                <tr>
+                  <td style=3D"padding:10px 12px;background:#f1f5f9;font-weig=
+ht:bold;border-bottom:1px solid #d9dee7;">Document</td>
+                  <td style=3D"padding:10px 12px;border-bottom:1px solid #d9d=
+ee7;">Q2 billing review</td>
+                </tr>
+                <tr>
+                  <td style=3D"padding:10px 12px;background:#f1f5f9;font-weig=
+ht:bold;">Owner</td>
+                  <td style=3D"padding:10px 12px;">Contoso Finance</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style=3D"padding:4px 26px 28px 26px;">
+              <a href=3D"https://billing-vendor.example/invoice/8742" style=
+=3D"background:#0b4f71;color:#ffffff;text-decoration:none;padding:11px 18px;d=
+isplay:inline-block;font-weight:bold;">Open review task</a>
+            </td>
+          </tr>
+          <tr>
+            <td style=3D"padding:16px 26px;border-top:1px solid #d9dee7;font-=
+size:11px;color:#667085;">You are receiving this message because your organiz=
+ation uses Billing Vendor supplier workflows.</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+
+--===============1859182887874915758==--

@@ -1,0 +1,30 @@
+{
+  "expectations": {
+    "classification_code": "COMPRO_SEND",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1566.002",
+      "T1586.002"
+    ],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "pass",
+      "spf": "pass"
+    },
+    "expected_lookalikes": [],
+    "expected_url_domains": {
+      "observed": [
+        "billing-vendor.example"
+      ],
+      "resolved": [
+        "documents-vendor.example"
+      ]
+    },
+    "notes": "Compromised-vendor style case: authentication passes, but the business context and redirect still need analyst review.",
+    "risk_min": 20
+  },
+  "family_id": "modern_vendor_compromise",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "compromised_vendor_portal_001"
+}

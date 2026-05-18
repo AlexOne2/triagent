@@ -1,0 +1,11 @@
+{
+  "sample_ids": [
+    "benign_internal_it_notice_001",
+    "benign_vendor_portal_notice_001",
+    "compromised_vendor_portal_001",
+    "m365_session_expiry_redirect_001",
+    "teams_qr_login_lure_001",
+    "vendor_invoice_attachment_001"
+  ],
+  "split": "clustering"
+}

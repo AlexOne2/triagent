@@ -94,7 +94,7 @@ export default function ResolveDrawer({
       })
       .catch((err) => {
         if (!active) return;
-        setAssistError(err instanceof Error ? err.message : "Failed to generate assist draft.");
+        setAssistError(err instanceof Error ? err.message : "Failed to generate analyst verdict draft.");
       })
       .finally(() => {
         if (!active) return;
@@ -189,9 +189,9 @@ export default function ResolveDrawer({
         <div className="resolve-content">
           <section className="resolve-section">
             <div className="resolve-assist-head">
-              <h3>Assist draft</h3>
+              <h3>Analyst Verdict Draft</h3>
             </div>
-            {assistLoading ? <p>Generating assist draft...</p> : null}
+            {assistLoading ? <p>Generating analyst verdict draft...</p> : null}
             {assistError ? <p className="resolve-error">{assistError}</p> : null}
             {assistDraft ? (
               <div className="resolve-assist-card">
@@ -211,7 +211,7 @@ export default function ResolveDrawer({
                   </span>
                 </div>
                 <p className="resolve-assist-caption">
-                  Confidence reflects how strongly the observed evidence supports this draft recommendation, not whether the report is automatically resolved.
+                  Confidence reflects how strongly the observed evidence supports this draft conclusion, not whether the report is automatically resolved.
                 </p>
                 <p className="resolve-assist-summary">{assistDraft.summary}</p>
                 {assistDraft.reasons.length > 0 ? (

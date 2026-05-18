@@ -1,0 +1,77 @@
+Subject: Planned VPN maintenance on Saturday
+From: Contoso IT <it-notices@contoso.example>
+To: alex@contoso.example
+Return-Path: <it-notices@contoso.example>
+Message-ID: <benign_internal_it_notice_001@triagent.example>
+Date: Wed, 06 May 2026 15:20:00 +0000
+Received: from mail.contoso.example (mail.contoso.example [198.51.100.122]) by
+ mx.contoso.example with ESMTPS id demo007 for <alex@contoso.example>; Wed, 6
+ May 2026 15:20:00 +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=contoso.example; dkim=pass header.d=contoso.example
+ header.i=@contoso.example; dmarc=pass header.from=contoso.example
+Received-SPF: pass (mx.contoso.example: domain of contoso.example designates
+ 198.51.100.122 as permitted sender) client-ip=198.51.100.122;
+ envelope-from=it-notices@contoso.example; helo=mail.contoso.example
+DKIM-Signature: v=1; a=rsa-sha256; d=contoso.example; s=mail;
+ c=relaxed/relaxed; bh=demo007; b=demo007;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============8738309137950236729=="
+
+--===============8738309137950236729==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+VPN access will be unavailable for 20 minutes during Saturday maintenance.
+
+Details: https://intranet.example/it/maintenance/may
+
+No credential confirmation is required.
+
+--===============8738309137950236729==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html>
+<body style=3D"margin:0;background:#ffffff;font-family:Segoe UI,Arial,sans-se=
+rif;color:#242424;">
+  <table width=3D"660" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" style=
+=3D"margin:22px;border-collapse:collapse;">
+    <tr>
+      <td style=3D"font-size:20px;font-weight:600;padding:0 0 12px 0;">Contos=
+o IT Maintenance Advisory</td>
+    </tr>
+    <tr>
+      <td style=3D"border-top:1px solid #d0d7de;padding:18px 0;font-size:14px=
+;line-height:22px;">
+        VPN access will be unavailable for 20 minutes during Saturday mainten=
+ance.
+        No credential confirmation is required for this change.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <table cellpadding=3D"0" cellspacing=3D"0" border=3D"0" style=3D"bord=
+er:1px solid #d0d7de;border-collapse:collapse;font-size:13px;">
+          <tr>
+            <td style=3D"padding:9px 12px;background:#f6f8fa;font-weight:bold=
+;border-bottom:1px solid #d0d7de;">Window</td>
+            <td style=3D"padding:9px 12px;border-bottom:1px solid #d0d7de;">S=
+aturday, 22:00-22:20</td>
+          </tr>
+          <tr>
+            <td style=3D"padding:9px 12px;background:#f6f8fa;font-weight:bold=
+;">Details</td>
+            <td style=3D"padding:9px 12px;"><a href=3D"https://intranet.examp=
+le/it/maintenance/may">Open internal notice</a></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+
+--===============8738309137950236729==--

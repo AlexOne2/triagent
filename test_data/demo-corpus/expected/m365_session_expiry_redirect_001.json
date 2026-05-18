@@ -1,0 +1,29 @@
+{
+  "expectations": {
+    "classification_code": "CRED_HARV",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [
+      "T1598.003"
+    ],
+    "expected_auth": {
+      "dkim": "fail",
+      "dmarc": "fail",
+      "spf": "fail"
+    },
+    "expected_lookalikes": [],
+    "expected_url_domains": {
+      "observed": [
+        "go.example"
+      ],
+      "resolved": [
+        "id-check.example"
+      ]
+    },
+    "notes": "Modern credential-harvest lure with a benign-looking redirector and a suspicious final login domain.",
+    "risk_min": 35
+  },
+  "family_id": "modern_m365_identity_harvest",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "m365_session_expiry_redirect_001"
+}

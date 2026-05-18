@@ -1,0 +1,66 @@
+{
+  "fixtures": {
+    "m365_session_expiry": [
+      {
+        "url": "https://go.example/m365-verify",
+        "status_code": 302,
+        "location": "https://id-check.example/login/mfa"
+      },
+      {
+        "url": "https://id-check.example/login/mfa",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "vendor_invoice_review": [
+      {
+        "url": "https://billing-vendor.example/invoice/8742",
+        "status_code": 302,
+        "location": "https://documents-vendor.example/invoice/8742/review"
+      },
+      {
+        "url": "https://documents-vendor.example/invoice/8742/review",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "teams_qr_access": [
+      {
+        "url": "https://teams-access.example/mobile/scan",
+        "status_code": 302,
+        "location": "https://review-docs.example/mobile/session"
+      },
+      {
+        "url": "https://review-docs.example/mobile/session",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "bank_verification": [
+      {
+        "url": "https://hausbank.example/security/check",
+        "status_code": 302,
+        "location": "https://kundenportal-verify.example/session"
+      },
+      {
+        "url": "https://kundenportal-verify.example/session",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "benign_vendor_portal": [
+      {
+        "url": "https://portal.vendor.example/notices/may",
+        "status_code": 200,
+        "location": null
+      }
+    ],
+    "benign_internal_maintenance": [
+      {
+        "url": "https://intranet.example/it/maintenance/may",
+        "status_code": 200,
+        "location": null
+      }
+    ]
+  }
+}

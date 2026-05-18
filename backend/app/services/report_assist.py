@@ -105,7 +105,9 @@ def build_report_assist_draft(
 def _build_heuristic_draft(report_input: ReportAssistInput) -> ReportAssistDraftResult:
     reasons: list[str] = []
     missing_evidence: list[str] = []
-    review_warnings: list[str] = ["Assist draft generated from local evidence. Analyst approval is required before resolving the report."]
+    review_warnings: list[str] = [
+        "Analyst verdict draft generated from local evidence. Analyst approval is required before resolving the report."
+    ]
     flagged_artifacts: list[ReportAssistArtifactDraft] = []
 
     text_blob = " ".join(
@@ -426,8 +428,8 @@ def _build_summary(
     action = "malicious" if disposition == ResolutionDisposition.MALICIOUS else "safe"
     label = f"{action} / {classification_code}" if classification_code else action
     if reasons:
-        return f"Recommend resolving as {label} ({confidence} confidence). {reasons[0]}"
-    return f"Recommend resolving as {label} ({confidence} confidence)."
+        return f"Draft conclusion: resolve as {label} ({confidence} confidence). {reasons[0]}"
+    return f"Draft conclusion: resolve as {label} ({confidence} confidence)."
 
 
 def _build_recommended_note(
@@ -439,7 +441,7 @@ def _build_recommended_note(
     missing_evidence: list[str],
 ) -> str:
     parts = [
-        f"Assist draft recommends resolving as {disposition.value}{f' / {classification_code}' if classification_code else ''}.",
+        f"Draft conclusion: resolve as {disposition.value}{f' / {classification_code}' if classification_code else ''}.",
     ]
     if reasons:
         parts.append(f"Key evidence: {' '.join(reasons[:3])}")

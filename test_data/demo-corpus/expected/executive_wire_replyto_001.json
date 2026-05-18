@@ -1,0 +1,23 @@
+{
+  "expectations": {
+    "classification_code": "FIN_FRAUD",
+    "disposition": "MALICIOUS",
+    "expected_attachment_names": [],
+    "expected_attack_techniques": [],
+    "expected_auth": {
+      "dkim": "pass",
+      "dmarc": "pass",
+      "spf": "pass"
+    },
+    "expected_lookalikes": [],
+    "expected_url_domains": {
+      "observed": [],
+      "resolved": []
+    },
+    "notes": "BEC-style payment request with clean authentication but a reply-to mismatch.",
+    "risk_min": 15
+  },
+  "family_id": "modern_bec_payment",
+  "mailbox_domain": "contoso.example",
+  "sample_id": "executive_wire_replyto_001"
+}

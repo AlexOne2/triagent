@@ -1,0 +1,64 @@
+Subject: May supplier portal maintenance window
+From: Vendor Portal <notices@portal.vendor.example>
+To: finance@contoso.example
+Return-Path: <notices@portal.vendor.example>
+Message-ID: <benign_vendor_portal_notice_001@triagent.example>
+Date: Wed, 06 May 2026 14:00:00 +0000
+Received: from mail.portal.vendor.example (mail.portal.vendor.example
+ [198.51.100.112]) by mx.contoso.example with ESMTPS id demo006 for
+ <finance@contoso.example>; Wed, 6 May 2026 14:00:00 +0000
+Authentication-Results: mx.contoso.example; spf=pass
+ smtp.mailfrom=portal.vendor.example; dkim=pass header.d=portal.vendor.example
+ header.i=@portal.vendor.example; dmarc=pass header.from=portal.vendor.example
+Received-SPF: pass (mx.contoso.example: domain of portal.vendor.example
+ designates 198.51.100.112 as permitted sender) client-ip=198.51.100.112;
+ envelope-from=notices@portal.vendor.example; helo=mail.portal.vendor.example
+DKIM-Signature: v=1; a=rsa-sha256; d=portal.vendor.example; s=mail;
+ c=relaxed/relaxed; bh=demo006; b=demo006;
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============7626681129788117032=="
+
+--===============7626681129788117032==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+The supplier portal will be unavailable for scheduled maintenance on Friday e=
+vening.
+
+Details: https://portal.vendor.example/notices/may
+
+No action is required.
+
+--===============7626681129788117032==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html>
+<body bgcolor=3D"#ffffff" style=3D"margin:0;font-family:Arial,Helvetica,sans-=
+serif;color:#222222;">
+  <table width=3D"640" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" style=
+=3D"margin:24px;border:1px solid #dddddd;">
+    <tr>
+      <td bgcolor=3D"#f0f3f6" style=3D"padding:16px 22px;font-size:18px;font-=
+weight:bold;border-bottom:1px solid #dddddd;">Vendor Portal</td>
+    </tr>
+    <tr>
+      <td style=3D"padding:22px;font-size:14px;line-height:21px;">
+        The supplier portal will be unavailable for scheduled maintenance on =
+Friday evening.
+        Existing invoices and approvals will remain available after the windo=
+w.
+        <br><br>
+        <a href=3D"https://portal.vendor.example/notices/may" style=3D"color:=
+#0f766e;font-weight:bold;">Read the maintenance notice</a>
+        <br><br>
+        No action is required.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+
+--===============7626681129788117032==--
