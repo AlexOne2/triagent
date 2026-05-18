@@ -1,6 +1,6 @@
 # Contribution Policy
 
-Triagent is currently public as a personal portfolio asset and product demo. Non-commercial use is allowed under the project license, but external code contributions are not being accepted at this stage.
+Triagent is currently public as a personal portfolio asset and product demo. The code is licensed under Apache 2.0, but external code contributions are not being accepted at this stage.
 
 You are welcome to read the code, evaluate the architecture, and use the repository as a reference for what the prototype currently does. Please do not submit pull requests with feature work, broad rewrites, private email samples, customer data, credentials, or live malware.
 

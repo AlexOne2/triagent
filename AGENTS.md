@@ -12,7 +12,7 @@ The product stance is:
 - local-first and on-prem friendly
 - useful for regulated environments where email artifacts should not automatically leave the organization
 - a personal public demo / portfolio asset, not a broad community OSS project
-- non-commercial use allowed under the PolyForm Noncommercial License 1.0.0
+- licensed under the Apache License 2.0
 - external code contributions are not currently accepted
 
 The main product goal is to help an analyst move from suspicious email to defensible verdict faster, with cleaner evidence and less repetitive parsing work.
@@ -21,7 +21,7 @@ The main product goal is to help an analyst move from suspicious email to defens
 
 Triagent should not chase broad GitHub traffic first. The better goal is credible security-operator attention: SOC analysts, IR consultants, MSSP operators, Microsoft/M365 security consultants, and security leaders who recognize the workflow pain.
 
-Do not describe Triagent as "open source" while it uses the PolyForm Noncommercial license. Use "source-available", "public demo", or "free for non-commercial evaluation" instead.
+Triagent now uses the Apache License 2.0, so "open source" is acceptable. Still be precise in public copy: the project is a public validation prototype and personal product demo, not a broad community-led project.
 
 Preferred positioning:
 
@@ -46,7 +46,7 @@ Launch-readiness items before serious promotion:
 - Publish a `v0.1` GitHub release.
 - Add GitHub topics: `phishing`, `soc`, `incident-response`, `security-tools`, `email-security`, `dfir`, `threat-intelligence`, `on-prem`, `fastapi`, `nextjs`.
 - Rename any "personal portfolio asset" wording if it makes operator-facing pages feel unserious; "validation prototype" is usually better for public-facing copy.
-- Keep the license story honest: source-available / non-commercial unless the license changes.
+- Keep the license story honest: Apache 2.0 licensed, but external code contributions are not accepted at this stage.
 
 Preferred first distribution loop:
 
@@ -382,9 +382,8 @@ Success criterion:
 
 ## Licensing And Public Posture
 
-- License: PolyForm Noncommercial License 1.0.0.
-- Non-commercial use is allowed.
-- Commercial use requires separate permission.
+- License: Apache License 2.0.
+- Commercial and non-commercial use are allowed under the license terms.
 - External code contributions are not accepted at this stage.
 - Security issues should be reported privately according to `SECURITY.md`.
 
