@@ -11,9 +11,9 @@ The product stance is:
 - analyst-centered, not blind automation
 - local-first and on-prem friendly
 - useful for regulated environments where email artifacts should not automatically leave the organization
-- a personal public demo / portfolio asset, not a broad community OSS project
+- an Apache 2.0 licensed open source project for analysts and security teams
 - licensed under the Apache License 2.0
-- external code contributions are not currently accepted
+- small focused external contributions are welcome; large changes should start with an issue
 
 The main product goal is to help an analyst move from suspicious email to defensible verdict faster, with cleaner evidence and less repetitive parsing work.
 
@@ -21,7 +21,7 @@ The main product goal is to help an analyst move from suspicious email to defens
 
 Triagent should not chase broad GitHub traffic first. The better goal is credible security-operator attention: SOC analysts, IR consultants, MSSP operators, Microsoft/M365 security consultants, and security leaders who recognize the workflow pain.
 
-Triagent now uses the Apache License 2.0, so "open source" is acceptable. Still be precise in public copy: the project is a public validation prototype and personal product demo, not a broad community-led project.
+Triagent uses the Apache License 2.0, so "open source" is accurate. Still be precise in public copy: the project is early, analyst-centered, and usable for local evaluation, demos, workflow research, and controlled internal testing.
 
 Preferred positioning:
 
@@ -45,8 +45,8 @@ Launch-readiness items before serious promotion:
 - Add a "Try the demo in 5 minutes" path.
 - Publish a `v0.1` GitHub release.
 - Add GitHub topics: `phishing`, `soc`, `incident-response`, `security-tools`, `email-security`, `dfir`, `threat-intelligence`, `on-prem`, `fastapi`, `nextjs`.
-- Rename any "personal portfolio asset" wording if it makes operator-facing pages feel unserious; "validation prototype" is usually better for public-facing copy.
-- Keep the license story honest: Apache 2.0 licensed, but external code contributions are not accepted at this stage.
+- Keep the license story honest: Apache 2.0 licensed open source.
+- Encourage safe, focused contributions without accepting private email samples, customer data, credentials, or live malware.
 
 Preferred first distribution loop:
 
@@ -384,7 +384,7 @@ Success criterion:
 
 - License: Apache License 2.0.
 - Commercial and non-commercial use are allowed under the license terms.
-- External code contributions are not accepted at this stage.
+- Small focused external contributions are welcome; larger changes should start with an issue.
 - Security issues should be reported privately according to `SECURITY.md`.
 
 ## When Picking Work

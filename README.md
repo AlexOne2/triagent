@@ -295,16 +295,16 @@ Operational docs:
 - [Modern demo corpus](./test_data/demo-corpus/README.md)
 - [Synthetic corpus scaffold](./test_data/synthetic-corpus/README.md)
 
-## Public Demo Status
+## Open Source Status
 
-This repository is public as a personal portfolio asset and product demo. The code is licensed under Apache 2.0, but external code contributions are not being accepted at this stage.
+Triagent is an Apache 2.0 licensed open source project for analysts and security teams evaluating local-first phishing triage workflows.
 
 - See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for the current contribution policy.
 - Report suspected vulnerabilities privately through the process in [`SECURITY.md`](./SECURITY.md).
 
 ## Current Status
 
-Triagent is a working validation prototype for analyst-centered phishing triage.
+Triagent is an early but usable analyst-centered phishing triage tool. It is suitable for local evaluation, demos, workflow research, and controlled internal testing. Production use should follow the hardening guidance and security review appropriate for your environment.
 
 Implemented:
 
