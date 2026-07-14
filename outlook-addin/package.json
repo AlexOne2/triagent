@@ -12,7 +12,7 @@
     "@types/office-js": "1.0.363",
     "css-loader": "6.10.0",
     "html-loader": "5.1.0",
-    "html-webpack-plugin": "5.6.0",
+    "html-webpack-plugin": "5.6.7",
     "office-addin-dev-certs": "1.13.0",
     "style-loader": "3.3.4",
     "ts-loader": "9.5.1",
